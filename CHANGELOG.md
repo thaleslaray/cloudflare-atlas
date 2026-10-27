@@ -29,11 +29,22 @@ ship in a repository that people install.
   "the live blog (blog.cloudflare.com), search \"<topic>\"", keeping the search term. One line per file.
 - Left as is on purpose: the Blog <-> docs divergence notes in `think.md` (they are about the live blog)
   and the older entries of this file that mention `data/blog/` (history is not rewritten).
+- New gate `scripts/check-repo`. Why: this pass shipped to GitHub with a pointer to a file that sat in the
+  repo root (`references/_curation-guide.md`), a stale root copy of `_known-products.txt` and a one-off
+  script, and `check-pointers` could not see any of it (it only checks product-to-product pointers). The
+  new gate checks cited paths, catalog vs product files, leftovers of the blog corpus, unexpected root
+  files, executable bits and local paths. Errors exit 1; warnings exit 0 unless `--strict`. Run it before
+  every publish.
+- Cleanup of the repo root, same day: `_curation-guide.md` moved to `references/` (where `SKILL.md` and the
+  scripts expect it); stale `_known-products.txt` and the one-off `_remove_category.py` removed.
 
 **Verified.** `scripts/check-pointers`: 118 cross-references across 100 product files, no broken pointers.
 A search for `data/blog` / `blog-search` outside this file finds nothing.
 
-**Deferred.** Nothing. If a local "why" layer is wanted again, rebuild it from `blog.cloudflare.com`:
+**Deferred.** Not fixed yet, reported by `check-repo`: the "(all 93)" count in the catalog heading
+(the catalog lists 96 entries; 100 product files incl. 4 rename stubs; verify with `scripts/update-check`
+before changing it) and 6 lines with a local path in `evals/link-gate-fixture.log`,
+`references/_curation-guide.md` and `references/api/_spec-version.txt`. If a local "why" layer is wanted again, rebuild it from `blog.cloudflare.com`:
 the removed corpus is not in this repository's history (it was deleted before the first commit).
 
 ---
