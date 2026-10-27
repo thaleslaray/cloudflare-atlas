@@ -12,6 +12,32 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-10-27
+
+**Removed the bundled blog corpus (`data/blog/`, 3,516 posts, 61 MB) and every pointer to it.**
+
+**Why.** The corpus was only the "why / tradeoffs" layer. It was never the product documentation, which
+lives in `references/products/`, `references/api/` and the live docs. At 61 MB it was also too heavy to
+ship in a repository that people install.
+
+**What changed**
+- `SKILL.md` — the "Design rationale" row of *Retrieval sources* now points at the live blog
+  (`blog.cloudflare.com`, any post via `Accept: text/markdown`); NOT-FOUND check 3 says "live blog".
+- `scripts/blog-search` removed (it only searched the corpus; no other script used it).
+- Ten product files — `durable-objects`, `privacy-pass`, `r2`, `randomness-beacon`, `d1`, `hyperdrive`,
+  `think`, `kv`, `moq`, `zaraz` — each had one `scripts/blog-search "<topic>"` pointer. Reworded to
+  "the live blog (blog.cloudflare.com), search \"<topic>\"", keeping the search term. One line per file.
+- Left as is on purpose: the Blog <-> docs divergence notes in `think.md` (they are about the live blog)
+  and the older entries of this file that mention `data/blog/` (history is not rewritten).
+
+**Verified.** `scripts/check-pointers`: 118 cross-references across 100 product files, no broken pointers.
+A search for `data/blog` / `blog-search` outside this file finds nothing.
+
+**Deferred.** Nothing. If a local "why" layer is wanted again, rebuild it from `blog.cloudflare.com`:
+the removed corpus is not in this repository's history (it was deleted before the first commit).
+
+---
+
 ## 2026-10-12
 
 **Weekly pass: 7 new not-found tokens fixed, one new vendor subtree, 10 changelog items curated.**
