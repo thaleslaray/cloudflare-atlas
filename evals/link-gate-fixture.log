@@ -1,6 +1,6 @@
 === test-link-gates — 2026-09-21 17:36 UTC ===
-workbench: /Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas
-installed: /Users/thaleslaray/.claude/skills/cloudflare-atlas
+workbench: <workbench>
+installed: <installed>
 
 ── A. installed copy BEFORE the test ──
 82:  and subrequests. (Verify on `…/workers-vpc/platform/limits/`.)

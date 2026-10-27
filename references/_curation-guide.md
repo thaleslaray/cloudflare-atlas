@@ -3,7 +3,7 @@
 You curate ONE Cloudflare product reference file. Follow this exactly.
 
 ## Format
-Mirror `/Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas/references/products/r2.md`:
+Mirror `<workbench>/references/products/r2.md`:
 title + 1-line summary blockquote → `## Contents` (TOC) → When to use (and when not) → Binding & config
 (`wrangler.jsonc` if applicable) → Key API / access patterns → Gotchas → Pricing & limits → Going deeper.
 Concise, scannable. ≤120 lines for covered products, ≤150 for new ones.
@@ -42,7 +42,7 @@ When a NEW file would exceed its cap, still push back: the cap catches padding. 
 for files whose length is measured fact, and it is recorded per-file so the next pass does not
 re-litigate it from scratch.
 
-## Source material (all under /Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/raw/)
+## Source material (all under <workbench>/../raw/)
 - Rendered docs: `docs-oficiais/pages/<slug>/`  and  `docs-oficiais/full/<slug>.md`
 - Pricing: `docs-oficiais/pages/<slug>/**/pricing*`   ·   Limits: `docs-oficiais/pages/<slug>/**/limits*`
 - Official skill ref (may or may not exist): `cloudflare-skills-repo/skills/cloudflare/references/<slug>/`
@@ -65,5 +65,5 @@ Prefer the rendered docs (`pages/`) for exact numbers — they're current. If th
 disagrees with the docs on a number, trust the docs and use the doc value.
 
 ## Output
-Write to `/Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas/references/products/<slug>.md`.
+Write to `<workbench>/references/products/<slug>.md`.
 Reply with one line: the slug + final line count.
