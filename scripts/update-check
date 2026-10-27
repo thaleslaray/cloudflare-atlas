@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# update-check — detect when this skill has gone stale against live Cloudflare.
+# Compares the LIVE product directory + per-product doc trees + recent changelog
+# against what the skill knows.
+# Usage: update-check [changelog_days]        (default 21)
+#        update-check --shallow [days]        skip the per-product page diff (fast)
+#        update-check --init-baseline         re-record the page baseline, then exit
+# It does NOT auto-edit files — it reports drift so a human/agent can refresh
+# (re-curate new products with _curation-guide.md; regenerate the catalog/API).
+set -u
+SKILL_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="$SKILL_DIR/references/_known-products.txt"
+BASELINE="$SKILL_DIR/references/_known-pages.txt"
+PAGEDIFF="$SKILL_DIR/scripts/pagediff.py"
+LLMS="https://developers.cloudflare.com/llms.txt"
+RSS="https://developers.cloudflare.com/changelog/rss/index.xml"
+
+DEEP=1
+case "${1:-}" in
+  --init-baseline) exec python3 "$PAGEDIFF" --baseline "$BASELINE" --init ;;
+  --shallow)       DEEP=0; shift ;;
+esac
+DAYS="${1:-21}"
+
+echo "🔎 cloudflare-atlas update-check  ($(date -u +%Y-%m-%d) UTC)"
+echo
+
+# 1) live product list
+live="$(curl -fsSL -A 'Mozilla/5.0' "$LLMS" 2>/dev/null \
+  | grep -oE 'https://developers\.cloudflare\.com/[^/)]+/llms\.txt' \
+  | sed -E 's#https://developers\.cloudflare\.com/##; s#/llms\.txt##' | sort -u)"
+if [ -z "$live" ]; then echo "⚠️  could not fetch live product list ($LLMS)"; else
+  known="$(sort -u "$MANIFEST" 2>/dev/null)"
+  echo "📦 Products: live=$(echo "$live" | wc -l | tr -d ' ')  known=$(echo "$known" | wc -l | tr -d ' ')"
+  newp="$(comm -23 <(echo "$live") <(echo "$known"))"
+  gonep="$(comm -13 <(echo "$live") <(echo "$known"))"
+  if [ -n "$newp" ]; then
+    echo; echo "🆕 NEW products (not in the skill — consider curating):"
+    echo "$newp" | sed 's/^/   + /'
+  fi
+  if [ -n "$gonep" ]; then
+    echo; echo "🗑️  GONE/renamed (in skill manifest, no longer live):"
+    echo "$gonep" | sed 's/^/   - /'
+  fi
+  [ -z "$newp$gonep" ] && echo "✅ product list matches — no structural drift."
+fi
+
+# 2) per-product doc trees — catches launches INSIDE a known product.
+# The top-level slug list above is blind to these: Project Think shipped as 14 pages
+# under agents/harnesses/think/ while the `agents` slug never changed, and went
+# undetected for three months. This walks every product's own llms.txt.
+if [ "$DEEP" = "1" ]; then
+  echo
+  echo "🌲 Doc subtrees (walking every product's llms.txt — takes a few seconds):"
+  python3 "$PAGEDIFF" --baseline "$BASELINE" | sed 's/^/   /'
+fi
+
+# 3) products in the catalog without a curated reference (internal consistency)
+missing=""
+for f in $(grep -oE '→ products/[a-z0-9-]+\.md' "$SKILL_DIR/SKILL.md" 2>/dev/null | sed 's#→ products/##'); do
+  [ -f "$SKILL_DIR/references/products/$f" ] || missing="$missing $f"
+done
+[ -n "$missing" ] && { echo; echo "⚠️  catalog entries missing a products/ file:$missing"; }
+
+# 4) recent changelog (what changed lately, any product)
+echo; echo "📰 Changelog — last $DAYS days:"
+curl -fsSL -A 'Mozilla/5.0' "$RSS" 2>/dev/null | DAYS="$DAYS" python3 -c '
+import sys, re, html, os, datetime as dt
+data = sys.stdin.read()
+cut = dt.datetime.now(dt.timezone.utc).replace(tzinfo=None) - dt.timedelta(days=int(os.environ["DAYS"]))
+items = re.findall(r"<item>(.*?)</item>", data, re.S)
+n = 0
+for it in items:
+    t = re.search(r"<title>(.*?)</title>", it, re.S)
+    d = re.search(r"<pubDate>(.*?)</pubDate>", it, re.S)
+    if not t or not d: continue
+    title = html.unescape(t.group(1)).strip()
+    try:
+        when = dt.datetime.strptime(d.group(1).strip()[:25], "%a, %d %b %Y %H:%M:%S")
+    except Exception:
+        continue
+    if when >= cut:
+        print(f"   • {when:%Y-%m-%d}  {title}")
+        n += 1
+if n == 0: print("   (no entries in window — or could not fetch)")
+'
+
+echo
+echo "➡️  To refresh: curate any NEW product with references/_curation-guide.md, add its slug to"
+echo "   references/_known-products.txt + the catalog in SKILL.md, then re-slice api/ from the OpenAPI spec."
+echo "   Log what you curated (and what you deferred) in CHANGELOG.md — deferred items are the"
+echo "   backlog, and an unlogged deferral is how a launch goes missing for months."
+echo "   After curating, re-record the page baseline:  scripts/update-check --init-baseline"

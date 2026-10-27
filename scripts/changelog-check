@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# changelog-check — fetch the LIVE Cloudflare changelog and show recent entries matching a product/term.
+# Usage: changelog-check "<product or term>" [max]
+#   e.g. changelog-check "R2 SQL"   ·   changelog-check workers 20
+# Why: pricing/limits/features change. Run this before asserting "X is supported" or quoting a limit.
+set -u
+TERM="${1:?usage: changelog-check \"<product/term>\" [max]}"
+MAX="${2:-15}"
+URL="https://developers.cloudflare.com/changelog/rss/index.xml"
+SNAPSHOT="$(cd "$(dirname "$0")/.." && pwd)/references/changelog/changelog-rss.xml"  # optional offline fallback
+
+XML="$(curl -fsSL -A 'Mozilla/5.0' "$URL" 2>/dev/null)"
+if [ -z "$XML" ]; then
+  if [ -f "$SNAPSHOT" ]; then XML="$(cat "$SNAPSHOT")"; echo "(offline — using bundled snapshot; may be stale)"; fi
+fi
+[ -z "$XML" ] && { echo "could not fetch the live changelog and no snapshot found"; exit 1; }
+
+printf '%s' "$XML" | TERM="$TERM" MAX="$MAX" python3 -c '
+import sys, re, html, os
+data = sys.stdin.read()
+raw_term = os.environ["TERM"]
+term = raw_term.lower()
+maxn = int(os.environ["MAX"])
+items = re.findall(r"<item>(.*?)</item>", data, re.S)
+n = 0
+for it in items:
+    t = re.search(r"<title>(.*?)</title>", it, re.S)
+    d = re.search(r"<pubDate>(.*?)</pubDate>", it, re.S)
+    l = re.search(r"<link>(.*?)</link>", it, re.S)
+    title = html.unescape((t.group(1) if t else "")).strip()
+    if term in title.lower():
+        date = (d.group(1)[:16] if d else "").strip()
+        print(f"• {title}  [{date}]")
+        if l: print(f"    {l.group(1).strip()}")
+        n += 1
+        if n >= maxn: break
+if n == 0:
+    print("no recent changelog entries matching: " + raw_term)
+    print("(try a broader term, or check the live changelog: https://developers.cloudflare.com/changelog/)")
+'

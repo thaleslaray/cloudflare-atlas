@@ -1,0 +1,164 @@
+# API reference — magic-transit
+
+> Exact REST endpoints for **magic-transit**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 155 operations. Base: `https://api.cloudflare.com/client/v4`.
+
+> Body fields below are the **top-level required** ones only — not optional fields, nested
+> shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
+
+> ⚠️ Verify shapes/params against the live API docs before relying on them — specs drift.
+
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist` — List all allowlist prefixes.  · required: account_id
+- `POST /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist` — Create allowlist prefix.  · required: account_id  · body: comment:string, enabled:boolean, prefix:string
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist` — Delete all allowlist prefixes.  · required: account_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist/{prefix_id}` — Get allowlist prefix.  · required: account_id, prefix_id
+- `PATCH /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist/{prefix_id}` — Update allowlist prefix.  · required: account_id, prefix_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/allowlist/{prefix_id}` — Delete allowlist prefix.  · required: account_id, prefix_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes` — List all prefixes.  · required: account_id
+- `POST /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes` — Create prefix.  · required: account_id  · body: comment:string, excluded:boolean, prefix:string
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes` — Delete all prefixes.  · required: account_id
+- `POST /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes/bulk` — Create multiple prefixes.  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes/{prefix_id}` — Get prefix.  · required: account_id, prefix_id
+- `PATCH /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes/{prefix_id}` — Update prefix.  · required: account_id, prefix_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/prefixes/{prefix_id}` — Delete prefix.  · required: account_id, prefix_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters` — List all SYN Protection filters.  · required: account_id
+- `POST /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters` — Create a SYN Protection filter.  · required: account_id  · body: expression:string, mode:string
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters` — Delete all SYN Protection filters.  · required: account_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters/{filter_id}` — Get SYN Protection filter.  · required: account_id, filter_id
+- `PATCH /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters/{filter_id}` — Update SYN Protection filter.  · required: account_id, filter_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/syn_protection/filters/{filter_id}` — Delete SYN Protection filter.  · required: account_id, filter_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters` — List all TCP Flow Protection filters.  · required: account_id
+- `POST /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters` — Create a TCP Flow Protection filter.  · required: account_id  · body: expression:string, mode:string
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters` — Delete all TCP Flow Protection filters.  · required: account_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters/{filter_id}` — Get TCP Flow Protection filter.  · required: account_id, filter_id
+- `PATCH /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters/{filter_id}` — Update TCP Flow Protection filter.  · required: account_id, filter_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_flow_protection/filters/{filter_id}` — Delete TCP Flow Protection filter.  · required: account_id, filter_id
+- `GET /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_protection_status` — Get protection status.  · required: account_id
+- `PATCH /accounts/{account_id}/magic/advanced_tcp_protection/configs/tcp_protection_status` — Update protection status.  · required: account_id  · body: enabled:boolean
+- `GET /accounts/{account_id}/magic/apps` — List Apps  · required: account_id
+- `POST /accounts/{account_id}/magic/apps` — Create a new App  · required: account_id  · body: hostnames:any
+- `PUT /accounts/{account_id}/magic/apps/{account_app_id}` — Update an App  · required: account_id, account_app_id  · body: name:any
+- `PATCH /accounts/{account_id}/magic/apps/{account_app_id}` — Update an App  · required: account_id, account_app_id  · body: name:any
+- `DELETE /accounts/{account_id}/magic/apps/{account_app_id}` — Delete Account App  · required: account_id, account_app_id
+- `GET /accounts/{account_id}/magic/bgp/filter_profiles` — List BGP Filter Profiles  · required: account_id
+- `POST /accounts/{account_id}/magic/bgp/filter_profiles` — Create BGP Filter Profile  · required: account_id  · body: match_action:string, name:string, targets:string[]
+- `GET /accounts/{account_id}/magic/bgp/filter_profiles/{profile_id}` — Get BGP Filter Profile  · required: account_id, profile_id
+- `PUT /accounts/{account_id}/magic/bgp/filter_profiles/{profile_id}` — Update BGP Filter Profile  · required: account_id, profile_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/bgp/filter_profiles/{profile_id}` — Delete BGP Filter Profile  · required: account_id, profile_id
+- `GET /accounts/{account_id}/magic/bgp/settings` — Get BGP Settings  · required: account_id
+- `PUT /accounts/{account_id}/magic/bgp/settings` — Update BGP Settings  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/cf1_sites` — List CF1 Sites  · required: account_id
+- `POST /accounts/{account_id}/magic/cf1_sites` — Create CF1 Sites  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}` — Get CF1 Site  · required: account_id, cf1_site_id
+- `PATCH /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}` — Update CF1 Site  · required: account_id, cf1_site_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}` — Delete CF1 Site  · required: account_id, cf1_site_id
+- `GET /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}/ramps` — List CF1 Site Ramps  · required: account_id, cf1_site_id
+- `POST /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}/ramps` — Create CF1 Site Ramps  · required: account_id, cf1_site_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}/ramps/{ramp_id}` — Get CF1 Site Ramp  · required: account_id, cf1_site_id, ramp_id
+- `DELETE /accounts/{account_id}/magic/cf1_sites/{cf1_site_id}/ramps/{ramp_id}` — Delete CF1 Site Ramp  · required: account_id, cf1_site_id, ramp_id
+- `GET /accounts/{account_id}/magic/cf_interconnects` — List interconnects  · required: account_id
+- `PUT /accounts/{account_id}/magic/cf_interconnects` — Update multiple interconnects  · required: account_id  · body: id:any
+- `GET /accounts/{account_id}/magic/cf_interconnects/{cf_interconnect_id}` — List interconnect Details  · required: cf_interconnect_id, account_id
+- `PUT /accounts/{account_id}/magic/cf_interconnects/{cf_interconnect_id}` — Update interconnect  · required: cf_interconnect_id, account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/cloud/catalog-syncs` — List Catalog Syncs  · required: account_id
+- `POST /accounts/{account_id}/magic/cloud/catalog-syncs` — Create Catalog Sync  · required: account_id  · body: destination_type:string, name:string, update_mode:string
+- `GET /accounts/{account_id}/magic/cloud/catalog-syncs/prebuilt-policies` — List Prebuilt Policies  · required: account_id
+- `GET /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Read Catalog Sync  · required: account_id, sync_id
+- `PUT /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Update Catalog Sync  · required: account_id, sync_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Patch Catalog Sync  · required: account_id, sync_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Delete Catalog Sync  · required: account_id, sync_id
+- `POST /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}/refresh` — Run Catalog Sync  · required: account_id, sync_id
+- `GET /accounts/{account_id}/magic/cloud/onramps` — List On-ramps  · required: account_id
+- `POST /accounts/{account_id}/magic/cloud/onramps` — Create On-ramp  · required: account_id  · body: cloud_type:string, dynamic_routing:boolean, install_routes_in_cloud:boolean, install_routes_in_magic_wan:boolean, name:string, type:string
+- `GET /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Read Magic WAN Address Space  · required: account_id
+- `PUT /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Update Magic WAN Address Space  · required: account_id  · body: prefixes:string[]
+- `PATCH /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Patch Magic WAN Address Space  · required: account_id  · body: prefixes:string[]
+- `GET /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Read On-ramp  · required: account_id, onramp_id
+- `PUT /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Update On-ramp  · required: account_id, onramp_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Patch On-ramp  · required: account_id, onramp_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Delete On-ramp  · required: account_id, onramp_id
+- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/apply` — Apply On-ramp  · required: account_id, onramp_id
+- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/export` — Export as Terraform  · required: account_id, onramp_id
+- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/plan` — Plan On-ramp  · required: account_id, onramp_id
+- `GET /accounts/{account_id}/magic/cloud/providers` — List Cloud Integrations  · required: account_id
+- `POST /accounts/{account_id}/magic/cloud/providers` — Create Cloud Integration  · required: account_id  · body: cloud_type:string, friendly_name:string
+- `POST /accounts/{account_id}/magic/cloud/providers/discover` — Run Discovery for All Integrations  · required: account_id
+- `GET /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Read Cloud Integration  · required: account_id, provider_id
+- `PUT /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Update Cloud Integration  · required: account_id, provider_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Patch Cloud Integration  · required: account_id, provider_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Delete Cloud Integration  · required: account_id, provider_id
+- `POST /accounts/{account_id}/magic/cloud/providers/{provider_id}/discover` — Run Discovery  · required: account_id, provider_id
+- `GET /accounts/{account_id}/magic/cloud/providers/{provider_id}/initial_setup` — Get Cloud Integration Setup Config  · required: account_id, provider_id
+- `GET /accounts/{account_id}/magic/connectors` — List Connectors  · required: account_id
+- `POST /accounts/{account_id}/magic/connectors` — Create Connector  · required: account_id  · body: device:object
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}` — Get Connector  · required: account_id, connector_id
+- `PUT /accounts/{account_id}/magic/connectors/{connector_id}` — Update Connector  · required: account_id, connector_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/connectors/{connector_id}` — Edit Connector  · required: account_id, connector_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/connectors/{connector_id}` — Delete Connector  · required: account_id, connector_id
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/interrupts` — List Interrupts  · required: account_id, connector_id
+- `POST /accounts/{account_id}/magic/connectors/{connector_id}/interrupts` — Create Interrupt  · required: account_id, connector_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/events` — List Events  · required: account_id, connector_id, from, to
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/events/latest` — Get latest Events  · required: account_id, connector_id
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/events/{event_t}.{event_n}` — Get Event  · required: account_id, connector_id, event_t, event_n
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/snapshots` — List Snapshots  · required: account_id, connector_id, from, to
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/snapshots/latest` — Get latest Snapshots  · required: account_id, connector_id
+- `GET /accounts/{account_id}/magic/connectors/{connector_id}/telemetry/snapshots/{snapshot_t}` — Get Snapshot  · required: account_id, connector_id, snapshot_t
+- `GET /accounts/{account_id}/magic/gre_tunnels` — List GRE tunnels  · required: account_id
+- `POST /accounts/{account_id}/magic/gre_tunnels` — Create a GRE tunnel  · required: account_id  · body: cloudflare_gre_endpoint:string, customer_gre_endpoint:string, interface_address:string, name:string
+- `PUT /accounts/{account_id}/magic/gre_tunnels` — Update multiple GRE tunnels  · required: account_id  · body: id:any
+- `GET /accounts/{account_id}/magic/gre_tunnels/{gre_tunnel_id}` — List GRE Tunnel Details  · required: gre_tunnel_id, account_id
+- `PUT /accounts/{account_id}/magic/gre_tunnels/{gre_tunnel_id}` — Update GRE Tunnel  · required: gre_tunnel_id, account_id  · body: cloudflare_gre_endpoint:string, customer_gre_endpoint:string, interface_address:string, name:string
+- `DELETE /accounts/{account_id}/magic/gre_tunnels/{gre_tunnel_id}` — Delete GRE Tunnel  · required: gre_tunnel_id, account_id
+- `GET /accounts/{account_id}/magic/ipsec_tunnels` — List IPsec tunnels  · required: account_id
+- `POST /accounts/{account_id}/magic/ipsec_tunnels` — Create an IPsec tunnel  · required: account_id  · body: cloudflare_endpoint:string, interface_address:string, name:string
+- `PUT /accounts/{account_id}/magic/ipsec_tunnels` — Update multiple IPsec tunnels  · required: account_id  · body: id:any
+- `POST /accounts/{account_id}/magic/ipsec_tunnels/psk` — Set Pre-Shared Keys (PSK) for IPsec tunnels  · required: account_id  · body: psks:object[]
+- `GET /accounts/{account_id}/magic/ipsec_tunnels/{ipsec_tunnel_id}` — List IPsec tunnel details  · required: ipsec_tunnel_id, account_id
+- `PUT /accounts/{account_id}/magic/ipsec_tunnels/{ipsec_tunnel_id}` — Update IPsec Tunnel  · required: ipsec_tunnel_id, account_id  · body: cloudflare_endpoint:string, interface_address:string, name:string
+- `DELETE /accounts/{account_id}/magic/ipsec_tunnels/{ipsec_tunnel_id}` — Delete IPsec Tunnel  · required: ipsec_tunnel_id, account_id
+- `POST /accounts/{account_id}/magic/ipsec_tunnels/{ipsec_tunnel_id}/psk_generate` — Generate Pre-Shared Key (PSK) for IPsec tunnels  · required: ipsec_tunnel_id, account_id
+- `GET /accounts/{account_id}/magic/redundancy_groups` — List Redundancy Groups  · required: account_id
+- `POST /accounts/{account_id}/magic/redundancy_groups` — Create a Redundancy Group  · required: account_id  · body: name:string
+- `GET /accounts/{account_id}/magic/redundancy_groups/{redundancy_group_id}` — Get Redundancy Group Details  · required: account_id, redundancy_group_id
+- `PUT /accounts/{account_id}/magic/redundancy_groups/{redundancy_group_id}` — Update a Redundancy Group  · required: account_id, redundancy_group_id  · body: name:string
+- `DELETE /accounts/{account_id}/magic/redundancy_groups/{redundancy_group_id}` — Delete a Redundancy Group  · required: account_id, redundancy_group_id
+- `GET /accounts/{account_id}/magic/routes` — List Routes  · required: account_id
+- `POST /accounts/{account_id}/magic/routes` — Create a Route  · required: account_id  · body: nexthop:string, prefix:string, priority:integer
+- `PUT /accounts/{account_id}/magic/routes` — Update Many Routes  · required: account_id  · body: routes:object[]
+- `DELETE /accounts/{account_id}/magic/routes` — Delete Many Routes  · required: account_id  · body: routes:object[]
+- `GET /accounts/{account_id}/magic/routes/{route_id}` — Route Details  · required: route_id, account_id
+- `PUT /accounts/{account_id}/magic/routes/{route_id}` — Update Route  · required: route_id, account_id  · body: nexthop:string, prefix:string, priority:integer
+- `DELETE /accounts/{account_id}/magic/routes/{route_id}` — Delete Route  · required: route_id, account_id
+- `GET /accounts/{account_id}/magic/sites` — List Sites  · required: account_id
+- `POST /accounts/{account_id}/magic/sites` — Create a new Site  · required: account_id  · body: name:string
+- `GET /accounts/{account_id}/magic/sites/{site_id}` — Site Details  · required: site_id, account_id
+- `PUT /accounts/{account_id}/magic/sites/{site_id}` — Update Site  · required: site_id, account_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}` — Patch Site  · required: site_id, account_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}` — Delete Site  · required: site_id, account_id
+- `GET /accounts/{account_id}/magic/sites/{site_id}/acls` — List Site ACLs  · required: account_id, site_id
+- `POST /accounts/{account_id}/magic/sites/{site_id}/acls` — Create a new Site ACL  · required: account_id, site_id  · body: lan_1:object, lan_2:object, name:string
+- `GET /accounts/{account_id}/magic/sites/{site_id}/acls/{acl_id}` — Site ACL Details  · required: site_id, account_id, acl_id
+- `PUT /accounts/{account_id}/magic/sites/{site_id}/acls/{acl_id}` — Update Site ACL  · required: site_id, account_id, acl_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}/acls/{acl_id}` — Patch Site ACL  · required: site_id, account_id, acl_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}/acls/{acl_id}` — Delete Site ACL  · required: site_id, account_id, acl_id
+- `GET /accounts/{account_id}/magic/sites/{site_id}/app_configs` — List App Configs  · required: account_id, site_id
+- `POST /accounts/{account_id}/magic/sites/{site_id}/app_configs` — Create a new App Config  · required: account_id, site_id  · body: account_app_id:string, breakout:boolean
+- `PUT /accounts/{account_id}/magic/sites/{site_id}/app_configs/{app_config_id}` — Update an App Config  · required: account_id, site_id, app_config_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}/app_configs/{app_config_id}` — Update an App Config  · required: account_id, site_id, app_config_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}/app_configs/{app_config_id}` — Delete App Config  · required: account_id, site_id, app_config_id
+- `GET /accounts/{account_id}/magic/sites/{site_id}/lans` — List Site LANs  · required: account_id, site_id
+- `POST /accounts/{account_id}/magic/sites/{site_id}/lans` — Create a new Site LAN  · required: account_id, site_id  · body: (no required fields)
+- `GET /accounts/{account_id}/magic/sites/{site_id}/lans/{lan_id}` — Site LAN Details  · required: site_id, account_id, lan_id
+- `PUT /accounts/{account_id}/magic/sites/{site_id}/lans/{lan_id}` — Update Site LAN  · required: site_id, account_id, lan_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}/lans/{lan_id}` — Patch Site LAN  · required: site_id, account_id, lan_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}/lans/{lan_id}` — Delete Site LAN  · required: site_id, account_id, lan_id
+- `GET /accounts/{account_id}/magic/sites/{site_id}/netflow_config` — NetFlow Configuration Details  · required: account_id, site_id
+- `POST /accounts/{account_id}/magic/sites/{site_id}/netflow_config` — Create NetFlow Configuration  · required: account_id, site_id  · body: (no required fields)
+- `PUT /accounts/{account_id}/magic/sites/{site_id}/netflow_config` — Update NetFlow Configuration  · required: account_id, site_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}/netflow_config` — Update NetFlow Configuration  · required: account_id, site_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}/netflow_config` — Delete NetFlow Configuration  · required: account_id, site_id
+- `GET /accounts/{account_id}/magic/sites/{site_id}/wans` — List Site WANs  · required: account_id, site_id
+- `POST /accounts/{account_id}/magic/sites/{site_id}/wans` — Create a new Site WAN  · required: account_id, site_id  · body: physport:integer
+- `GET /accounts/{account_id}/magic/sites/{site_id}/wans/{wan_id}` — Site WAN Details  · required: site_id, account_id, wan_id
+- `PUT /accounts/{account_id}/magic/sites/{site_id}/wans/{wan_id}` — Update Site WAN  · required: site_id, account_id, wan_id  · body: (no required fields)
+- `PATCH /accounts/{account_id}/magic/sites/{site_id}/wans/{wan_id}` — Patch Site WAN  · required: site_id, account_id, wan_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/magic/sites/{site_id}/wans/{wan_id}` — Delete Site WAN  · required: site_id, account_id, wan_id

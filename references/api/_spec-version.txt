@@ -1,0 +1,5 @@
+# provenance of references/api/ — written by scripts/refresh --close --spec
+sliced: 2026-10-02
+source: /Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/raw/api-schemas/openapi.json
+sha256: 476fceb8100f41547d5fa22087be469b5b2f609086e5b7cd70fb6136877f5c05
+bytes:  25769976

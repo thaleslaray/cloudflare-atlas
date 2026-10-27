@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Adversarial fixture for the phase-2 link gates.
+#
+# WHY A SCRIPT AND NOT A ONE-OFF: on 2026-09-21 the gate was wired, tested by hand, and written up —
+# and the write-up was the only surviving record. A claim whose evidence lives in prose is a claim
+# nobody can re-check. This re-runs on demand and leaves a log.
+#
+# It proves the gate by BREAKING something on purpose: a link is reverted to a path that 301s, and
+# `--close` must refuse to promote. Green without ever seeing red proves nothing.
+set -uo pipefail
+W="$(cd "$(dirname "$0")/.." && pwd)"
+I="$HOME/.claude/skills/cloudflare-atlas"
+F="$W/references/products/workers-vpc.md"
+LOG="$W/evals/link-gate-fixture.log"
+mkdir -p "$(dirname "$LOG")"
+BK="$(mktemp)"; cp "$F" "$BK"
+# the block below is piped to tee, i.e. a subshell — `trap - EXIT` there cannot disarm
+# the outer trap, so restore must be idempotent or the EXIT handler errors on a gone file.
+restore() { [ -f "$BK" ] && cp "$BK" "$F"; return 0; }
+trap restore EXIT
+
+{
+echo "=== test-link-gates — $(date -u '+%Y-%m-%d %H:%M UTC') ==="
+echo "workbench: $W"
+echo "installed: $I"
+
+echo; echo "── A. installed copy BEFORE the test ──"
+grep -n "workers-vpc/\(platform\|reference\)/limits/" "$I/references/products/workers-vpc.md"
+
+echo; echo "── B. break the workbench on purpose (platform → reference, a known 301) ──"
+sed -i '' 's|workers-vpc/platform/limits/|workers-vpc/reference/limits/|' "$F"
+grep -n "workers-vpc/reference/limits/" "$F"
+
+echo; echo "── C. run --close. it MUST refuse ──"
+"$W/scripts/refresh" --close > /tmp/_tlg.out 2>&1; rc=$?
+echo "exit=$rc   (expected 1)"
+grep -E "BLOCKED|STALE|DEAD" /tmp/_tlg.out | sed 's/^/   /'
+echo "   times it reached \"promoting workbench\": $(grep -c 'promoting workbench' /tmp/_tlg.out)  (expected 0)"
+
+echo; echo "── D. installed copy AFTER the refused close — must be untouched ──"
+grep -n "workers-vpc/\(platform\|reference\)/limits/" "$I/references/products/workers-vpc.md"
+
+echo; echo "── E. restore the workbench and close for real ──"
+restore
+"$W/scripts/refresh" --close > /tmp/_tlg2.out 2>&1; rc2=$?
+echo "exit=$rc2   (expected 0)"
+tail -3 /tmp/_tlg2.out | sed 's/^/   /'
+
+echo; echo "── VERDICT ──"
+if [ "$rc" -eq 1 ] && [ "$rc2" -eq 0 ]; then
+  echo "✅ gate seen FAILING on the defect and PASSING without it."
+else
+  echo "❌ gate did not behave as specified (rc=$rc rc2=$rc2)"
+fi
+} 2>&1 | tee "$LOG"
+rm -f "$BK"
+echo
+echo "log salvo em: $LOG"

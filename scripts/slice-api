@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Re-slice references/api/<slug>.md from the Cloudflare OpenAPI spec.
+
+Product→endpoint mapping is not in the spec (its 533 tags do not map to products), so each
+slug's matcher is DERIVED from the slug's existing slice: every path is reduced to its
+"resource root" (the prefix up to the first {placeholder} that is not account/zone), and a
+new-spec path belongs to the slug when it starts with one of those roots.
+
+  slice-api --validate <old-spec.json>   re-derive slices from the spec they came from.
+                                         MISSING paths = matcher lost coverage = FAIL.
+                                         EXTRA paths are reported, not failed: the matcher is a
+                                         superset by design (it picks up sibling endpoints under
+                                         a root the old slice only partly listed). Eyeball them.
+  slice-api <spec.json>                  rewrite every slice from that spec
+
+KNOWN LIMIT: an endpoint launched under a brand-new root for an existing product is not
+picked up (no root to match). Detect that separately via the docs drift check.
+
+DESTRUCTIVE TOWARDS slice-bodies: every line here is rebuilt from the spec, so the `· body:` column
+written by scripts/slice-bodies is dropped on each run. Always run `slice-bodies <spec>` afterwards.
+`scripts/refresh --close --spec` already chains the two in that order; a manual re-slice does not.
+"""
+import json, re, os, sys, glob
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+API = os.path.join(HERE, "..", "references", "api")
+# A placeholder directly under a scope collection is the scope id, not a resource id — keep
+# walking past it, or every zone-scoped product collapses to the root `/zones`.
+SCOPES = {"accounts", "zones", "organizations", "memberships", "user"}
+METHODS = ("get", "post", "put", "patch", "delete")
+
+
+def paths_of(slice_file):
+    out = set()
+    for line in open(slice_file):
+        m = re.match(r"- `([A-Z]+) (/[^`]+)`", line)
+        if m:
+            out.add(m.group(2))
+    return out
+
+
+def root_of(path):
+    segs = path.split("/")
+    keep = []
+    for i, s in enumerate(segs):
+        scoped = i > 0 and segs[i - 1] in SCOPES
+        if s.startswith("{") and not scoped:
+            break
+        keep.append(s)
+    return "/".join(keep)
+
+
+# Roots a slug derives but does not own — a name collision, not its product. Each was found by
+# --validate reporting the path as "extra" and turning out to belong elsewhere. Add to this list
+# rather than loosening the matcher.
+#
+# These are PREFIXES, matched against the start of the path — which is what the comment above always
+# claimed ("roots") while the code compared whole paths. Exact paths would have to be re-listed every
+# time Cloudflare shipped one more endpoint under the same foreign root, and the re-slice would
+# silently re-import it: the removal would quietly undo itself. Prefixes make the exclusion hold.
+NOT_MINE = {
+    # `rules` derives a root from the 15 `/cloudforce-one/rules/*` paths it was seeded with, so the
+    # matcher keeps pulling in Cloudforce One — Cloudflare's threat-intelligence platform, which has
+    # nothing to do with the Rules product beyond the word "rules" in the URL. Dropped 2026-08-15 at
+    # the operator's call: Cloudforce One is a SOC subscription product, the same category dropped
+    # from the catalog on 2026-06-26, and its endpoints were crowding answers about traffic rules.
+    "rules": (
+        "/accounts/{account_id}/cloudforce-one",
+        # The 5 `/rum/v2/{ruleset_id}/rule*` operations are **Web Analytics** rules — which paths get
+        # the beacon — not traffic rules. `rules` claimed them on the word alone, and they were the
+        # reason 5 of Web Analytics' 13 operations looked "covered" while its slice did not exist.
+        # Moved to `web-analytics` 2026-08-17.
+        "/accounts/{account_id}/rum",
+    ),
+    # Same collision, same product, other file: `resource-tagging` was seeded with Cloudforce One
+    # *event datasets* (they carry tag-like grouping), so its matcher claimed the threat-intel
+    # surface too. Removed 2026-08-15 in the same decision as `rules`.
+    "resource-tagging": ("/accounts/{account_id}/cloudforce-one",),
+    # `pages` was seeded with the 6 `/zones/{zone_id}/speed_api/pages*` operations, so its matcher
+    # claimed Observatory — Speed's synthetic-testing surface, which shares only the word "pages"
+    # (a *tested webpage*, not a Pages project). Moved to the `speed` slice 2026-08-17, together with
+    # the 4 sibling operations (`availabilities`, `schedule/*`) that no slice had ever claimed.
+    "pages": ("/zones/{zone_id}/speed_api",),
+    # `email-service` derives the `/alerting/v3/policies` root from the two `.../email/unsubscribe`
+    # operations it was seeded with — the word "email" in a notification-policy URL. Alert policies
+    # are the Notifications product, which lists all 8. Excluded 2026-08-17; this was the last of the
+    # cross-slice duplicates carried in the backlog since 08-08.
+    "email-service": ("/accounts/{account_id}/alerting",),
+    # Cloudflare files Health Checks and Cache Reserve Clear UNDER the `/smart_shield/` path — they
+    # are the features Smart Shield bundles, and `health-checks`/`cache` already list all 8. Without
+    # this, seeding a `smart-shield` slice for its 2 settings operations drags in both products and
+    # creates 8 duplicates. Added 2026-08-17, in the same pass that created the slice.
+    # Zaraz's whole API lives under `/zones/{zone_id}/settings/zaraz/*`, so the broad
+    # `/zones/{zone_id}/settings` root claims it too. Zaraz is a curated product with its own slice;
+    # `zone-settings` is the catch-all for toggles nobody owns. Excluded 2026-08-17 at creation.
+    "zone-settings": ("/zones/{zone_id}/settings/zaraz",),
+    "smart-shield": (
+        "/zones/{zone_id}/smart_shield/healthchecks",
+        "/zones/{zone_id}/smart_shield/cache_reserve_clear",
+    ),
+}
+
+
+def roots_for(slug):
+    roots = {root_of(p) for p in paths_of(os.path.join(API, slug + ".md"))}
+    return sorted(roots)
+
+
+def excluded(slug, path):
+    return any(path.startswith(pre) for pre in NOT_MINE.get(slug, ()))
+
+
+def ops_for(spec, roots, slug):
+    lines = []
+    n = 0
+    for path in sorted(spec["paths"]):
+        if not any(path == r or path.startswith(r + "/") for r in roots):
+            continue
+        if excluded(slug, path):
+            continue
+        item = spec["paths"][path]
+        for method in METHODS:
+            op = item.get(method)
+            if not isinstance(op, dict):
+                continue
+            n += 1
+            req = [p.get("name") for p in op.get("parameters", []) if p.get("required")]
+            req = ", ".join(x for x in req if x)
+            lines.append(
+                f"- `{method.upper()} {path}` — {op.get('summary','').strip()}  · required: {req}"
+            )
+    return n, lines
+
+
+def render(slug, n, lines, extra=""):
+    return (
+        f"# API reference — {slug}\n\n"
+        f"> Exact REST endpoints for **{slug}**, sliced from the Cloudflare OpenAPI spec "
+        f"(api.cloudflare.com v4). {n} operations. Base: `https://api.cloudflare.com/client/v4`.\n\n"
+        f"> ⚠️ Verify shapes/params against the live API docs before relying on them — specs drift.\n"
+        f"{extra}\n" + "\n".join(lines) + "\n"
+    )
+
+
+def main():
+    args = sys.argv[1:]
+    validate = "--validate" in args
+    args = [a for a in args if a != "--validate"]
+    if not args:
+        sys.exit(__doc__)
+    spec = json.load(open(args[0]))
+    slugs = sorted(os.path.basename(f)[:-3] for f in glob.glob(os.path.join(API, "*.md")))
+    bad = 0
+    for slug in slugs:
+        path_file = os.path.join(API, slug + ".md")
+        before = paths_of(path_file)
+        n, lines = ops_for(spec, roots_for(slug), slug)
+        after = {re.match(r"- `[A-Z]+ (/[^`]+)`", l).group(1) for l in lines}
+        if validate:
+            missing, extra_p = before - after, after - before
+            if missing:
+                bad += 1
+                print(f"✗ {slug}: LOST {len(missing)} path(s)")
+                for p in sorted(missing):
+                    print(f"    missing {p}")
+            elif extra_p:
+                print(f"~ {slug}: +{len(extra_p)} sibling path(s) picked up (review, not a failure)")
+                for p in sorted(extra_p)[:3]:
+                    print(f"    extra   {p}")
+            else:
+                print(f"✓ {slug} ({len(before)} paths)")
+            continue
+        # Carry the hand-written "> Note:" across the rewrite. It is a BLOCK: the `> Note:` line
+        # plus every following quote line. Keeping only the first line (the original behaviour)
+        # truncated notes mid-sentence and did so silently — workers-ai and r2-data-catalog shipped
+        # cut off from 2026-08-08 to 2026-08-15 before anyone noticed. A note is curation, not
+        # decoration: it says why a slice is short or misnamed, so losing it re-opens the exact
+        # misreading it was written to close.
+        keep = ""
+        head = open(path_file).read().split("\n")
+        for i, line in enumerate(head):
+            if line.startswith("> Note:"):
+                block = [line]
+                for nxt in head[i + 1:]:
+                    if not nxt.startswith(">"):
+                        break
+                    block.append(nxt)
+                keep = "\n" + "\n".join(block) + "\n"
+                break
+        added, removed = len(after - before), len(before - after)
+        open(path_file, "w").write(render(slug, n, lines, keep))
+        flag = f"  (+{added} / -{removed} paths)" if (added or removed) else ""
+        print(f"{slug}: {n} ops{flag}")
+    if validate:
+        print(f"\n{'FAIL: ' + str(bad) + ' slug(s) lost coverage' if bad else 'OK — no slug lost coverage'}")
+        sys.exit(1 if bad else 0)
+
+
+main()

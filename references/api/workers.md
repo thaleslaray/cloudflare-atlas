@@ -1,0 +1,173 @@
+# API reference — workers
+
+> Exact REST endpoints for **workers**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 164 operations. Base: `https://api.cloudflare.com/client/v4`.
+
+> Body fields below are the **top-level required** ones only — not optional fields, nested
+> shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
+
+> ⚠️ Verify shapes/params against the live API docs before relying on them — specs drift.
+
+- `GET /accounts/{account_id}/builds/account/limits` — Get build-minute availability  · required: 
+- `GET /accounts/{account_id}/builds/builds` — Get builds by Worker version  · required: version_ids
+- `GET /accounts/{account_id}/builds/builds/latest` — Get latest builds by script IDs  · required: external_script_ids
+- `GET /accounts/{account_id}/builds/builds/{build_uuid}` — Get a Workers build  · required: 
+- `PUT /accounts/{account_id}/builds/builds/{build_uuid}/cancel` — Cancel a Workers build  · required: 
+- `GET /accounts/{account_id}/builds/builds/{build_uuid}/logs` — Get Workers build logs  · required: 
+- `PUT /accounts/{account_id}/builds/repos/connections` — Create or update a repository connection  · required:   · body: provider_account_id:string, provider_account_name:string, provider_type:string, repo_id:string, repo_name:string
+- `DELETE /accounts/{account_id}/builds/repos/connections/{repo_connection_uuid}` — Delete a repository connection  · required: 
+- `GET /accounts/{account_id}/builds/repos/{provider_type}/{provider_account_id}/{repo_id}/config_autofill` — Get repository configuration autofill  · required: provider_type, provider_account_id, repo_id, branch
+- `GET /accounts/{account_id}/builds/tokens` — List build tokens  · required: 
+- `POST /accounts/{account_id}/builds/tokens` — Create build token  · required:   · body: build_token_name:string, build_token_secret:string, cloudflare_token_id:string
+- `DELETE /accounts/{account_id}/builds/tokens/{build_token_uuid}` — Delete a build token  · required: build_token_uuid
+- `POST /accounts/{account_id}/builds/triggers` — Create a build trigger  · required:   · body: branch_excludes:string[], branch_includes:string[], build_command:string, build_token_uuid:string, deploy_command:string, external_script_id:string, path_excludes:string[], path_includes:string[], repo_connection_uuid:string, root_directory:string, trigger_name:string
+- `PATCH /accounts/{account_id}/builds/triggers/{trigger_uuid}` — Update a build trigger  · required:   · body: (no required fields)
+- `DELETE /accounts/{account_id}/builds/triggers/{trigger_uuid}` — Delete a build trigger  · required: 
+- `POST /accounts/{account_id}/builds/triggers/{trigger_uuid}/builds` — Start a Workers build  · required:   · body: commit_hash:any
+- `GET /accounts/{account_id}/builds/triggers/{trigger_uuid}/environment_variables` — List build variables  · required: 
+- `PATCH /accounts/{account_id}/builds/triggers/{trigger_uuid}/environment_variables` — Set build variables  · required:   · body: (no required fields)
+- `DELETE /accounts/{account_id}/builds/triggers/{trigger_uuid}/environment_variables/{environment_variable_key}` — Delete a build variable  · required: environment_variable_key
+- `POST /accounts/{account_id}/builds/triggers/{trigger_uuid}/purge_build_cache` — Purge a trigger's build cache  · required: 
+- `POST /accounts/{account_id}/builds/workers` — Create Worker build configuration  · required:   · body: git_repository:object, production_settings:object, script_tag:string
+- `GET /accounts/{account_id}/builds/workers/{external_script_id}/builds` — List builds for a Worker  · required: external_script_id
+- `GET /accounts/{account_id}/builds/workers/{external_script_id}/triggers` — List triggers for a Worker  · required: external_script_id
+- `GET /accounts/{account_id}/builds/workers/{script_name}/deploy_hooks` — List deploy hooks  · required: 
+- `POST /accounts/{account_id}/builds/workers/{script_name}/deploy_hooks` — Create a deploy hook  · required:   · body: branch:string, deploy_hook_name:string
+- `GET /accounts/{account_id}/builds/workers/{script_name}/deploy_hooks/{deploy_hook_uuid}` — Get a deploy hook  · required: 
+- `PUT /accounts/{account_id}/builds/workers/{script_name}/deploy_hooks/{deploy_hook_uuid}` — Update a deploy hook  · required:   · body: branch:string, deploy_hook_name:string
+- `DELETE /accounts/{account_id}/builds/workers/{script_name}/deploy_hooks/{deploy_hook_uuid}` — Delete a deploy hook  · required: 
+- `GET /accounts/{account_id}/builds/workers/{script_tag}` — Get Worker build configuration  · required: 
+- `PATCH /accounts/{account_id}/builds/workers/{script_tag}` — Update Worker build configuration  · required:   · body: (no required fields)
+- `DELETE /accounts/{account_id}/builds/workers/{script_tag}` — Delete Worker build configuration  · required: 
+- `GET /accounts/{account_id}/workers/account-settings` — Fetch Workers Account Settings  · required: account_id
+- `PUT /accounts/{account_id}/workers/account-settings` — Configure Workers Account Settings  · required: account_id  · body: (no required fields)
+- `POST /accounts/{account_id}/workers/assets/upload` — Upload Worker Assets  · required: account_id, base64  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/dispatch/namespaces` — List Workers for Platforms Dispatch Namespaces  · required: account_id
+- `POST /accounts/{account_id}/workers/dispatch/namespaces` — Create Workers for Platforms Dispatch Namespace  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}` — Get Workers for Platforms Dispatch Namespace  · required: account_id, dispatch_namespace
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}` — Update Workers for Platforms Dispatch Namespace  · required: account_id, dispatch_namespace  · body: (no required fields)
+- `PATCH /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}` — Patch Workers for Platforms Dispatch Namespace  · required: account_id, dispatch_namespace  · body: (no required fields)
+- `DELETE /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}` — Delete Workers for Platforms Dispatch Namespace  · required: account_id, dispatch_namespace
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts` — List Workers for Platforms Scripts  · required: account_id, dispatch_namespace
+- `DELETE /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts` — Delete Workers for Platforms Scripts  · required: account_id, dispatch_namespace
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}` — Get Workers for Platforms Script details  · required: account_id, dispatch_namespace, script_name
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}` — Upload Workers for Platforms Script Module  · required: account_id, dispatch_namespace, script_name  · body: (no required fields)
+- `DELETE /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}` — Delete Workers for Platforms Script  · required: account_id, dispatch_namespace, script_name
+- `POST /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/assets-upload-session` — Create Workers for Platforms Assets Upload Session  · required: account_id, dispatch_namespace, script_name  · body: manifest:object
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/bindings` — Get Workers for Platforms Script Bindings  · required: account_id, dispatch_namespace, script_name
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/content` — Get Workers for Platforms Script Content  · required: account_id, dispatch_namespace, script_name
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/content` — Replace Workers for Platforms Script Content  · required: account_id, dispatch_namespace, script_name  · body: metadata:object
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets` — List Workers for Platforms Script Secrets  · required: account_id, dispatch_namespace, script_name
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets` — Add a secret to a Workers for Platforms script  · required: account_id, dispatch_namespace, script_name  · body: name:string, text:string, type:string
+- `PATCH /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets-bulk` — Patch multiple Workers for Platforms script secrets  · required: account_id, dispatch_namespace, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets/{secret_name}` — Get Workers for Platforms Script Secret  · required: account_id, dispatch_namespace, script_name, secret_name
+- `DELETE /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/secrets/{secret_name}` — Delete Workers for Platforms script secret  · required: account_id, dispatch_namespace, script_name, secret_name
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/settings` — Get Workers for Platforms Script Settings  · required: account_id, dispatch_namespace, script_name
+- `PATCH /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/settings` — Patch Workers for Platforms Script Settings  · required: account_id, dispatch_namespace, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/tags` — List Workers for Platforms Script Tags  · required: account_id, dispatch_namespace, script_name
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/tags` — Replace Workers for Platforms Script Tags  · required: account_id, dispatch_namespace, script_name  · body: (no required fields)
+- `PUT /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/tags/{tag}` — Create Workers for Platforms Script Tag  · required: account_id, dispatch_namespace, script_name, tag
+- `DELETE /accounts/{account_id}/workers/dispatch/namespaces/{dispatch_namespace}/scripts/{script_name}/tags/{tag}` — Delete Workers for Platforms Script Tag  · required: account_id, dispatch_namespace, script_name, tag
+- `GET /accounts/{account_id}/workers/domains` — List Worker Domains  · required: account_id
+- `PUT /accounts/{account_id}/workers/domains` — Attach Worker Domain  · required: account_id  · body: cert_id:string, environment:string, hostname:string, hostname:string, id:string, service:string, service:string, zone_id:string, zone_name:string
+- `GET /accounts/{account_id}/workers/domains/{domain_id}` — Get Worker Domain  · required: account_id, domain_id
+- `DELETE /accounts/{account_id}/workers/domains/{domain_id}` — Detach Worker Domain  · required: account_id, domain_id
+- `GET /accounts/{account_id}/workers/observability/destinations` — Get Destinations  · required: 
+- `POST /accounts/{account_id}/workers/observability/destinations` — Create Destination  · required:   · body: configuration:object, enabled:boolean, name:string
+- `PATCH /accounts/{account_id}/workers/observability/destinations/{slug}` — Update Destination  · required: slug  · body: configuration:object, enabled:boolean
+- `DELETE /accounts/{account_id}/workers/observability/destinations/{slug}` — Delete Destination  · required: slug
+- `GET /accounts/{account_id}/workers/observability/issues` — List detected issues  · required: 
+- `GET /accounts/{account_id}/workers/observability/issues/automations` — List issue automations  · required: 
+- `POST /accounts/{account_id}/workers/observability/issues/automations` — Create an issue automation  · required:   · body: policyId:string
+- `GET /accounts/{account_id}/workers/observability/issues/automations/{automationId}` — Get an issue automation  · required: automationId
+- `PUT /accounts/{account_id}/workers/observability/issues/automations/{automationId}` — Update an issue automation  · required: automationId  · body: policyId:string
+- `DELETE /accounts/{account_id}/workers/observability/issues/automations/{automationId}` — Delete an issue automation  · required: automationId
+- `POST /accounts/{account_id}/workers/observability/issues/groups` — Create an issue group  · required:   · body: issueIds:string[], title:string
+- `DELETE /accounts/{account_id}/workers/observability/issues/groups/{groupId}` — Dissolve an issue group  · required: groupId
+- `POST /accounts/{account_id}/workers/observability/issues/groups/{groupId}/members` — Add issue group members  · required: groupId  · body: issueIds:string[]
+- `DELETE /accounts/{account_id}/workers/observability/issues/groups/{groupId}/members/{issueId}` — Remove an issue group member  · required: groupId, issueId
+- `GET /accounts/{account_id}/workers/observability/issues/summary` — Summarize detected issues  · required: 
+- `GET /accounts/{account_id}/workers/observability/issues/{issueId}` — Get an issue  · required: issueId
+- `PATCH /accounts/{account_id}/workers/observability/issues/{issueId}` — Modify an issue  · required: issueId  · body: (no required fields)
+- `POST /accounts/{account_id}/workers/observability/issues/{issueId}/notification-runs` — Notify about an issue  · required: issueId  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/observability/issues/{issueId}/occurrences` — List issue occurrences  · required: issueId
+- `GET /accounts/{account_id}/workers/observability/metricsexport` — List Metrics Exports  · required: 
+- `POST /accounts/{account_id}/workers/observability/metricsexport` — Upsert Metrics Exports  · required:   · body: requester:object, resources:object[]
+- `GET /accounts/{account_id}/workers/observability/queries` — List queries  · required: 
+- `POST /accounts/{account_id}/workers/observability/queries` — Save query  · required:   · body: description:string, name:string, parameters:object
+- `GET /accounts/{account_id}/workers/observability/queries/{queryId}` — Get query  · required: queryId
+- `PATCH /accounts/{account_id}/workers/observability/queries/{queryId}` — Update query  · required: queryId  · body: description:string, name:string, parameters:object
+- `DELETE /accounts/{account_id}/workers/observability/queries/{queryId}` — Delete query  · required: queryId
+- `POST /accounts/{account_id}/workers/observability/shared/query` — Create a sharable link to a query result  · required:   · body: queryId:string, timeframe:object
+- `GET /accounts/{account_id}/workers/observability/shared/query/{id}` — View a query that has been shared  · required: id
+- `POST /accounts/{account_id}/workers/observability/telemetry/keys` — List keys  · required:   · body: (no required fields)
+- `POST /accounts/{account_id}/workers/observability/telemetry/live-tail` — Prepare live tail  · required:   · body: (no required fields)
+- `POST /accounts/{account_id}/workers/observability/telemetry/live-tail/heartbeat` — Live tail heartbeat  · required:   · body: (no required fields)
+- `POST /accounts/{account_id}/workers/observability/telemetry/query` — Run a query  · required:   · body: queryId:string, timeframe:object
+- `POST /accounts/{account_id}/workers/observability/telemetry/values` — List values  · required:   · body: datasets:string[], key:string, timeframe:object, type:string
+- `GET /accounts/{account_id}/workers/observability/usage` — Get event count  · required: from, to
+- `GET /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/rules` — View zone trace rules  · required: zone_id
+- `PUT /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/rules` — Replace zone trace rules  · required: zone_id  · body: rules:object[]
+- `DELETE /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/rules` — Delete zone trace rules  · required: zone_id
+- `GET /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/settings` — View zone tracing settings  · required: zone_id
+- `PATCH /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/settings` — Update zone tracing settings  · required: zone_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/workers/observability/zones/{zone_id}/observability/tracing/settings` — Reset zone tracing settings  · required: zone_id
+- `GET /accounts/{account_id}/workers/placement/regions` — List Workers Smart Placement Regions  · required: account_id
+- `GET /accounts/{account_id}/workers/scripts` — List Worker Scripts  · required: account_id
+- `GET /accounts/{account_id}/workers/scripts-search` — Search Worker Scripts  · required: account_id
+- `GET /accounts/{account_id}/workers/scripts/{script_name}` — Download Worker Script  · required: account_id, script_name
+- `PUT /accounts/{account_id}/workers/scripts/{script_name}` — Upload Worker Module  · required: account_id, script_name  · body: (no required fields)
+- `DELETE /accounts/{account_id}/workers/scripts/{script_name}` — Delete Worker  · required: account_id, script_name
+- `POST /accounts/{account_id}/workers/scripts/{script_name}/assets-upload-session` — Create Worker Assets Upload Session  · required: account_id, script_name  · body: manifest:object
+- `PUT /accounts/{account_id}/workers/scripts/{script_name}/content` — Replace Worker Script Content  · required: account_id, script_name  · body: metadata:object
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/content/v2` — Get Worker Script Content  · required: account_id, script_name
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/deployments` — List Worker Deployments  · required: account_id, script_name
+- `POST /accounts/{account_id}/workers/scripts/{script_name}/deployments` — Create Worker Deployment  · required: account_id, script_name  · body: created_on:string, id:string, source:string, strategy:string, versions:object[]
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/deployments/{deployment_id}` — Get Worker Deployment  · required: account_id, script_name, deployment_id
+- `DELETE /accounts/{account_id}/workers/scripts/{script_name}/deployments/{deployment_id}` — Delete Worker Deployment  · required: account_id, script_name, deployment_id
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/schedules` — Get Worker Script Schedules (Cron Triggers)  · required: account_id, script_name
+- `PUT /accounts/{account_id}/workers/scripts/{script_name}/schedules` — Update Worker Script Schedules (Cron Triggers)  · required: account_id, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/script-settings` — Get Worker Script Settings  · required: account_id, script_name
+- `PATCH /accounts/{account_id}/workers/scripts/{script_name}/script-settings` — Patch Worker Script Settings  · required: account_id, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/secrets` — List secrets bound to a Worker script  · required: account_id, script_name
+- `PUT /accounts/{account_id}/workers/scripts/{script_name}/secrets` — Add a secret to a Worker script  · required: account_id, script_name  · body: name:string, text:string, type:string
+- `PATCH /accounts/{account_id}/workers/scripts/{script_name}/secrets-bulk` — Patch multiple Worker script secrets  · required: account_id, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/secrets/{secret_name}` — Get a secret binding  · required: account_id, script_name, secret_name
+- `DELETE /accounts/{account_id}/workers/scripts/{script_name}/secrets/{secret_name}` — Delete Worker script secret  · required: account_id, script_name, secret_name
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/settings` — Get Worker Script and Version Settings  · required: account_id, script_name
+- `PATCH /accounts/{account_id}/workers/scripts/{script_name}/settings` — Patch Worker Script and Version Settings  · required: account_id, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/subdomain` — Get Worker Script Subdomain  · required: account_id, script_name
+- `POST /accounts/{account_id}/workers/scripts/{script_name}/subdomain` — Update Worker Script Subdomain  · required: account_id, script_name  · body: enabled:boolean
+- `DELETE /accounts/{account_id}/workers/scripts/{script_name}/subdomain` — Delete Worker Script Subdomain  · required: account_id, script_name
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/tails` — List Worker Tails  · required: account_id, script_name
+- `POST /accounts/{account_id}/workers/scripts/{script_name}/tails` — Start Worker Tail  · required: account_id, script_name
+- `DELETE /accounts/{account_id}/workers/scripts/{script_name}/tails/{id}` — Delete Worker Tail  · required: account_id, script_name, id
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/usage-model` — Get Worker Script Usage Model  · required: account_id, script_name
+- `PUT /accounts/{account_id}/workers/scripts/{script_name}/usage-model` — Replace Worker Script Usage Model  · required: account_id, script_name  · body: (no required fields)
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/versions` — List Versions  · required: account_id, script_name
+- `POST /accounts/{account_id}/workers/scripts/{script_name}/versions` — Upload Version  · required: account_id, script_name  · body: metadata:object
+- `GET /accounts/{account_id}/workers/scripts/{script_name}/versions/{version_id}` — Get Worker Script Version  · required: account_id, script_name, version_id
+- `GET /accounts/{account_id}/workers/services/{service_name}/environments/{environment_name}/content` — Get Worker Environment Script Content  · required: account_id, service_name, environment_name
+- `PUT /accounts/{account_id}/workers/services/{service_name}/environments/{environment_name}/content` — Replace Worker Environment Script Content  · required: account_id, service_name, environment_name  · body: metadata:object
+- `GET /accounts/{account_id}/workers/services/{service_name}/environments/{environment_name}/settings` — Get Worker Environment Settings  · required: account_id, service_name, environment_name
+- `PATCH /accounts/{account_id}/workers/services/{service_name}/environments/{environment_name}/settings` — Patch Worker Environment Settings  · required: account_id, service_name, environment_name  · body: errors:object[], messages:object[], result:object, success:boolean
+- `GET /accounts/{account_id}/workers/subdomain` — Get a Workers Subdomain  · required: account_id
+- `PUT /accounts/{account_id}/workers/subdomain` — Create a Workers Subdomain  · required: account_id  · body: subdomain:string
+- `DELETE /accounts/{account_id}/workers/subdomain` — Delete Workers Subdomain  · required: account_id
+- `GET /accounts/{account_id}/workers/workers` — List Workers  · required: account_id
+- `POST /accounts/{account_id}/workers/workers` — Create Worker  · required: account_id  · body: created_on:string, id:string, logpush:boolean, name:string, name:string, observability:object, references:object, subdomain:object, tags:string[], tail_consumers:object[], updated_on:string
+- `GET /accounts/{account_id}/workers/workers/{worker_id}` — Get Worker  · required: account_id, worker_id
+- `PUT /accounts/{account_id}/workers/workers/{worker_id}` — Update Worker  · required: account_id, worker_id  · body: created_on:string, id:string, logpush:boolean, name:string, name:string, observability:object, references:object, subdomain:object, tags:string[], tail_consumers:object[], updated_on:string
+- `PATCH /accounts/{account_id}/workers/workers/{worker_id}` — Edit Worker  · required: account_id, worker_id  · body: created_on:string, id:string, logpush:boolean, name:string, observability:object, references:object, subdomain:object, tags:string[], tail_consumers:object[], updated_on:string
+- `DELETE /accounts/{account_id}/workers/workers/{worker_id}` — Delete Worker  · required: account_id, worker_id
+- `GET /accounts/{account_id}/workers/workers/{worker_id}/versions` — List Worker Versions  · required: account_id, worker_id
+- `POST /accounts/{account_id}/workers/workers/{worker_id}/versions` — Create Worker Version  · required: account_id, worker_id  · body: created_on:string, id:string, number:integer, urls:string[]
+- `GET /accounts/{account_id}/workers/workers/{worker_id}/versions/latest` — Get Latest Worker Version  · required: account_id, worker_id
+- `PATCH /accounts/{account_id}/workers/workers/{worker_id}/versions/latest` — Patch Latest Worker Version  · required: account_id, worker_id  · body: created_on:string, id:string, number:integer, urls:string[]
+- `GET /accounts/{account_id}/workers/workers/{worker_id}/versions/{version_id}` — Get Worker Version  · required: account_id, worker_id, version_id
+- `DELETE /accounts/{account_id}/workers/workers/{worker_id}/versions/{version_id}` — Delete Worker Version  · required: account_id, worker_id, version_id
+- `POST /workers/builds/deploy_hooks/{deploy_hook_uuid}` — Trigger deploy hook  · required: 
+- `GET /zones/{zone_id}/workers/routes` — List Worker Routes  · required: zone_id
+- `POST /zones/{zone_id}/workers/routes` — Create Worker Route  · required: zone_id  · body: id:object, pattern:string
+- `GET /zones/{zone_id}/workers/routes/{route_id}` — Get Worker Route  · required: route_id, zone_id
+- `PUT /zones/{zone_id}/workers/routes/{route_id}` — Replace Worker Route  · required: route_id, zone_id  · body: id:object, pattern:string
+- `DELETE /zones/{zone_id}/workers/routes/{route_id}` — Delete Worker Route  · required: route_id, zone_id

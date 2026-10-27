@@ -1,0 +1,265 @@
+#!/usr/bin/env python3
+"""Falsify the audited fraction that `verify-products` reports.
+
+  probe-blindness [slug ...] [--installed] [--init-baseline] [--verbose]
+
+WHY THIS EXISTS
+`verify-products` reports what share of each product file it could read. That number is trusted the
+moment it is printed, and on 2026-08-25 it was wrong three times in a row — each time because the
+extractor could not see a whole class of checkable token, and nothing said so. Reading the file was
+the only check available, and reading is what failed: a human verdict of "this file is genuinely
+prose" was contradicted by 33 live Cloudflare terms sitting in the blocks that verdict covered.
+
+So this tool exists to CONTRADICT the fraction, never to confirm it. It takes every block
+`verify-products` writes off as unaudited, pulls candidate terms **ignoring markup entirely**, and
+asks whether they exist in that product's live documentation. A hit means the gate is blind, not
+that the file is prose.
+
+DELIBERATELY NOT SHARED WITH THE THING IT AUDITS
+This script re-implements corpus fetching and block segmentation instead of importing them from
+`verify-products` — the same reasoning that keeps `reconcile-api` from being `slice-api --validate`.
+Shared code cannot catch an assumption both sides hold. The segmentation here is paragraph-based
+(blank-line separated) where `verify-products` is bullet-based, so the two disagree on boundaries
+on purpose: a term stranded by one framing and not the other still surfaces.
+
+KNOWN NOISE — READ THIS BEFORE QUOTING THE ABSOLUTE NUMBER
+A 20-term sample read across four files put roughly **a third of the stranded terms at noise**:
+English compounds that happen to appear inside some doc URL (`client-side`, `self-hosted`,
+`long-running`), truncations of a term wrapped across two lines (`Advanced Rate`), and example
+values (`user-123`). Tightening further was traded away deliberately: the probe's job is to fail
+when a product strands MORE than before, and a stable baseline serves that even when it contains
+noise. **Do not quote the total as a defect count.**
+
+WHAT A NUMBER MEANS
+`stranded` = terms that exist in the live docs, sit in a block the gate did not audit, and would
+therefore never be checked. Zero is the goal and is achievable; 201 across the corpus is where
+2026-08-25 ended. RISING stranded counts fail the run — that is a gate losing sight, silently.
+
+Exit: non-zero if any product strands MORE terms than its baseline.
+"""
+import os, re, sys, json, hashlib, urllib.request, time
+from concurrent.futures import ThreadPoolExecutor
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+WORKBENCH = os.path.dirname(HERE)
+INSTALLED = os.path.expanduser("~/.claude/skills/cloudflare-atlas")
+CACHE = os.path.expanduser("~/.cache/cloudflare-atlas/pages")
+BASE = "https://developers.cloudflare.com"
+UA = {"User-Agent": "cloudflare-atlas-probe/1.0", "Accept": "text/markdown"}
+
+# Words that are capitalised in prose without naming anything.
+NOISE = {
+    "the", "and", "you", "your", "for", "not", "with", "this", "that", "from", "are", "use",
+    "when", "via", "cloudflare", "google", "their", "have", "into", "than", "only", "also",
+    "but", "its", "one", "two", "each", "then", "note", "free", "paid", "plan", "does", "can",
+}
+
+
+def _get(url):
+    h = hashlib.sha1(url.encode()).hexdigest()
+    p = os.path.join(CACHE, h)
+    if os.path.exists(p):
+        return open(p, encoding="utf-8", errors="replace").read()
+    # Retry, and never accept (or cache) a 200 whose body came up short. A dropped
+    # connection mid-body raises nothing: read() returns the prefix and it gets written
+    # to the cache, where it is reused as truth on every later run. That is why the
+    # not-found count moved 7 → 1 between two runs on 2026-09-04 with no file edited.
+    t = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+                raw = r.read()
+                declared = r.headers.get("Content-Length")
+                if declared is not None and len(raw) < int(declared):
+                    raise OSError(f"short read: {len(raw)} of {declared} bytes")
+            t = raw.decode("utf-8", "replace")
+            break
+        except Exception:
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+    if t is None:
+        return None
+    os.makedirs(CACHE, exist_ok=True)
+    open(p, "w", encoding="utf-8").write(t)
+    return t
+
+
+# A product file whose slug is NOT a top-level docs path. `think` ships as 14 pages under
+# `agents/harnesses/think/`, listed in the AGENTS index, so `/think/llms.txt` is a 404 and the file
+# was reported SKIPPED — i.e. neither verified nor probed — for four consecutive passes. Checked
+# across all product files: `think` is the only one. Kept as an explicit map rather than a guess,
+# so the next sub-product needs one line here instead of another four passes of silence.
+SUBPRODUCT = {"think": ("agents", "agents/harnesses/think/")}
+
+# ...and a sub-product's corpus is its subtree PLUS the whole parent. `think.md` correctly cites
+# `ctx.stash`, `ctx.snapshot` and `onFiberRecovered`, all documented one level up under
+# `agents/runtime/execution/durable-execution/`. Scoping the corpus to the subtree alone made the
+# gate accuse three correct API names — and the accusation was believed far enough to start
+# rewriting them into something wrong before the parent page was checked. **A false accusation
+# from this tool is more dangerous than a missed one: it turns a correct file into an incorrect
+# one, with a green report afterwards.**
+SUBPRODUCT_INCLUDES_PARENT = True
+
+
+def live_text(slug):
+    """Own fetch path, own unescaping — not imported from the audited tool."""
+    parent, prefix = SUBPRODUCT.get(slug, (slug, None))
+    idx = _get(f"{BASE}/{parent}/llms.txt")
+    if not idx:
+        return None
+    urls = sorted(set(re.findall(r"https://developers\.cloudflare\.com/\S+?/index\.md", idx))) \
+        or [f"{BASE}/{parent}/index.md"]
+    if prefix and not SUBPRODUCT_INCLUDES_PARENT:
+        urls = [u for u in urls if prefix in u]
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        pages = [p for p in ex.map(_get, urls) if p]
+    return re.sub(r"\\([_*`~\[\]])", r"\1", "\n".join(pages)).lower()
+
+
+# NO SEGMENTATION. Two earlier drafts split the file into blocks and asked which blocks went
+# unaudited — paragraph-based here, bullet-based in verify-products, deliberately different so a
+# boundary bug could not hide in both. Both under-reported (14, then 38, against a hand-run figure
+# of 201), because a coarse block counts as audited the moment ANY token lands in it, and the
+# stranded term beside it disappears.
+#
+# The question was never about blocks. It is: **is there a term in this file, checkable against the
+# live docs, that the gate never checks?** That is answered term-by-term, and dropping segmentation
+# removes the last piece of shared machinery along with the under-reporting.
+LEADING = {"the", "a", "an", "this", "that", "these", "those", "each", "every", "some", "any",
+           "its", "our", "your", "their", "one", "two", "both", "all", "most", "more", "other"}
+
+
+def candidates(text):
+    """Two shapes, held to different standards.
+
+    Title Case phrases are taken as they read. Hyphenated lowercase terms must ALSO prove they are
+    a documentation slug rather than ordinary English — a first draft accepted any of them and
+    filled the report with `always-on`, `client-side`, `long-running` and `brute-force`, which are
+    adjectives, not Cloudflare vocabulary. Requiring the term to appear as a URL path segment
+    separates `durable-objects` and `ruleset-engine` from those. Validated by reading the sample,
+    which is what surfaced the problem.
+    """
+    plain = re.sub(r"[*`_>|]", " ", text)
+    out = set()
+    for x in re.findall(r"\b[A-Z][a-z]{2,}(?: [A-Z][a-z]{2,}){1,2}\b", plain):
+        if x.split()[0].lower() in LEADING:
+            x = " ".join(x.split()[1:])
+        if len(x.split()) >= 2 and len(x) >= 5 and x.lower() not in NOISE:
+            out.add(x)
+    for x in re.findall(r"\b[a-z]{4,}-[a-z0-9-]{2,}\b", plain):
+        if len(x) >= 5 and x.lower() not in NOISE:
+            out.add(("SLUG", x))
+    return out
+
+
+
+# Atlas's own sibling pointers are citations too: "see `products/smart-shield.md`" names a file,
+# it does not assert anything about Smart Shield.
+_URL_SPAN = re.compile(r"https?://\S+|developers\.cloudflare\.com/\S+|products/[a-z0-9-]+\.md"
+                       r"|references/[a-z0-9-]+/")
+
+
+def outside_url(body, term):
+    """True if `term` appears somewhere that is not inside a doc URL.
+
+    Measured 2026-09-04: 44% of the stranded-term count was URL path fragments — `access-controls`
+    out of `…/cloudflare-one/access-controls/…`, `long-running` out of an API-reference link. A file
+    that CITES a doc page necessarily contains that page's path segments, and citing a page is not
+    an unaudited claim about it. Counting those inflated the headline "the gate never audits these"
+    by nearly half, which makes the falsifier itself something to distrust.
+    """
+    stripped = _URL_SPAN.sub(" ", body).lower()
+    return term in stripped
+
+
+_atoms = None
+
+
+def checked_tokens(md):
+    """The tokens the gate ACTUALLY checked — read from verify-products itself.
+
+    The first version of this probe re-derived them from markup, reasoning that independence was
+    safer. That was backwards, and the numbers said so immediately: it reported 14 stranded terms
+    where the real figure was 201, because a generous approximation counts filtered-out tokens as
+    checked. **An accuser that under-accuses is worthless.**
+
+    The independence that matters is on the *evidence* side — the corpus fetch, the segmentation,
+    the candidate extraction — all of which stay re-implemented here. Which tokens survived the
+    gate's filters is a FACT ABOUT THE GATE, not an assumption to be independently guessed, and
+    reading it from the source is what makes the accusation sharp.
+    """
+    global _atoms
+    if _atoms is None:
+        ns = {"__name__": "_vp", "__file__": os.path.join(HERE, "verify-products")}
+        exec(compile(open(os.path.join(HERE, "verify-products")).read(), "vp", "exec"), ns)
+        _atoms = ns["atoms"]
+    return {t for _, t in _atoms(md)}
+
+
+def main():
+    args = sys.argv[1:]
+    init = "--init-baseline" in args
+    verbose = "--verbose" in args
+    root = INSTALLED if "--installed" in args else WORKBENCH
+    slugs = [a for a in args if not a.startswith("-")]
+    pdir = os.path.join(root, "references", "products")
+    if not slugs:
+        slugs = sorted(f[:-3] for f in os.listdir(pdir) if f.endswith(".md"))
+    bpath = os.path.join(root, "references", "_probe-baseline.json")
+    base = json.load(open(bpath)) if os.path.exists(bpath) else {}
+
+    cur, worse, total, skipped = {}, [], 0, 0
+    for slug in slugs:
+        md = open(os.path.join(pdir, f"{slug}.md"), encoding="utf-8").read()
+        live = live_text(slug)
+        if live is None:
+            skipped += 1
+            continue
+        seen = checked_tokens(md)
+        seen_nc = {t.lower() for t in seen}
+        body = re.sub(r"```.*?```", " ", md, flags=re.S)
+        stranded = set()
+        for c in candidates(body):
+            slug_shaped = isinstance(c, tuple)
+            term = c[1] if slug_shaped else c
+            low = term.lower()
+            if low in seen_nc or any(low in t.lower() for t in seen):
+                continue                                    # the gate already checks it
+            if slug_shaped:
+                if not re.search(rf"/{re.escape(low)}[/\-\"' ]", live):
+                    continue                                # ordinary English, not a doc slug
+                if not outside_url(body, low):
+                    continue                                # a CITATION, not an unaudited claim
+            elif low not in live:
+                continue
+            stranded.add(term)
+        cur[slug] = sorted(stranded)
+        total += len(stranded)
+        was = len(base.get(slug, [])) if slug in base else None
+        if was is not None and len(stranded) > was:
+            worse.append((slug, was, len(stranded), sorted(set(stranded) - set(base[slug]))))
+        if verbose and stranded:
+            print(f"   {slug:<24} {len(stranded):>3} stranded: {', '.join(sorted(stranded)[:6])}")
+
+    print(f"\n── blindness probe (falsifies the audited fraction) ──")
+    print(f"   {total} live-doc term(s) stranded in blocks the gate never audits, "
+          f"across {len(cur)} product(s)" + (f" · {skipped} skipped (no corpus)" if skipped else ""))
+    top = sorted(((len(v), k) for k, v in cur.items()), reverse=True)[:6]
+    if top and top[0][0]:
+        print("   worst: " + " · ".join(f"{k}={n}" for n, k in top if n))
+
+    if init:
+        json.dump(cur, open(bpath, "w"), indent=1, sort_keys=True)
+        print(f"   ✅ baseline written ({total} accepted stranded terms)")
+        return 0
+    if worse:
+        print(f"\n   🚨 {len(worse)} product(s) STRAND MORE than baseline — the gate lost sight:")
+        for slug, was, now, new in worse:
+            print(f"      {slug}: {was} → {now}   new: {', '.join(new[:6])}")
+        return 1
+    print("   ✅ no product strands more than its baseline.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

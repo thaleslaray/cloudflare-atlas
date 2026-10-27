@@ -1,0 +1,28 @@
+=== test-link-gates — 2026-09-21 17:36 UTC ===
+workbench: /Users/thaleslaray/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas
+installed: /Users/thaleslaray/.claude/skills/cloudflare-atlas
+
+── A. installed copy BEFORE the test ──
+82:  and subrequests. (Verify on `…/workers-vpc/platform/limits/`.)
+
+── B. break the workbench on purpose (platform → reference, a known 301) ──
+82:  and subrequests. (Verify on `…/workers-vpc/reference/limits/`.)
+
+── C. run --close. it MUST refuse ──
+exit=1   (expected 1)
+      ⚠️  STALE 301  https://developers.cloudflare.com/workers-vpc/reference/limits/
+   ✗ BLOCKED: dead or stale doc URL in the workbench. Fix the link before promoting.
+     DEAD = reader lands on nothing. STALE = rides a 301 Cloudflare can retire.
+   times it reached "promoting workbench": 0  (expected 0)
+
+── D. installed copy AFTER the refused close — must be untouched ──
+82:  and subrequests. (Verify on `…/workers-vpc/platform/limits/`.)
+
+── E. restore the workbench and close for real ──
+exit=0   (expected 0)
+      ✅ installed and workbench match
+   
+   ✅ pass closed.
+
+── VERDICT ──
+✅ gate seen FAILING on the defect and PASSING without it.

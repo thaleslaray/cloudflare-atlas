@@ -1,0 +1,381 @@
+{
+ "agent-lee": [
+  "agents-sdk"
+ ],
+ "agent-memory": [
+  "Durable Object SQLite"
+ ],
+ "agent-setup": [
+  "/reload-plugins",
+  "skills/list"
+ ],
+ "agents": [
+  "@cloudflare/computer",
+  "Metadata Documents",
+  "OAuthAuthorizationServer",
+  "OAuthResourceServer",
+  "github.com/cloudflare/computer",
+  "migrate-to-1.0",
+  "model_error",
+  "no_output",
+  "tts_error",
+  "turnmetrics"
+ ],
+ "ai": [],
+ "ai-crawl-control": [
+  "paid-plan",
+  "pricing=zone-default | in-band | bypass",
+  "search=yes,ai-train=no",
+  "userAgent_like:\"%GPTBot%\""
+ ],
+ "ai-gateway": [],
+ "ai-search": [
+  "RAG over a corpus",
+  "pages/ai-search/agent-sdks/",
+  "pages/ai-search/concepts/how-ai-search-works/",
+  "pages/ai-search/configuration/retrieval/"
+ ],
+ "analytics": [],
+ "api-shield": [
+  "1 MB",
+  "Auth Posture",
+  "request.cf.jwt",
+  "request.cf.tlsClientAuth"
+ ],
+ "argo-smart-routing": [
+  "/smart-shield/configuration/argo/",
+  "argo_smart_routing: true"
+ ],
+ "artifacts": [
+  "/namespaces/$NS",
+  "DELETE /namespaces/:ns/tokens/:id",
+  "GET /namespaces/:ns",
+  "GET /repos/:name/tokens",
+  "GET/DELETE /namespaces/:ns/repos/:name",
+  "POST /namespaces/:ns/tokens",
+  "POST /repos/:name/fork",
+  "POST /repos/:name/import",
+  "POST/GET /namespaces",
+  "POST/GET /namespaces/:ns/repos"
+ ],
+ "automatic-platform-optimization": [
+  "Bypass Cache Rule",
+  "CF-Device-Type: mobile|tablet|desktop",
+  "utm_*"
+ ],
+ "basin": [],
+ "basin-catalog": [],
+ "basin-pipelines": [],
+ "basin-sql": [],
+ "billing": [
+  "Billing API"
+ ],
+ "bots": [],
+ "browser-run": [],
+ "cache": [
+  "2 TB",
+  "Cache-Control: private|no-store|no-cache|max-age=0",
+  "pages/cache/concepts/cache-control/",
+  "pages/cache/how-to/cache-rules/",
+  "pages/workers/runtime-apis/cache/",
+  "per-data-center"
+ ],
+ "cf": [],
+ "china-network": [
+  "GET /client/v4/ips?networks=jdcloud",
+  "GET https://api.cloudflare.com/client/v4/ips?networks=jdcloud",
+  "Great Firewall"
+ ],
+ "client-side-security": [],
+ "cloudflare-challenges": [],
+ "cloudflare-for-platforms": [
+  "Customer adds CNAME",
+  "customer.myplatform.com",
+  "metadata.bindings"
+ ],
+ "containers": [
+  "DO storage",
+  "platform-details/limits/"
+ ],
+ "d1": [
+  "3.50",
+  "supabase2d1",
+  "wrangler d1 create my-db",
+  "wrangler d1 migrations apply my-db --remote"
+ ],
+ "ddos-protection": [
+  "Enterprise Advanced",
+  "sensitivity_level: \"eoff\""
+ ],
+ "dmarc-management": [
+  "Requires Cloudflare DNS"
+ ],
+ "dns": [
+  "*.ns.cloudflare.com"
+ ],
+ "durable-objects": [
+  "Mandatory for new namespaces",
+  "compatibility_date \u2265 2024-04-03"
+ ],
+ "dynamic-workers": [
+  "2026-03-24-dynamic-workers-open-beta",
+  "Cloudflare Container",
+  "WorkerCode.env",
+  "pages/dynamic-workers/"
+ ],
+ "email-service": [
+  "Sending is in Beta",
+  "cloudflare-email-service"
+ ],
+ "flagship": [
+  "*Details.errorCode"
+ ],
+ "fundamentals": [
+  "account_api_tokens:create"
+ ],
+ "google-tag-gateway": [
+  "Google Ads",
+  "Serve Google",
+  "gtag.js",
+  "gtm.js"
+ ],
+ "health-checks": [
+  "Pro or higher",
+  "allow_insecure: true",
+  "follow_redirect: true"
+ ],
+ "hyperdrive": [
+  ".host/.user/.password/.database/.port",
+  "63 bytes",
+  "INSERT/UPDATE/DELETE",
+  "max_age=60s",
+  "pages/hyperdrive/examples/",
+  "stale_while_revalidate=15s"
+ ],
+ "images": [
+  "Paid only",
+  "TransformOptions",
+  "high|medium-high|medium-low|low"
+ ],
+ "k2": [],
+ "key-transparency": [
+  "HTTP 400 Namespace is disabled and read-only"
+ ],
+ "kv": [
+  "wrangler kv namespace create MY_NAMESPACE"
+ ],
+ "learning-paths": [
+  "pages/learning-paths/"
+ ],
+ "load-balancing": [
+  "ICMP-ping|UDP-ICMP|SMTP",
+  "POST accounts/:id/load_balancers/monitors",
+  "POST accounts/:id/load_balancers/pools",
+  "POST zones/:id/load_balancers",
+  "dash.cloudflare.com \u2192 Traffic \u2192 Load Balancing"
+ ],
+ "log-explorer": [
+  "Store Cloudflare"
+ ],
+ "logs": [],
+ "mesh": [
+  "cloudflare-one/networks/connectors/cloudflare-mesh/"
+ ],
+ "monetization-gateway": [],
+ "moq": [
+  "200 ms",
+  "SUBSCRIBE_NAMESPACE*",
+  "Subgroup Header",
+  "subscribe_id"
+ ],
+ "network": [
+  "true_client_ip_header"
+ ],
+ "notifications": [
+  "Alerting v3",
+  "Alerting v3 API",
+  "Certificate Transparency Monitoring",
+  "Editing PagerDuty",
+  "Pro or higher",
+  "Transparency Monitorin"
+ ],
+ "observability": [],
+ "ohttp-relay": [],
+ "pages": [
+  "echo val | npx wrangler pages secret put KEY --project-name=my-project",
+  "migrate_pages_to_workers_guide",
+  "npx wrangler pages dev ./dist"
+ ],
+ "pipelines": [],
+ "privacy-gateway": [],
+ "privacy-pass": [
+  "/privacy-pass/pricing/",
+  "GET /.well-known/private-token-issuer-directory",
+  "Not production"
+ ],
+ "privacy-proxy": [
+  "Prefer IPv6",
+  "proxyStatus = rate_limited"
+ ],
+ "pulumi": [
+  "WorkerDomain",
+  "WorkersCustomDomain",
+  "WorkersDeployment",
+  "WorkersKvNamespace",
+  "com.pulumi:cloudflare",
+  "contentFile",
+  "contentSha256",
+  "d1DatabaseBindings",
+  "dist/*.js",
+  "keepBindings",
+  "kvNamespaceBindings",
+  "mainModule",
+  "pulumi.com/pricing"
+ ],
+ "queues": [
+  "\"type\": \"http_pull\"",
+  "msg.id",
+  "wrangler queues create|consumer add|pause-delivery|purge"
+ ],
+ "r2": [
+  "Standard only"
+ ],
+ "r2-data-catalog": [],
+ "r2-sql": [],
+ "randomness-beacon": [
+  "1595431050",
+  "G1/G2",
+  "League of Entropy",
+  "genesis_time",
+  "pedersen-bls-chained",
+  "schemeID"
+ ],
+ "realtime": [
+  "pages/realtime/sfu/"
+ ],
+ "reference-architecture": [],
+ "registrar": [
+  ".com.br",
+  "auto_renew=false",
+  "privacy_mode=redaction"
+ ],
+ "resource-tagging": [],
+ "rules": [
+  "ip.geoip.country"
+ ],
+ "ruleset-engine": [],
+ "sandbox": [],
+ "secrets-store": [
+  "secrets.quota",
+  "secrets.usage"
+ ],
+ "security-center": [
+  "Cloudforce One Public",
+  "Intel API quotas",
+  "Treasury Feed"
+ ],
+ "smart-shield": [],
+ "spectrum": [
+  "65535"
+ ],
+ "speed": [
+  "cache-eligible",
+  "nonce-*"
+ ],
+ "ssl": [
+  "a.b.example.com"
+ ],
+ "stream": [
+  "recording.mode: \"automatic\""
+ ],
+ "support": [
+  "/api/v3/incidents.rss|.atom",
+  "/api/v3/maintenance.rss|.atom",
+  "Never share",
+  "pages/support/troubleshooting/"
+ ],
+ "tenant": [
+  "CF_FREE|CF_PRO_20_20|CF_BIZ",
+  "PARTNERS_ACCESS_*",
+  "PARTNERS_FREE|PARTNERS_PRO|PARTNERS_BIZ|PARTNERS_ENT",
+  "TEAMS_*",
+  "rate_plan.id",
+  "unit.id"
+ ],
+ "terraform": [
+  "3500",
+  "5.16",
+  "Declarative IaC",
+  "TF_LOG=DEBUG",
+  "adaptive_routing",
+  "api_client_logging",
+  "api_user_service_key",
+  "cloudflare_access_*",
+  "cloudflare_pages_project",
+  "cloudflare_worker_script",
+  "cloudflare_zero_trust_*",
+  "deployment_configs",
+  "random_steering",
+  "tf-migrate migrate --source-version v4 --target-version v5",
+  "workers_*"
+ ],
+ "think": [
+  "@ai-sdk/react@^3 || ^4",
+  "@cloudflare/think/tools/sandbox",
+  "agents/api-reference/*",
+  "agents/harnesses/think/*",
+  "agents/runtime/*",
+  "ai@^6 || ^7",
+  "createSandboxTools",
+  "kimi-k2.5"
+ ],
+ "time-services": [
+  "Config.Time"
+ ],
+ "tunnel": [
+  "Bot Mgmt",
+  "cloudflared tunnel ingress rule https://app.example.com",
+  "cloudflared tunnel route ip add 10.0.0.0/8 my-tunnel",
+  "originRequest.noTLSVerify: true"
+ ],
+ "turnstile": [
+  "It deploys no infrastructure",
+  "Pages Turnstile",
+  "missing/invalid-input-response",
+  "missing/invalid-input-secret",
+  "window.turnstile"
+ ],
+ "use-cases": [],
+ "vectorize": [
+  "returnMetadata:\"none\"/\"indexed\""
+ ],
+ "version-management": [
+  "dashboard-only"
+ ],
+ "waf": [],
+ "waiting-room": [
+  "?force_queue"
+ ],
+ "wallets": [],
+ "web-analytics": [
+  "#/path",
+  "BrowserRouter",
+  "Cache-Control: public, no-transform",
+  "HashRouter",
+  "beacon.min.js?token=$TOKEN&spa=false",
+  "routing-apis",
+  "script-src https://static.cloudflareinsights.com"
+ ],
+ "web-search": [],
+ "web3": [
+  "eth_*Filter*",
+  "eth_compile*"
+ ],
+ "workers": [],
+ "workers-ai": [],
+ "workers-vpc": [],
+ "workflows": [],
+ "zaraz": [
+  "request.cf?.region"
+ ]
+}

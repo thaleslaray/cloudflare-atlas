@@ -1,0 +1,53 @@
+{
+  "skill_name": "cloudflare-atlas",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "ok i'm building a worker that uploads user avatars to R2, and i need to create the bucket programmatically from our admin worker via the Cloudflare REST API (not wrangler). what's the exact endpoint and what fields does the request body need? our account id is 9a7b...c3.",
+      "expected_output": "Correct REST endpoint for creating an R2 bucket (POST to the account-scoped r2/buckets path) with the right required fields, grounded in retrieval rather than memory. Should verify against the live docs/OpenAPI, not assert from training data.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "i want my AI agent on cloudflare to remember things across conversations - i think there's a newish 'agent memory' product? how do i wire it up and what are its limits?",
+      "expected_output": "Covers Cloudflare Agent Memory (a product the official skill does not cover), explains how to wire it up, and retrieves current limits rather than guessing. Should recognize this is a newer/uncovered product and lean on live docs.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "quick one - does R2 SQL support window functions and DISTINCT yet? i need ROW_NUMBER() over some event data i'm querying from r2.",
+      "expected_output": "Checks the changelog / live docs for current R2 SQL capabilities (window functions, DISTINCT, set operations were added recently) instead of answering from stale memory. Answer should reflect the current state with a source.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "can you review this durable object before i ship it?\n\nexport class Counter implements DurableObject {\n  count = 0;\n  async fetch(req) {\n    this.count++;\n    return new Response(String(this.count));\n  }\n}\n\nwrangler has the binding as COUNTER but no migrations block yet.",
+      "expected_output": "Flags the real issues: `implements` instead of `extends DurableObject` (loses this.ctx/this.env), in-memory `count` lost on eviction (must persist to storage), and the missing migrations entry in wrangler config. Grounded in the code-review rules, verified against current types/schema.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "i'm using the new Think agent framework on cloudflare. i want my agent to be able to run code in a sandbox as part of its tool loop — what do i import and how do i wire it up? saw a snippet somewhere using createSandboxTools from @cloudflare/think/tools/sandbox",
+      "expected_output": "Must NOT confirm `createSandboxTools` or the `@cloudflare/think/tools/sandbox` import path — neither exists in the shipped docs; that snippet comes from the April 2026 announcement blog and no longer matches the package. Should say so explicitly rather than silently substituting, since the user asserted it. Should ground the real exports (`@cloudflare/think/tools`, plus `/extensions`, `/messengers`, `/workflows`) against the live docs, and point out that tier-4 Sandbox is a separate product surface (agents/tools/sandbox/). Bonus: flags that Think is in preview so APIs may shift.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "building a customer-support chat agent on cloudflare — persistent history, needs to survive restarts mid-task, and eventually delegate to specialised sub-agents. should i just extend Agent, or use AIChatAgent, or that Think thing? and is Think safe for production?",
+      "expected_output": "Should treat this as the three-way decision it is (bare `Agent` + primitives / `AIChatAgent` / `Think`) rather than defaulting to one. Should recommend Think for this shape (agentic loop, message persistence, resumable streaming, fibers for crash recovery, sub-agent RPC all built in) while stating plainly that it is in PREVIEW and APIs may change — that caveat is the point of the question. Should note the primitives are usable à la carte with the bare Agent if preview risk is unacceptable. Must not invent a GA date or stability guarantee.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "i have a free tool on my marketing site (a calculator). i want to rate limit it to stop abuse, but i don't want to force signup and i don't want to drop a tracking cookie on people. someone mentioned Privacy Pass — how do i set that up on cloudflare?",
+      "expected_output": "Should recognise Privacy Pass is real and relevant but lead with the honest cost/benefit: production deployment is NOT self-serve (requires a managed engagement with Cloudflare; only the demo issuer is open), production issuers accept requests only from an authenticated Attester, and the Client↔Attester transport (`sendToAttester`) is the implementer's responsibility, not part of the library. Should note rate limiting specifically is still at IETF-draft stage, not a shipped production use case. Should surface that Turnstile already gives most of the benefit for free with no code. Must not present a self-serve setup path that does not exist.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "quick one — in the Agents SDK, what's the import path for the Session API? i want tree-structured conversation history with forking.",
+      "expected_output": "Must distinguish the two paths rather than collapsing them: for the bare `Agent`, Session lives at `agents/experimental/memory/session` (still current — the `experimental` segment is not a sign of staleness); Think exports `Session` from its own package and drives it via `configureSession()`. Should warn against mixing the two import paths. Should ground this in the live docs rather than assuming `experimental` implies deprecated.",
+      "files": []
+    }
+  ]
+}

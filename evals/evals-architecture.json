@@ -1,0 +1,17 @@
+{
+  "skill_name": "cloudflare-atlas",
+  "eval_set": "architecture — 100% Cloudflare",
+  "metric": "Produz arquitetura completa e CORRETA usando só serviços Cloudflare (chamando explicitamente quando algo é genuinamente externo, ex: pagamentos). Penaliza: stack externa quando há equivalente CF (Pinecone vs Vectorize, Redis vs DO/KV, S3 vs R2, Auth0 vs Access, Postgres-na-AWS vs D1/Hyperdrive) e serviços CF inventados/inexistentes.",
+  "evals": [
+    {"id": 1, "slug": "rag-pdf-saas", "prompt": "quero montar um SaaS onde o usuario sobe PDFs e conversa com eles (RAG), multi-tenant, com login, escalando pra milhares de docs por usuario. quero rodar na cloudflare. me desenha a arquitetura.", "bait": "Pinecone, OpenAI, S3, Postgres", "cf_native": "R2, Vectorize ou AI Search/AutoRAG, Workers AI, D1/DO, Access"},
+    {"id": 2, "slug": "realtime-trivia", "prompt": "jogo de trivia multiplayer em tempo real - salas, placar ao vivo, centenas de jogadores por sala. como eu monto isso na cloudflare?", "bait": "Redis, Socket.io, VM", "cf_native": "Durable Objects + WebSockets, Workers, KV/D1"},
+    {"id": 3, "slug": "ecommerce-storefront", "prompt": "loja online: catalogo, carrinho, checkout, area do cliente. quero tudo na cloudflare. arquitetura?", "bait": "Vercel, Postgres, Redis cart, S3", "cf_native": "Pages/Workers, D1, KV (carrinho/sessao), R2 (imagens), Images; pagamento (Stripe) e genuinamente externo"},
+    {"id": 4, "slug": "url-shortener-analytics", "prompt": "encurtador de links com analytics (cliques, paises, referrers) em tempo real. cloudflare. como fica?", "bait": "DynamoDB, Redis, BigQuery", "cf_native": "KV (lookup), Workers, Analytics Engine, D1"},
+    {"id": 5, "slug": "image-upload-resize", "prompt": "preciso de upload de imagem com resize/otimizacao on-the-fly e entrega rapida global. na cloudflare. me arquiteta.", "bait": "S3, Cloudinary/imgix, Lambda", "cf_native": "R2, Images (transformations), Workers"},
+    {"id": 6, "slug": "webhook-async-pipeline", "prompt": "recebo webhooks de varios sistemas, preciso processar assincrono, com retry e sem perder evento. cloudflare. arquitetura?", "bait": "SQS, Lambda, Celery/RabbitMQ", "cf_native": "Workers, Queues, Workflows (durabilidade/retry), R2/D1"},
+    {"id": 7, "slug": "ai-agent-memory-tools", "prompt": "quero um agente de IA conversacional com memoria por usuario e chamada de ferramentas (tool calling). rodando na cloudflare. como monto?", "bait": "LangChain, OpenAI, Pinecone, Redis", "cf_native": "Agents SDK, Workers AI, AI Gateway, Vectorize, Durable Objects"},
+    {"id": 8, "slug": "cron-etl-pipeline", "prompt": "preciso puxar dados de umas APIs toda hora, transformar e guardar pra consultar depois com SQL. tudo cloudflare. arquitetura?", "bait": "Airflow, VM, Postgres/Snowflake", "cf_native": "Cron Triggers, Workers, Pipelines, R2, R2 SQL / R2 Data Catalog"},
+    {"id": 9, "slug": "auth-user-management", "prompt": "app web que precisa de cadastro, login, sessao e SSO com google. quero na cloudflare sem depender de servico de auth de terceiro. como fica?", "bait": "Auth0/Clerk, Postgres, Redis sessions", "cf_native": "Workers, workers-oauth-provider / OpenAUTH template, D1, KV (sessao), Access"},
+    {"id": 10, "slug": "global-api-existing-postgres", "prompt": "tenho um postgres rodando ja (RDS) e quero expor uma API global de baixa latencia por cima dele, com cache. da pra fazer na cloudflare?", "bait": "EC2/Lambda na AWS, ElastiCache", "cf_native": "Workers, Hyperdrive (acelera Postgres existente), KV/Cache (cache)"}
+  ]
+}

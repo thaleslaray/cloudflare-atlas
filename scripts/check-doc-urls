@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+"""Validate developers.cloudflare.com URLs written in PROSE inside product files.
+
+WHY THIS EXISTS, separate from scripts/check-pointers:
+check-pointers validates atlas siblings — "see workers-vpc.md" — and nothing else. Doc URLs written
+into the prose are invisible to it. On 2026-09-21 `workers-vpc.md` was found telling the reader to
+verify pricing and limits on `workers-vpc/reference/{pricing,limits}/`, both moved to
+`platform/` weeks earlier. Two dead links inside a "verify on the live page" caveat, and every gate
+was green. A green report that never looked is worse than no report.
+
+Exit non-zero if any URL does not resolve.
+"""
+import os, re, sys, glob, urllib.request, urllib.error
+from concurrent.futures import ThreadPoolExecutor
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE = "https://developers.cloudflare.com/"
+# Bare paths like `workers-vpc/platform/limits/` inside backticks, and full URLs.
+# Scheme OPTIONAL. The product files overwhelmingly write the host bare, inside backticks:
+# `developers.cloudflare.com/workers-vpc/platform/pricing/`. The first version of this regex required
+# `https?://` and therefore went GREEN on the adversarial fixture — the two dead workers-vpc links
+# this script exists to catch, put back on purpose. A gate is worth nothing until it has been SEEN
+# failing on the real defect. Fixture re-run after this fix: both caught.
+RX_FULL = re.compile(r'(?:https?://)?developers\.cloudflare\.com/([A-Za-z0-9._~\-/]*)')
+RX_BARE = re.compile(r'`(?:…/)?([a-z0-9][a-z0-9\-]*(?:/[A-Za-z0-9._~\-]+)+/)`')
+
+# VALIDATED PROXY, 2026-09-21. The first draft of RX_BARE flagged 86 "dead" URLs. Opening one
+# (workers.md:130) showed the match was `references/workers/` — a directory inside the OFFICIAL
+# cloudflare SKILL, written as "Official `cloudflare` skill `references/<slug>/`", not a doc URL at
+# all. 70+ of the 86 were that same shape. A bare backtick path only means developers.cloudflare.com
+# when its FIRST segment is a real product slug, so the slug list is the gate.
+KNOWN = {l.strip() for l in open(os.path.join(ROOT, "references", "_known-products.txt")) if l.strip()}
+
+def collect(files):
+    found = {}
+    for f in files:
+        for i, line in enumerate(open(f), 1):
+            for rx in (RX_FULL, RX_BARE):
+                for m in rx.finditer(line):
+                    p = m.group(1).strip()
+                    if not p or p.endswith((".png", ".svg", ".json")):
+                        continue
+                    if rx is RX_BARE and p.split("/")[0] not in KNOWN:
+                        continue  # skill-internal path (references/<slug>/), not a doc URL
+                    # SECOND false-positive layer, found the same way: `pages/<slug>/...` is the
+                    # LOCAL raw corpus (raw/docs-oficiais/pages/), and `pages` is also a real product
+                    # slug, so the KNOWN gate waved 13 of them through as doc URLs. Opening
+                    # ai-search.md:145 settled it. Never trust this matcher's next widening without
+                    # opening one hit first.
+                    if rx is RX_BARE and p.split("/")[0] == "pages":
+                        continue
+                    found.setdefault(p if os.path.splitext(p)[1] else p.rstrip("/") + "/",
+                                     []).append(f"{os.path.relpath(f, ROOT)}:{i}")
+                    continue
+    return found
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *a, **k):
+        return None
+
+
+# TWO failure modes, reported apart — the distinction IS the point. Measured 2026-09-21: the two
+# workers-vpc links that motivated this script were **301**, not 404. They still rendered a page for
+# the reader, which is exactly why nobody noticed for weeks, and why an earlier write-up calling them
+# "dead" overstated it. A follow-redirects check reports 200 and sees nothing. So: do not follow.
+#   404/410 → DEAD: the reader lands on nothing.
+#   301/302 → STALE: it works today, on a redirect Cloudflare may retire. Fix the path, not urgent.
+OPENER = urllib.request.build_opener(NoRedirect)
+
+
+def check(p):
+    req = urllib.request.Request(BASE + p, method="HEAD",
+                                 headers={"User-Agent": "cloudflare-atlas/check-doc-urls"})
+    try:
+        with OPENER.open(req, timeout=25) as r:
+            return p, r.status
+    except urllib.error.HTTPError as e:
+        return p, e.code
+    except Exception as e:
+        return p, f"ERR {type(e).__name__}"
+
+def main():
+    files = sorted(glob.glob(os.path.join(ROOT, "references", "products", "*.md")))
+    found = collect(files)
+    print(f"🔗 check-doc-urls — {len(found)} distinct doc URL(s) in {len(files)} product files")
+    with ThreadPoolExecutor(max_workers=16) as ex:
+        results = dict(ex.map(check, found))
+    dead = {p: v for p, v in results.items() if v in (404, 410) or str(v).startswith("ERR")}
+    stale = {p: v for p, v in results.items() if v in (301, 302, 307, 308)}
+    for label, group in (("DEAD ", dead), ("STALE", stale)):
+        for p in sorted(group):
+            print(f"   {'❌' if group is dead else '⚠️ '} {label} {group[p]}  {BASE}{p}")
+            for w in sorted(set(found[p])):
+                print(f"        ← {w}")
+    if dead or stale:
+        print(f"\n🚨 {len(dead)} dead · {len(stale)} stale (redirecting). "
+              f"Dead = reader lands on nothing. Stale = works today, on a redirect that can retire.")
+        return 1
+    print("   ✅ every doc URL written in prose resolves directly (no 404, no redirect).")
+    return 0
+
+sys.exit(main())

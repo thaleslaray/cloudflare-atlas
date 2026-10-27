@@ -1,0 +1,501 @@
+{
+ "agent-lee": [],
+ "agent-memory": [
+  "Use Agent Memory"
+ ],
+ "agent-setup": [
+  "Code Mode",
+  "agent-setup"
+ ],
+ "agents": [
+  "Cloudflare One",
+  "long-running",
+  "user-123"
+ ],
+ "ai": [
+  "Agent Lee"
+ ],
+ "ai-crawl-control": [
+  "Payment Required",
+  "Super Administrator",
+  "Verified Bot"
+ ],
+ "ai-gateway": [
+  "dynamic-routing",
+  "rate-limiting"
+ ],
+ "ai-search": [
+  "Bot Detection",
+  "Cloudflare Access",
+  "built-in",
+  "query-rewriting"
+ ],
+ "analytics": [
+  "Customer Metadata Boundary",
+  "Query Cloudflare",
+  "Workers Free",
+  "Workers Paid"
+ ],
+ "api-shield": [
+  "Classic Schema Validation",
+  "Endpoint Management"
+ ],
+ "argo-smart-routing": [
+  "Based Billing",
+  "Magic Transit",
+  "usage-based"
+ ],
+ "artifacts": [
+  "Workers Paid"
+ ],
+ "automatic-platform-optimization": [
+  "Origin Cache",
+  "automatic-platform-optimization"
+ ],
+ "basin": [
+  "Generally Available"
+ ],
+ "basin-catalog": [
+  "Admin Read",
+  "Data Catalog Write"
+ ],
+ "basin-pipelines": [],
+ "basin-sql": [
+  "Admin Read",
+  "basin-sql",
+  "query-data"
+ ],
+ "billing": [
+  "Apple Pay",
+  "Instant Bank Payments",
+  "Load Balancing",
+  "Manage Account"
+ ],
+ "bots": [
+  "Business Insights",
+  "Web Bot Auth",
+  "challenge-platform",
+  "ddos-protection"
+ ],
+ "browser-run": [
+  "browser-rendering",
+  "browser-run",
+  "human-in-the-loop"
+ ],
+ "cache": [
+  "Always Online",
+  "Browser Cache",
+  "Default Edge",
+  "Origin Cache Control",
+  "Smart Tiered Cache",
+  "advanced-configuration",
+  "cache-reserve",
+  "query-string"
+ ],
+ "cf": [
+  "Build Output"
+ ],
+ "china-network": [
+  "Argo Smart Routing",
+  "Bot Management",
+  "China Authoritative",
+  "Image Transformations",
+  "Instant Logs",
+  "Internet Content Provider",
+  "Load Balancing",
+  "Neither Cloudflare",
+  "Tail Workers"
+ ],
+ "client-side-security": [
+  "Content Security Policy",
+  "Side Security Advanced",
+  "malicious-script",
+  "script-monitor"
+ ],
+ "cloudflare-challenges": [
+  "Challenge Passage",
+  "Challenge Solve Rate",
+  "Enterprise Bot Management",
+  "Private Access Token",
+  "Rate Limiting",
+  "challenge-platform",
+  "client-side",
+  "rate-limiting",
+  "server-side"
+ ],
+ "cloudflare-for-platforms": [
+  "Dispatch Worker",
+  "Eligible Enterprise",
+  "cloudflare-for-saas"
+ ],
+ "containers": [
+  "Containers Workers"
+ ],
+ "d1": [
+  "Time Travel",
+  "Workers Binding",
+  "Workers Paid"
+ ],
+ "ddos-protection": [
+  "Essentially Off",
+  "Only Magic Transit",
+  "Programmable Flow Protection"
+ ],
+ "dmarc-management": [
+  "Sender Policy Framework",
+  "security-records",
+  "subdomain-setup"
+ ],
+ "dns": [
+  "cname-flattening",
+  "manage-dns-records",
+  "proxy-status"
+ ],
+ "durable-objects": [],
+ "dynamic-workers": [
+  "Dynamic Workers Starter",
+  "Workers Paid",
+  "Workers Standard",
+  "durable-objects"
+ ],
+ "email-service": [
+  "Email Service Sending",
+  "Limit Increase",
+  "Onboard Domain",
+  "Workers Free",
+  "email-authentication",
+  "magic-link"
+ ],
+ "flagship": [],
+ "fundamentals": [
+  "Account Roles",
+  "Audit Logs",
+  "For Worker",
+  "Manage Account",
+  "Permission Groups",
+  "account-owned"
+ ],
+ "google-tag-gateway": [
+  "Configuration Rules",
+  "Google Tag Gateway",
+  "Page Hostname",
+  "Super Administrator"
+ ],
+ "health-checks": [
+  "zone-lockdown"
+ ],
+ "hyperdrive": [
+  "node-postgres"
+ ],
+ "images": [
+  "Hosted Images",
+  "Images Delivered",
+  "Images Stored",
+  "Images Transformed",
+  "Use Images"
+ ],
+ "k2": [
+  "Get Started"
+ ],
+ "key-transparency": [],
+ "kv": [
+  "durable-objects"
+ ],
+ "learning-paths": [],
+ "load-balancing": [
+  "Health Checks",
+  "Least Outstanding Requests",
+  "health-check",
+  "health-details",
+  "load-balancing",
+  "proxy-modes",
+  "session-affinity",
+  "traffic-steering"
+ ],
+ "log-explorer": [
+  "Analytics Read",
+  "Customer Metadata Boundary",
+  "Logs Edit",
+  "Logs Read",
+  "Logs Write",
+  "Security Analytics"
+ ],
+ "logs": [
+  "Angle Grinder",
+  "Network Analytics",
+  "Workers Paid",
+  "enable-destinations",
+  "logpush-job"
+ ],
+ "mesh": [
+  "Docker Compose",
+  "Load Balancing",
+  "Split Tunnels",
+  "Traffic Source"
+ ],
+ "monetization-gateway": [
+  "Payment Required",
+  "Specific Terms"
+ ],
+ "moq": [],
+ "network": [
+  "cloudflare-one",
+  "onion-routing",
+  "private-net",
+  "true-client-ip-header"
+ ],
+ "notifications": [
+  "Bad Request",
+  "Based Billing",
+  "Notifications Read",
+  "Super Administrator",
+  "Traffic Monitoring"
+ ],
+ "observability": [],
+ "ohttp-relay": [],
+ "pages": [
+  "Direct Upload",
+  "Durable Objects"
+ ],
+ "pipelines": [],
+ "privacy-gateway": [],
+ "privacy-pass": [
+  "Deployment Models",
+  "Issuance Protocols",
+  "Joint Attester",
+  "Real Blind",
+  "deployment-models",
+  "getting-started",
+  "privacy-pass-protocol",
+  "production-deployment-testing"
+ ],
+ "privacy-proxy": [
+  "Account Analytics",
+  "client-libraries",
+  "deployment-models",
+  "http-headers",
+  "proxy-status"
+ ],
+ "pulumi": [
+  "Hello World",
+  "Pulumi Cloudflare",
+  "Use Wrangler",
+  "Workers Scripts"
+ ],
+ "queues": [
+  "Dead Letter Queues",
+  "Workers Free",
+  "Workers Paid"
+ ],
+ "r2": [],
+ "r2-data-catalog": [],
+ "r2-sql": [],
+ "randomness-beacon": [
+  "Resistant Distributed Randomness"
+ ],
+ "realtime": [
+  "Durable Objects",
+  "Orange Meets",
+  "Selective Forwarding Unit",
+  "media-transport",
+  "real-time"
+ ],
+ "reference-architecture": [
+  "Cloudflare Security Architecture",
+  "Content Delivery Network",
+  "Load Balancing",
+  "Understanding Email Security",
+  "egress-free",
+  "multi-cloud",
+  "reference-architecture"
+ ],
+ "registrar": [
+  "account-options",
+  "registration-status"
+ ],
+ "resource-tagging": [
+  "Account Owned Tokens",
+  "Manage Account",
+  "error-codes",
+  "resource-tagging"
+ ],
+ "rules": [
+  "Origin Error",
+  "Response Body Buffering"
+ ],
+ "ruleset-engine": [
+  "Compression Rules",
+  "Configuration Rules",
+  "Request Header",
+  "Sensitive Data Detection",
+  "Single Redirects",
+  "Super Bot",
+  "Super Bot Fight",
+  "delete-rule",
+  "rules-language",
+  "ruleset-engine",
+  "rulesets-api"
+ ],
+ "sandbox": [],
+ "secrets-store": [
+  "Bring Your Own",
+  "Cloudflare China Network"
+ ],
+ "security-center": [
+  "Cloudforce One Core",
+  "Cloudforce One Premier",
+  "Magic Transit"
+ ],
+ "smart-shield": [],
+ "spectrum": [
+  "Simple Proxy Protocol"
+ ],
+ "speed": [
+  "Aggregated Internet Measurement",
+  "Image Resizing",
+  "Real User Monitoring"
+ ],
+ "ssl": [
+  "Add Email",
+  "Authenticated Origin Pulls",
+  "Certificate Transparency Monitoring",
+  "Only Origin Pull",
+  "Origin Trust Store",
+  "Use Cloudflare",
+  "post-quantum"
+ ],
+ "stream": [],
+ "support": [
+  "Premium Ent"
+ ],
+ "tenant": [
+  "Agency Partner Program"
+ ],
+ "terraform": [
+  "Terraform Cloud"
+ ],
+ "think": [
+  "Workers Paid",
+  "chat-agent",
+  "client-tools",
+  "getting-started",
+  "lifecycle-hooks",
+  "programmatic-submissions",
+  "scheduled-tasks"
+ ],
+ "time-services": [],
+ "tunnel": [
+  "Load Balancing",
+  "Quick Tunnels",
+  "Sent Events",
+  "post-quantum"
+ ],
+ "turnstile": [
+  "Contact Sales",
+  "client-side",
+  "rate-limiting",
+  "server-side",
+  "turnstile-spin"
+ ],
+ "use-cases": [
+  "Durable Objects",
+  "Hotlink Protection",
+  "block-attacks",
+  "build-and-run",
+  "cache-delivery",
+  "client-side",
+  "code-deployment",
+  "control-costs",
+  "custom-domains",
+  "data-isolation",
+  "data-loss-prevention",
+  "deploy-apis",
+  "deploy-frontend",
+  "device-security",
+  "email-security",
+  "employee-access",
+  "image-optimization",
+  "internal-services",
+  "internet-access",
+  "leaked-credential",
+  "load-balancing",
+  "monitor-apis",
+  "protect-apis",
+  "protect-platform",
+  "real-time",
+  "secure-content",
+  "server-side",
+  "serverless-backends",
+  "store-and-retrieve-context",
+  "store-data",
+  "store-media",
+  "traffic-at-scale",
+  "usage-analytics",
+  "video-delivery"
+ ],
+ "vectorize": [],
+ "version-management": [
+  "Cache Reserve",
+  "Cache Rules",
+  "Edge Server",
+  "read-only",
+  "read-only-environments",
+  "traffic-filters"
+ ],
+ "waf": [
+  "Attack Signature Detection",
+  "Exposed Credentials Check",
+  "Log Explorer",
+  "Profile Analysis",
+  "Security Analytics",
+  "Sensitive Data Detection",
+  "Web Application Firewall",
+  "brute-force",
+  "client-side",
+  "rate-limiting"
+ ],
+ "waiting-room": [
+  "rate-limiting"
+ ],
+ "wallets": [],
+ "web-analytics": [
+  "client-side",
+  "privacy-first"
+ ],
+ "web-search": [],
+ "web3": [
+  "ethereum-gateway",
+  "ipfs-gateway",
+  "supported-api-methods",
+  "usage-based"
+ ],
+ "workers": [
+  "Maximum Upload Size",
+  "Static Assets",
+  "Zero Trust",
+  "durable-objects",
+  "self-hosted",
+  "workers-best-practices"
+ ],
+ "workers-ai": [
+  "Customer Content",
+  "conversion-options",
+  "data-usage",
+  "markdown-conversion",
+  "workers-ai",
+  "workers-wrangler"
+ ],
+ "workers-vpc": [
+  "Apply Zero Trust",
+  "Standard Workers",
+  "workers-vpc"
+ ],
+ "workflows": [
+  "Workers Standard"
+ ],
+ "zaraz": [
+  "Single Page Application",
+  "Zaraz Paid",
+  "client-side"
+ ]
+}

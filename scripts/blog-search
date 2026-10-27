@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# blog-search — search the bundled Cloudflare blog corpus for the "why"/tradeoffs/architecture behind a topic.
+# Usage: blog-search "<query>" [max]
+#   e.g. blog-search "durable objects vs kv"   ·   blog-search "R2 egress" 5
+# Returns the top-matching posts (slug + title + a snippet). Read the full file for depth:
+#   the path printed is under data/blog/. This is the CONTEXT layer (understanding), not exact reference.
+set -u
+Q="${1:?usage: blog-search \"<query>\" [max]}"
+MAX="${2:-8}"
+DIR="$(cd "$(dirname "$0")/.." && pwd)/data/blog"
+[ -d "$DIR" ] || { echo "blog corpus not found at $DIR"; echo "(it ships under data/blog/; if absent, fetch posts from blog.cloudflare.com with 'Accept: text/markdown')"; exit 1; }
+
+DIR="$DIR" Q="$Q" MAX="$MAX" python3 -c '
+import os, re, glob
+d = os.environ["DIR"]; raw_q = os.environ["Q"]; q = raw_q.lower(); maxn = int(os.environ["MAX"])
+terms = [t for t in re.split(r"\s+", q) if len(t) > 2]
+if not terms: terms = [q]
+scored = []
+for fp in glob.glob(os.path.join(d, "*.md")):
+    try:
+        txt = open(fp, encoding="utf-8", errors="ignore").read()
+    except Exception:
+        continue
+    low = txt.lower()
+    score = sum(low.count(t) for t in terms)
+    # require at least half the terms to appear, to avoid noise
+    hit_terms = sum(1 for t in terms if t in low)
+    if score == 0 or hit_terms < max(1, len(terms)//2):
+        continue
+    scored.append((score, fp, txt))
+scored.sort(key=lambda x: x[0], reverse=True)
+if not scored:
+    print("no blog posts matched: " + raw_q)
+else:
+    for score, fp, txt in scored[:maxn]:
+        slug = os.path.basename(fp).replace(".md", "")
+        m = re.search(r"^#\s+(.+)$", txt, re.M)
+        title = (m.group(1).strip() if m else slug)
+        # snippet: first line containing the strongest term
+        snip = ""
+        for t in sorted(terms, key=lambda x: -txt.lower().count(x)):
+            mm = re.search(r"([^\n]{0,80}\b" + re.escape(t) + r"\b[^\n]{0,80})", txt, re.I)
+            if mm: snip = mm.group(1).strip(); break
+        print(f"• {title}  (score {score})")
+        print(f"    data/blog/{slug}.md")
+        if snip: print(f"    …{snip}…")
+'

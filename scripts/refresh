@@ -1,0 +1,280 @@
+#!/usr/bin/env bash
+# Run a cloudflare-atlas refresh as a sequence instead of from memory.
+#
+#   scripts/refresh              phase 1 — detect. Runs update-check and stops. Curate by hand.
+#   scripts/refresh --close      phase 2 — close the pass, in the only safe order.
+#   scripts/refresh --close --spec <openapi.json>   also re-slice references/api/ from that spec.
+#
+# WHY THIS EXISTS: the closing steps have a destructive one in the middle. Re-recording the page
+# baseline is what makes the next diff meaningful, and it is also what erases the only record of
+# what THIS pass saw. On 2026-08-08 it ran before the pass was written up and 20 single-page
+# additions became unrecoverable. So --close refuses to touch the baseline until CHANGELOG.md
+# carries an entry for today WITH a Deferred section. The guard is the point; do not add a
+# --force flag to it.
+#
+# Order is load-bearing:
+#   gate on CHANGELOG → (optional) re-slice API → promote workbench to installed → verify the two
+#   copies match → re-record baseline → re-run update-check to prove the pass actually closed.
+set -euo pipefail
+
+WORKBENCH="${ATLAS_WORKBENCH:-$HOME/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas}"
+INSTALLED="${ATLAS_INSTALLED:-$HOME/.claude/skills/cloudflare-atlas}"
+TODAY="$(date -u +%Y-%m-%d)"
+CLOSE=0
+SPEC=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --close) CLOSE=1; shift ;;
+    --spec)  SPEC="${2:?--spec needs a path to openapi.json}"; shift 2 ;;
+    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+[ -d "$WORKBENCH" ] || { echo "✗ workbench not found: $WORKBENCH" >&2; exit 1; }
+[ -d "$INSTALLED" ] || { echo "✗ installed skill not found: $INSTALLED" >&2; exit 1; }
+
+# ---------------------------------------------------------------- phase 1: detect
+if [ "$CLOSE" = "0" ]; then
+  echo "▶ phase 1 — detect (auditing the INSTALLED skill, which is what /cloudflare-atlas loads)"
+  echo
+  bash "$INSTALLED/scripts/update-check" "${DAYS:-7}"
+  echo
+  echo "── API spec freshness ──"
+  STAMP="$INSTALLED/references/api/_spec-version.txt"
+  if [ -f "$STAMP" ]; then
+    sliced="$(grep -m1 '^sliced:' "$STAMP" | cut -d' ' -f2)"
+    age=$(( ( $(date -u +%s) - $(date -u -j -f %Y-%m-%d "$sliced" +%s 2>/dev/null || echo 0) ) / 86400 ))
+    if [ "$age" -gt 30 ]; then
+      echo "⚠️  references/api/ was sliced $age days ago ($sliced) — endpoints may be stale."
+      echo "   Refresh with: scripts/refresh --close --spec <openapi.json>"
+    else
+      echo "✅ references/api/ sliced $age day(s) ago ($sliced)"
+    fi
+  else
+    echo "⚠️  no _spec-version.txt — the age of references/api/ is unknown. Re-slice to establish it."
+  fi
+
+  # ── internal health, every week, not only when someone thinks to look ────────────────────────
+  # THE FAILURE THIS CLOSES: on 2026-08-17 this phase reported "no structural drift — skill up to
+  # date" and it was true of what it measured (new products, new doc pages). Meanwhile 155 operations
+  # were filed under the wrong product, 46 were counted as backlog two months after the decision that
+  # closed them, and 688 carried no request body. A product-name diff cannot see any of that, and a
+  # wrongly-filed endpoint reads as coverage, not as a defect. The instrument that DID see it
+  # (reconcile-api) existed and simply was not part of the weekly run. It is now.
+  echo
+  echo "── internal health (correctness + coverage of references/api/) ──"
+  SPEC_SRC="$(grep -m1 '^source:' "$STAMP" 2>/dev/null | cut -d' ' -f2- || true)"
+  # The stamp records whatever path --close was invoked with, which is usually relative to the
+  # workbench. Resolve it there before giving up, or the gates skip themselves on a cosmetic detail.
+  case "$SPEC_SRC" in
+    /*) ;;
+    "") ;;
+    *) [ -f "$WORKBENCH/$SPEC_SRC" ] && SPEC_SRC="$WORKBENCH/$SPEC_SRC" ;;
+  esac
+  if [ -n "$SPEC_SRC" ] && [ -f "$SPEC_SRC" ]; then
+    if "$INSTALLED/scripts/reconcile-api" "$SPEC_SRC" --installed 2>/dev/null | sed -n '/health gates/,$p'; then
+      :
+    else
+      echo "   🚨 health gates FAILED — see above. This pass is NOT clean, whatever the product diff says."
+    fi
+  else
+    # Never silently skip: a check that did not run must not look like a check that passed.
+    echo "   ⚠️  NOT RUN — no readable spec at '${SPEC_SRC:-<unset>}' (from _spec-version.txt)."
+    echo "   Report this explicitly; do not call the pass clean on the product diff alone."
+  fi
+
+  # ── product files vs the LIVE docs ───────────────────────────────────────────────────────────
+  # THE BLIND SPOT THIS CLOSES: every gate above reads references/api/ against the OpenAPI spec.
+  # The product files — where the prices, limits, field names and package names a reader actually
+  # acts on live — were checked by nobody. On 2026-08-25 the very first calibration run found a
+  # max expression-length figure in waf.md that exists in neither the live docs nor the spec.
+  # This is presence, not truth: NOT FOUND means look, never "the file is wrong".
+  echo
+  echo "── product files vs live docs ──"
+  # --no-cache is mandatory here: the page cache has no TTL, so a cached run verifies the
+  # docs as they were on first fetch. Diagnosed 2026-08-31 — a cache entry from 2026-08-25
+  # made a verified fact (`retryAlarm`) read as NOT FOUND.
+  # Do NOT pipe this straight into sed. Diagnosed 2026-09-04: `cmd 2>/dev/null | sed` reports
+  # sed's exit status, so a crash inside verify-products exits 0 with an empty section — a check
+  # that never ran, rendered as a check that found nothing. That is the 2026-07-21 false
+  # all-clear, rebuilt out of shell plumbing. Capture, then judge.
+  _vp_out="$(mktemp)"; _vp_err="$(mktemp)"
+  _vp_rc=0
+  "$INSTALLED/scripts/verify-products" --installed --no-cache >"$_vp_out" 2>"$_vp_err" || _vp_rc=$?
+  if ! grep -q '── totals ──' "$_vp_out"; then
+    echo "   ❌ verify-products did NOT complete (exit $_vp_rc) — this section is UNKNOWN, not clean."
+    sed -n '$p' "$_vp_err" | sed 's/^/      /'
+    echo "      Re-run by hand: scripts/verify-products --installed --no-cache"
+  else
+    sed -n '/── totals ──/,$p' "$_vp_out"
+    if [ "$_vp_rc" -ne 0 ]; then
+      echo "   🚨 NEW not-found tokens since the baseline — see above, or run:"
+      echo "      scripts/verify-products --installed   (full per-product detail)"
+    fi
+  fi
+  rm -f "$_vp_out" "$_vp_err"
+
+  # The falsifier runs WITH the thing it falsifies, every week, not when someone remembers.
+  # An optional falsifier decays into a trusted number: the audited fraction was believed three
+  # times on 2026-08-25 and was wrong all three, each time because nothing was allowed to
+  # contradict it. This is what is allowed to contradict it.
+  _pb_out="$(mktemp)"; _pb_err="$(mktemp)"
+  _pb_rc=0
+  "$INSTALLED/scripts/probe-blindness" --installed >"$_pb_out" 2>"$_pb_err" || _pb_rc=$?
+  cat "$_pb_out"
+  if [ ! -s "$_pb_out" ]; then
+    echo "   ❌ probe-blindness produced no output (exit $_pb_rc) — the falsifier did NOT run."
+    sed -n '$p' "$_pb_err" | sed 's/^/      /'
+  elif [ "$_pb_rc" -ne 0 ]; then
+    echo "   🚨 blindness INCREASED — the gate is checking less than it was. See above, or run:"
+    echo "      scripts/probe-blindness --installed --verbose"
+  fi
+  rm -f "$_pb_out" "$_pb_err"
+
+  # Broken cross-references had no gate for four passes: `dynamic-workers.md` pointed at two atlas
+  # files that did not exist and nothing could see it. Built 2026-09-04 once the atlas-sibling vs
+  # official-skill-ref split was worked out — without that split it was 11 false positives to 0
+  # findings, which is why it stayed unbuilt for three passes.
+  echo
+  _cp_rc=0
+  "$INSTALLED/scripts/check-pointers" --installed || _cp_rc=$?
+  if [ "$_cp_rc" -ne 0 ]; then
+    echo "   Fix the pointer or the file it should have named; see:"
+    echo "      scripts/check-pointers --verbose"
+  fi
+
+  # ── doc URLs written in prose ──
+  # check-pointers above validates ATLAS SIBLINGS only ("see workers-vpc.md"). The doc URLs the
+  # files tell the reader to go verify on were checked by nothing at all, for every pass until
+  # 2026-09-21 — when `workers-vpc.md` was found pointing at `workers-vpc/reference/{pricing,limits}/`,
+  # moved to `platform/` weeks earlier, inside a "verify on the live page" caveat. Every gate was
+  # green. Two link classes, two checkers; running only the first and reporting "no broken pointers"
+  # is the false green this closes. ~180 HEAD requests.
+  echo
+  _du_rc=0
+  "$INSTALLED/scripts/check-doc-urls" || _du_rc=$?
+  if [ "$_du_rc" -ne 0 ]; then
+    echo "   DEAD = fix or drop the link. STALE = it rides a 301 Cloudflare can retire; point at the"
+    echo "   final URL instead (curl -sI the path to see where it lands)."
+  fi
+
+  echo
+  echo "── open backlog (Deferred, from the last pass) ──"
+  # Read it OUT LOUD at the start of the pass. A backlog nobody reads is a backlog that grows;
+  # the deferrals were being written down faithfully and then never looked at again.
+  awk '/^## [0-9]{4}-/{n++} n==1' "$INSTALLED/CHANGELOG.md" \
+    | awk '/^\*\*Deferred/{f=1} f && /^## |^\*\*[A-CE-Z]/ && !/^\*\*Deferred/{exit} f' \
+    | sed '/^---$/d' | sed 's/^/   /' | head -30 | cat -s
+  echo
+
+  echo "── copy sync ──"
+  if diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null 2>&1; then
+    echo "✅ installed and workbench match"
+  else
+    echo "⚠️  installed and workbench DIVERGED — curation is stranded on one side:"
+    diff -rq "$INSTALLED" "$WORKBENCH" | sed 's/^/   /'
+  fi
+  echo
+  echo "▶ next: curate in $WORKBENCH (references/_curation-guide.md),"
+  echo "  write the pass up in CHANGELOG.md under '## $TODAY' including a Deferred section,"
+  echo "  then close with:  scripts/refresh --close [--spec <openapi.json>]"
+  exit 0
+fi
+
+# ---------------------------------------------------------------- phase 2: close
+echo "▶ phase 2 — close the pass"
+echo
+
+# GATE. Nothing destructive runs above this line.
+CL="$WORKBENCH/CHANGELOG.md"
+if ! grep -q "^## $TODAY\$" "$CL" 2>/dev/null; then
+  echo "✗ BLOCKED: no '## $TODAY' entry in CHANGELOG.md."
+  echo "  The baseline re-record erases the only record of what this pass saw. Write the pass up first:"
+  echo "  what was detected, what you curated, and — above all — what you DEFERRED."
+  exit 1
+fi
+# the Deferred section must be inside today's entry, not merely somewhere in the file.
+# Materialize the scope first instead of piping awk | grep -q. Under `set -o pipefail`, grep -q
+# exits at the first match, awk then dies of SIGPIPE (141), and pipefail hands that 141 to the
+# `if !` — so a CHANGELOG that DOES have a Deferred section gets reported as missing one, and only
+# when the match is early enough to leave awk still writing. Measured 2026-08-15: the same awk|grep
+# returned 0 by hand and 141 inside the script. A false BLOCK trains the operator to distrust the
+# gate, which is worse than no gate.
+SCOPE="$(awk -v d="## $TODAY" '$0==d{f=1;next} /^## [0-9]{4}-/{f=0} f' "$CL")"
+if ! printf '%s\n' "$SCOPE" | grep -qi '^\*\*Deferred'; then
+  echo "✗ BLOCKED: today's CHANGELOG entry has no **Deferred** section."
+  echo "  An unlogged deferral is how a launch goes missing for months. Write 'nothing deferred' if"
+  echo "  that is true — but write it."
+  exit 1
+fi
+echo "✅ gate: CHANGELOG has a '## $TODAY' entry with a Deferred section"
+
+if [ -n "$SPEC" ]; then
+  [ -f "$SPEC" ] || { echo "✗ spec not found: $SPEC" >&2; exit 1; }
+  echo
+  echo "── re-slicing references/api/ ──"
+  echo "   validating first — a slug that would LOSE coverage aborts the pass"
+  "$WORKBENCH/scripts/slice-api" --validate "$SPEC" | grep -E '^✗|^FAIL|^OK' || true
+  "$WORKBENCH/scripts/slice-api" --validate "$SPEC" >/dev/null || {
+    echo "✗ BLOCKED: re-slicing would drop endpoints. Fix the matcher before closing." >&2; exit 1; }
+  "$WORKBENCH/scripts/slice-api" "$SPEC" | grep -E '\(\+|\(-' | sed 's/^/   /' || true
+  echo "   (slices unchanged apart from the lines above)"
+  # MUST run after slice-api, never before: slice-api rewrites each slice line from the spec, which
+  # drops the `· body:` column. Chained here so a re-slice cannot silently strip the request-body
+  # fields — the failure would be invisible (the slices still look complete) and would only surface
+  # as a wrong API call weeks later.
+  echo "   adding request-body fields (slice-bodies)"
+  "$WORKBENCH/scripts/slice-bodies" "$SPEC" | tail -1 | sed 's/^/   /'
+  # Stamp it. Without this the age of references/api/ is invisible, and "sliced from the OpenAPI
+  # spec" reads as current no matter how old it is — which is how 44 slices sat six weeks stale.
+  {
+    echo "# provenance of references/api/ — written by scripts/refresh --close --spec"
+    echo "sliced: $TODAY"
+    echo "source: $SPEC"
+    echo "sha256: $(shasum -a 256 "$SPEC" | cut -d' ' -f1)"
+    echo "bytes:  $(wc -c < "$SPEC" | tr -d ' ')"
+  } > "$WORKBENCH/references/api/_spec-version.txt"
+  echo "   stamped references/api/_spec-version.txt ($TODAY)"
+fi
+
+echo
+# ── link gates, BEFORE promotion ──
+# Added 2026-09-21. Until then phase 2 ran NO link check at all — neither check-pointers, which has
+# existed since 09-04, nor check-doc-urls. Every link gate lived in phase 1, so an operator who runs
+# only `scripts/refresh --close` (the documented way to finish a pass) promoted whatever the
+# workbench held, unchecked. That is how `workers-vpc.md` shipped two stale URLs past four green
+# passes. These run against the WORKBENCH — the copy about to become the installed skill — and they
+# BLOCK: a broken link is cheap to fix now and expensive to find later.
+echo "── link gates (workbench, before promotion) ──"
+"$WORKBENCH/scripts/check-pointers" || {
+  echo "✗ BLOCKED: broken atlas pointer in the workbench. Fix it before promoting." >&2; exit 1; }
+"$WORKBENCH/scripts/check-doc-urls" || {
+  echo "✗ BLOCKED: dead or stale doc URL in the workbench. Fix the link before promoting." >&2
+  echo "  DEAD = reader lands on nothing. STALE = rides a 301 Cloudflare can retire." >&2; exit 1; }
+echo
+
+echo "── promoting workbench → installed ──"
+rsync -a "$WORKBENCH/" "$INSTALLED/"
+if diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null; then
+  echo "✅ copies identical"
+else
+  echo "✗ promotion did not converge:" >&2; diff -rq "$INSTALLED" "$WORKBENCH" >&2; exit 1
+fi
+
+echo
+echo "── re-recording the page baseline (previous kept as _known-pages.prev.txt) ──"
+bash "$INSTALLED/scripts/update-check" --init-baseline | sed 's/^/   /'
+rsync -a "$INSTALLED/" "$WORKBENCH/"
+
+echo
+echo "── verifying the pass actually closed ──"
+out="$(bash "$INSTALLED/scripts/update-check" --shallow 1 2>&1)"
+echo "$out" | grep -E '^📦|^✅|^🆕|^🗑️' | sed 's/^/   /'
+if echo "$out" | grep -q '^🆕'; then
+  echo "⚠️  still reporting NEW products — the pass is not closed." >&2; exit 1
+fi
+diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null && echo "   ✅ installed and workbench match"
+echo
+echo "✅ pass closed."

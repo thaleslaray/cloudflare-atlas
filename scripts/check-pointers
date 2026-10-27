@@ -1,0 +1,114 @@
+#!/usr/bin/env python3
+"""check-pointers — every cross-reference an atlas product file makes must resolve.
+
+WHY THIS EXISTS: on 2026-08-08 `dynamic-workers.md` pointed at two atlas files that did not
+exist. A reader following the pointer got nothing, and no check could see it. The gate was
+proposed three passes running and never built, because a naive version produced 11 false
+positives and 0 real findings — it treated every `patterns.md` / `api.md` mention as a
+missing atlas file when those live in the OFFICIAL cloudflare skill, not here.
+
+The split that makes it work is mechanical, so it is done mechanically:
+
+  products/<slug>.md      → an ATLAS sibling. Must exist in references/products/. Hard error.
+  references/<slug>/      → the OFFICIAL skill's reference dir. Checked if that skill is
+                            installed; reported as unverifiable, never as broken, if it is not.
+  api.md / patterns.md /  → a file INSIDE an official reference dir. Only meaningful next to
+  gotchas.md / etc.         a references/<slug>/ mention in the same file, so it is resolved
+                            against those dirs and otherwise ignored.
+
+Usage: check-pointers [--installed] [--verbose]
+Exit 1 if any atlas-sibling pointer is broken.
+"""
+import os, re, sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SKILL = os.path.dirname(HERE)
+if "--installed" in sys.argv:
+    SKILL = os.path.expanduser("~/.claude/skills/cloudflare-atlas")
+PRODUCTS = os.path.join(SKILL, "references", "products")
+OFFICIAL = os.path.expanduser("~/.claude/skills/cloudflare/references")
+VERBOSE = "--verbose" in sys.argv
+
+SIBLING_RE = re.compile(r"products/([a-z0-9-]+)\.md")
+OFFICIAL_RE = re.compile(r"references/([a-z0-9-]+)/")
+# A path can appear in a sentence that ASSERTS ITS ABSENCE — "No official `references/privacy-pass/`
+# exists — this file is the primary local reference." Read as a pointer, that is a broken link; read
+# as English, it is the file correctly telling you not to go looking. The first build of this gate
+# reported both of those as findings, which is how a gate loses its readers.
+NEGATED_RE = re.compile(
+    r"\bno\b|\bnot\b|\bnone\b|does ?n[o']t|doesn.t exist|absent|missing|unavailable|instead of",
+    re.I)
+# Files that only ever exist inside an official reference dir. Bare mentions of these are
+# not atlas pointers and must never be reported as missing atlas files.
+OFFICIAL_LEAVES = {"api.md", "patterns.md", "gotchas.md", "configuration.md",
+                   "frameworks.md", "README.md"}
+
+
+def blank_negated(text, window=48):
+    """Blank out path mentions that their own sentence declares absent.
+
+    Scope the negation test to the `window` characters immediately preceding the path, so
+    a negation elsewhere in the same line cannot suppress a genuine pointer.
+    """
+    out, cut = [], 0
+    for m in re.finditer(r"(?:products/[a-z0-9-]+\.md|references/[a-z0-9-]+/)", text):
+        lead = text[max(cut, m.start() - window):m.start()]
+        # Only a negation in the SAME sentence counts.
+        lead = re.split(r"[.;\n]", lead)[-1]
+        out.append(text[cut:m.start()])
+        out.append(" " * (m.end() - m.start()) if NEGATED_RE.search(lead) else m.group(0))
+        cut = m.end()
+    out.append(text[cut:])
+    return "".join(out)
+
+
+def main():
+    have = {f[:-3] for f in os.listdir(PRODUCTS) if f.endswith(".md")}
+    official_installed = os.path.isdir(OFFICIAL)
+    have_official = set(os.listdir(OFFICIAL)) if official_installed else set()
+
+    broken, unverifiable, checked = [], [], 0
+    for fn in sorted(os.listdir(PRODUCTS)):
+        if not fn.endswith(".md"):
+            continue
+        raw = open(os.path.join(PRODUCTS, fn), encoding="utf-8").read()
+        # Blank out only the paths a sentence says are ABSENT, judged by the words immediately
+        # before the path — not by the whole line. A line-wide filter looked right and was wrong:
+        # "…documented under Smart Shield, not Cache; see `products/smart-shield.md`" contains
+        # "not" and carries a perfectly real pointer, and the first version silently dropped it.
+        text = blank_negated(raw)
+
+        for slug in sorted(set(SIBLING_RE.findall(text))):
+            checked += 1
+            if slug not in have:
+                broken.append((fn, f"products/{slug}.md", "no such atlas product file"))
+
+        for slug in sorted(set(OFFICIAL_RE.findall(text))):
+            # references/api/ and references/products/ are atlas's own directories.
+            if slug in ("api", "products", "code-review"):
+                continue
+            checked += 1
+            if not official_installed:
+                unverifiable.append((fn, f"references/{slug}/", "official cloudflare skill not installed"))
+            elif slug not in have_official:
+                broken.append((fn, f"references/{slug}/", "not a reference dir in the official skill"))
+
+    print("── pointer gate (atlas siblings must resolve) ──")
+    print(f"   {checked} cross-reference(s) checked across {len(have)} product files")
+    if unverifiable:
+        print(f"   ⚠️  {len(unverifiable)} pointer(s) UNVERIFIABLE (official skill absent) — not a finding:")
+        for fn, ptr, _ in unverifiable[:5]:
+            print(f"      {fn} → {ptr}")
+    if VERBOSE and not broken:
+        print("   (verbose) every atlas-sibling and official-ref pointer resolved")
+    if broken:
+        print(f"   🚨 {len(broken)} BROKEN pointer(s) — a reader following these gets nothing:")
+        for fn, ptr, why in broken:
+            print(f"      {fn} → {ptr}   ({why})")
+        return 1
+    print("   ✅ no broken pointers.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

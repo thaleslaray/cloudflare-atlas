@@ -1,0 +1,182 @@
+#!/usr/bin/env python3
+"""Reconcile references/api/ against the OpenAPI spec — INDEPENDENTLY of slice-api.
+
+  reconcile-api <spec.json> [--installed|--workbench]
+
+Why this exists, and why it is not `slice-api --validate`:
+`--validate` re-derives every slice with the *same* matcher that wrote it, so it proves the
+slices are self-consistent — it cannot catch an assumption both sides share. This reads the raw
+spec and deliberately groups paths by a DIFFERENT rule (the product segment after the scope,
+instead of slice-api's "root up to the first non-scope placeholder"), so the two do not share a
+blind spot. Written 2026-08-15 after the operator pointed out the circularity.
+
+Two questions, reported separately because they have very different strengths:
+
+  1. CORRECTNESS (strong, exact): does every `METHOD /path` listed in a slice exist in the spec,
+     and does its summary match the spec's text? A failure here is unambiguous — a phantom
+     endpoint or a stale description shipped to the reader.
+
+  2. COVERAGE (blunt, needs judgement): which spec operations does NO slice contain? Reported per
+     product segment, and split against CATALOG-removed.md, because most uncovered surface is
+     absent BY DECISION (Cloudflare One et al. were dropped 2026-06-26), not by accident. Do not
+     read the raw uncovered count as a defect count.
+
+An earlier draft asked "is every spec path under this slice's segments present in THIS slice?"
+That over-reports wildly — bots.md legitimately lists two Radar endpoints and was therefore
+accused of missing all 264 `/radar/*` operations. Coverage is a corpus-level question, not a
+per-slice one. Kept as a comment so the mistake is not repeated.
+
+Exit: non-zero if any correctness failure. Coverage never fails the run — it is a number to track.
+"""
+import json, re, os, sys, glob, collections
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SCOPES = {"accounts", "zones", "organizations", "memberships", "user"}
+METHODS = ("get", "post", "put", "patch", "delete")
+
+# Segments belonging to catalog categories removed on 2026-06-26 (Cloudflare One / SASE, enterprise
+# networking, IAM). Uncovered operations here are a scope decision, not a gap. Keep in sync with
+# CATALOG-removed.md.
+OUT_OF_CATALOG = {
+    "access", "cloudforce-one", "dlp", "gateway", "dex", "scim", "iam",
+    "token_validation", "mnm", "magic", "zerotrust", "devices", "teamnet",
+    "gateway_ca", "warp_connector", "tunnels",
+    # "Consumer services", removed the same day but missing from this set until 2026-08-17,
+    # which is why /radar/* kept surfacing as an in-scope gap. Radar's data is CC BY-NC 4.0
+    # (non-commercial) — the reason it left the catalog.
+    "radar",
+}
+
+
+def product_segment(path):
+    """First meaningful segment: /accounts/{id}/hyperdrive/configs -> 'hyperdrive'.
+
+    Deliberately coarser and structurally different from slice-api's root_of().
+    """
+    segs = [s for s in path.split("/") if s]
+    for i, s in enumerate(segs):
+        if s in SCOPES:
+            continue
+        if s.startswith("{") and i > 0 and segs[i - 1] in SCOPES:
+            continue
+        return s
+    return "?"
+
+
+def load_spec(path):
+    truth = {}
+    for p, item in json.load(open(path))["paths"].items():
+        for m in METHODS:
+            op = item.get(m)
+            if isinstance(op, dict):
+                truth[(m.upper(), p)] = (op.get("summary") or "").strip()
+    return truth
+
+
+def load_slices(api_dir):
+    entries, owner = [], {}
+    for f in sorted(glob.glob(os.path.join(api_dir, "*.md"))):
+        slug = os.path.basename(f)[:-3]
+        for line in open(f):
+            mm = re.match(r"- `([A-Z]+) (/[^`]+)` — (.*?)  · required:", line)
+            if mm:
+                key = (mm.group(1), mm.group(2))
+                entries.append((slug, key, mm.group(3).strip()))
+                owner.setdefault(key, slug)
+    return entries, owner
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    flags = {a for a in sys.argv[1:] if a.startswith("--")}
+    if not args:
+        sys.exit(__doc__)
+    api_dir = (
+        os.path.expanduser("~/.claude/skills/cloudflare-atlas/references/api")
+        if "--installed" in flags
+        else os.path.join(HERE, "..", "references", "api")
+    )
+    truth = load_spec(args[0])
+    entries, owner = load_slices(api_dir)
+    n_slices = len(set(s for s, _, _ in entries))
+
+    print(f"spec: {len(truth)} operations · slices: {n_slices} · listed operations: {len(entries)}")
+    print(f"api dir: {os.path.normpath(api_dir)}\n")
+
+    print("── 1. correctness (exact, against the spec) ──")
+    phantom = [(s, k) for s, k, _ in entries if k not in truth]
+    stale = [(s, k, d, truth[k]) for s, k, d in entries if k in truth and truth[k] != d]
+    print(f"   phantom endpoints (listed, absent from spec): {len(phantom)}")
+    for s, (m, p) in phantom[:15]:
+        print(f"      {s}: {m} {p}")
+    print(f"   summaries diverging from the spec:            {len(stale)}")
+    for s, (m, p), got, want in stale[:15]:
+        print(f"      {s}: {m} {p}\n         slice: {got}\n         spec : {want}")
+    ok = not phantom and not stale
+    print(f"   {'✅ every listed operation exists and reads as the spec does' if ok else '✗ FAIL'}\n")
+
+    print("── 2. coverage (corpus-level: what NO slice contains) ──")
+    covered = {k for _, k, _ in entries}
+    uncovered = set(truth) - covered
+    known_segs = {product_segment(p) for _, p in covered}
+    gaps = collections.Counter()
+    for m, p in uncovered:
+        seg = product_segment(p)
+        if seg in known_segs and seg not in OUT_OF_CATALOG:
+            gaps[seg] += 1
+    pct = 100 * len(covered) / len(truth)
+    print(f"   covered: {len(covered)}/{len(truth)} spec operations ({pct:.0f}%)")
+    print(f"   uncovered total: {len(uncovered)} — mostly categories dropped 2026-06-26, by decision")
+    print(f"   IN-SCOPE gap (segments a slice already claims, minus removed categories): "
+          f"{sum(gaps.values())} operations")
+    for seg, c in gaps.most_common(15):
+        print(f"      {seg:22} {c:4}   (slice touching this segment: {owner.get(next((k for k in covered if product_segment(k[1]) == seg), None), '?')})")
+    print("\n   These are endpoints launched under a root no slice owns — the documented blind spot")
+    print("   of slice-api, which derives matchers from roots a slug already has. Track the number.")
+    print("\n   NOT established here: optional fields, nested shapes, enums, responses, auth.")
+
+    # ── 3. health gates ───────────────────────────────────────────────────────────────────────
+    # WHY THIS SECTION EXISTS: on 2026-08-17 the weekly check reported "no drift, skill up to date"
+    # and was right about what it measured — new products — while 155 operations sat filed under the
+    # wrong product, 46 were counted as a backlog two months after the decision that closed them, and
+    # 688 had no request body. None of that is visible to a product-name diff, and a wrongly-filed
+    # endpoint does not look like a defect: it looks like coverage. So the numbers that DID expose it
+    # are now gates with a recorded baseline, and any regression is a failure, not a note.
+    dup_ops = {k for k, c in collections.Counter(k for _, k, _ in entries).items() if c > 1}
+    spec_raw = json.load(open(args[0]))["paths"]
+    body_expected = sum(
+        1 for m, p in covered
+        if "requestBody" in ((spec_raw.get(p) or {}).get(m.lower()) or {})
+    )
+    body_have = 0
+    for f in sorted(glob.glob(os.path.join(api_dir, "*.md"))):
+        body_have += sum(1 for line in open(f) if "  · body: " in line)
+
+    gates = {
+        "phantom endpoints": (len(phantom), 0),
+        "stale summaries": (len(stale), 0),
+        "in-scope gap": (sum(gaps.values()), 0),
+        "operations claimed by 2+ slices": (len(dup_ops), 0),
+        "bodies missing": (body_expected - body_have, 0),
+    }
+    print("\n── 3. health gates (baseline 2026-08-17: all zero) ──")
+    # `!=`, not `>`: a NEGATIVE count is not "better than baseline", it means the measurement itself
+    # is wrong (a body line for an operation no slice lists). Silently passing that would be the same
+    # class of bug this whole section exists to catch.
+    failed = [n for n, (got, want) in gates.items() if got != want]
+    for name, (got, want) in gates.items():
+        mark = "✅" if got == want else "🚨"
+        print(f"   {mark} {name:34} {got:5}  (baseline {want})")
+    print(f"   request bodies documented: {body_have}/{body_expected}")
+    if failed:
+        print("\n   🚨 REGRESSION — a number that was zero on 2026-08-17 no longer is:")
+        for n in failed:
+            print(f"      · {n}")
+        print("   Do not report this pass as clean. Diagnose before curating anything else.")
+    else:
+        print("   no regression against the baseline.")
+
+    sys.exit(0 if (ok and not failed) else 1)
+
+
+main()

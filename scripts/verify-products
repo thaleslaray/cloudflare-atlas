@@ -1,0 +1,619 @@
+#!/usr/bin/env python3
+"""Verify references/products/*.md against the LIVE Cloudflare docs.
+
+  verify-products [slug ...]          # default: every product with a file
+  verify-products --init-baseline     # record current NOT FOUND set as the accepted baseline
+  verify-products --installed         # audit the installed skill instead of the workbench
+  verify-products --no-cache          # ignore the on-disk page cache
+
+WHY THIS EXISTS
+The health gates in `reconcile-api` cover `references/api/` only. Nothing checked the *product*
+files the same way, so a `products/*.md` could state a dead price, a renamed package or a wrong
+limit indefinitely and no gate would notice. That was the top item in the backlog from
+2026-06-26 onward. This closes it.
+
+WHAT IT CHECKS — AND WHAT IT DELIBERATELY DOES NOT
+It answers ONE question: **does this exact token still appear anywhere in the product's live
+documentation?** That is presence, not truth.
+
+  - CONFIRMED  — the token appears verbatim (after normalisation) in the live corpus.
+  - NOT FOUND  — it does not. That is a *prompt to look*, NOT a verdict that the file is wrong.
+                 A token legitimately goes NOT FOUND when Cloudflare rephrases a page, when the
+                 fact came from a blog post or the OpenAPI spec rather than the docs, or when the
+                 curator wrote a synthesis rather than a quote.
+
+Prose is **out of scope and always will be**. Framing like "the positive-security counterpart to
+attack score" is the curator's judgement; no string match can adjudicate it. Claiming otherwise
+would be the more dangerous failure, because a green report would read as "everything is right".
+
+CORPUS COMPLETENESS IS THE REAL FAILURE MODE
+Building this, a hand-run fact-check reported one ❌ that was not a stale fact at all — the page
+carrying it had simply not been fetched. A NOT FOUND is meaningless unless the whole product
+corpus was retrieved, so every report prints the page count per product, and a product whose
+index could not be read is reported as SKIPPED rather than silently scoring zero.
+
+WHY FENCED CODE BLOCKS ARE EXCLUDED
+``` blocks in the product files are hand-written examples (SDK calls, wrangler.jsonc, sample
+expressions). They are authored illustrations, not quotations, and matching them against the docs
+produces noise that trains the reader to ignore the report. Inline `backticks` — field names,
+package names, endpoints, commands — are quotations, and those are what gets checked.
+
+Exit: non-zero only on NEW not-found tokens versus the baseline. The absolute count never fails
+the run — same rule as reconcile-api's coverage number.
+"""
+import os, re, sys, json, html, urllib.request, urllib.error, hashlib, time
+from concurrent.futures import ThreadPoolExecutor
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+WORKBENCH = os.path.dirname(HERE)
+INSTALLED = os.path.expanduser("~/.claude/skills/cloudflare-atlas")
+CACHE = os.path.expanduser("~/.cache/cloudflare-atlas/pages")
+BASE = "https://developers.cloudflare.com"
+UA = {"User-Agent": "cloudflare-atlas-verify/1.0", "Accept": "text/markdown"}
+
+# Inline-backtick tokens too generic to mean anything, or that belong to the skill's own vocabulary
+# rather than Cloudflare's. Matching these proves nothing either way.
+STOP = {
+    "get", "post", "put", "patch", "delete", "true", "false", "null", "none", "log", "block",
+    "skip", "zone", "root", "current", "kind", "name", "type", "id", "key", "value", "data",
+    "json", "text", "list", "put()", "get()", "env", "this", "next", "free", "pro", "business",
+    "enterprise", "beta", "yes", "no", "all", "any", "and", "or", "not", "with", "from",
+}
+
+
+def fetch(url, use_cache=True):
+    h = hashlib.sha1(url.encode()).hexdigest()
+    p = os.path.join(CACHE, h)
+    if use_cache and os.path.exists(p):
+        return open(p, encoding="utf-8", errors="replace").read()
+    # Retry, and never accept (or cache) a 200 whose body came up short. A dropped
+    # connection mid-body raises nothing: read() returns the prefix and it gets written
+    # to the cache, where it is reused as truth on every later run. That is why the
+    # not-found count moved 7 → 1 between two runs on 2026-09-04 with no file edited.
+    t = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+                raw = r.read()
+                declared = r.headers.get("Content-Length")
+                if declared is not None and len(raw) < int(declared):
+                    raise OSError(f"short read: {len(raw)} of {declared} bytes")
+            t = raw.decode("utf-8", "replace")
+            break
+        except Exception:
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+    if t is None:
+        return None
+    os.makedirs(CACHE, exist_ok=True)
+    open(p, "w", encoding="utf-8").write(t)
+    return t
+
+
+# A product file whose slug is NOT a top-level docs path. `think` ships as 14 pages under
+# `agents/harnesses/think/`, listed in the AGENTS index, so `/think/llms.txt` is a 404 and the file
+# was reported SKIPPED — i.e. neither verified nor probed — for four consecutive passes. Checked
+# across all product files: `think` is the only one. Kept as an explicit map rather than a guess,
+# so the next sub-product needs one line here instead of another four passes of silence.
+SUBPRODUCT = {"think": ("agents", "agents/harnesses/think/")}
+
+# ...and a sub-product's corpus is its subtree PLUS the whole parent. `think.md` correctly cites
+# `ctx.stash`, `ctx.snapshot` and `onFiberRecovered`, all documented one level up under
+# `agents/runtime/execution/durable-execution/`. Scoping the corpus to the subtree alone made the
+# gate accuse three correct API names — and the accusation was believed far enough to start
+# rewriting them into something wrong before the parent page was checked. **A false accusation
+# from this tool is more dangerous than a missed one: it turns a correct file into an incorrect
+# one, with a green report afterwards.**
+SUBPRODUCT_INCLUDES_PARENT = True
+
+
+CITES_RE = re.compile(r"products/([a-z0-9-]+)\.md")
+# Same negation problem the pointer gate hit: "there is no `products/foo.md`" is not a citation.
+_CITE_NEG = re.compile(r"\bno\b|\bnot\b|does ?n[o']t|absent|missing", re.I)
+
+
+def cited_products(md, self_slug, cap=3):
+    """Product slugs this file explicitly points a reader at, excluding itself."""
+    out = []
+    for line in md.splitlines():
+        if _CITE_NEG.search(line):
+            continue
+        for slug in CITES_RE.findall(line):
+            if slug != self_slug and slug not in out:
+                out.append(slug)
+    return out[:cap]   # bounded: this costs a corpus fetch each
+
+
+def corpus_for(slug, use_cache=True):
+    """Every page under /<slug>/, from the product's own llms.txt index.
+
+    Returns (text, pages_fetched) or (None, 0) when the index itself is unreadable — the caller
+    must report that as SKIPPED, never as 'nothing confirmed'.
+    """
+    parent, prefix = SUBPRODUCT.get(slug, (slug, None))
+    idx = fetch(f"{BASE}/{parent}/llms.txt", use_cache)
+    if not idx:
+        return None, 0
+    urls = sorted(set(re.findall(r"https://developers\.cloudflare\.com/\S+?/index\.md", idx)))
+    # NOTE: for a sub-product we keep the parent's pages too (see SUBPRODUCT_INCLUDES_PARENT).
+    if prefix and not SUBPRODUCT_INCLUDES_PARENT:
+        urls = [u for u in urls if prefix in u]
+    if not urls:
+        urls = [f"{BASE}/{slug}/index.md"]
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        pages = list(ex.map(lambda u: fetch(u, use_cache), urls))
+    got = [p for p in pages if p]
+    # Markdown escaping is invisible to a reader and fatal to a matcher: inside tables the docs
+    # write `eth\_getBalance`, so a literal search for `eth_getBalance` misses a token that is
+    # plainly there. Found during calibration, when nine Ethereum JSON-RPC methods were reported
+    # NOT FOUND off a page that had been fetched correctly and did contain them.
+    text = re.sub(r"\\([_*`~\[\]])", r"\1", "\n".join(got))
+    return text, len(got)
+
+
+def strip_code_blocks(md):
+    return re.sub(r"```.*?```", " ", md, flags=re.S)
+
+
+# Hard, unambiguously-written units only. `$5/mo`, `10 M/mo`, `4096 chars` were dropped during
+# calibration: the docs phrase those as "$5 per month", "10 million requests", "4,096 characters",
+# and a unit the source never spells the same way produces noise, not signal. Bare integers of 4+
+# digits are still checked — that is how a limit like 10000 gets caught without guessing its unit.
+NUM = re.compile(
+    r"(?<![\w.])(\$?\d[\d,]*(?:\.\d+)?)\s*"
+    r"(TiB|GiB|MiB|KiB|TB|GB|MB|KB|CPU-ms|ms|%|bytes)?"
+    r"(?![\w])"
+)
+
+
+def normalise_number(n, unit):
+    n = n.replace(",", "")
+    return f"{n}{(' ' + unit) if unit else ''}".strip()
+
+
+def atoms(md):
+    """High-precision, quotable tokens only: inline code spans and numbers-with-units."""
+    body = strip_code_blocks(md)
+    out = []
+    # Bold is the other way a curator quotes a Cloudflare term. Missing it is not hypothetical:
+    # a fabricated Zaraz trigger type survived the first cleanup **because it was bold, not
+    # backticked**, and the identical fabrication three lines below it — in backticks — was caught.
+    # Only Title Case phrases are taken from bold, since bold is also used for plain emphasis.
+    # ...but NOT bold in label position. `- **Detection vs mitigation:** …` and `**Cost drivers**`
+    # under a heading are the curator's own structure; matching them measures the writing, not the
+    # facts. Calibration flagged exactly three such labels on files verified correct by hand.
+    # Label position (`**Term** — gloss`, `- **Term:** …`) is normally the curator's own structure.
+    # But a PROPER NOUN in label position is a Cloudflare product name, not a heading — and the
+    # difference is mechanical: `Google Tag Manager`, `Durable Objects`, `Bot Management` capitalise
+    # every word, while a curator label is sentence case (`Detection vs mitigation`, `Cost drivers`).
+    # Excluding both cost real coverage: a mechanical probe of the "unaudited" blocks of the two
+    # supposedly prose-only files found 33 live-doc terms sitting in exactly this position, which
+    # refuted a verdict this file's author had reached by reading them. Keep proper nouns.
+    def proper(ph):
+        return all(w[:1].isupper() or w.lower() in ("of", "for", "and", "the") for w in ph.split())
+
+    bold = []
+    for m in re.finditer(r"\*\*([A-Z][A-Za-z0-9]+(?: [A-Za-z][A-Za-z0-9]*){1,3})\*\*([:*]|\s*[—-])?", body):
+        if re.search(r"(?:^|\n)\s*[-*]?\s*$", body[:m.start()][-8:]) and not proper(m.group(1)):
+            continue
+        if m.group(2) and not proper(m.group(1)):
+            continue
+        bold.append(m.group(1))
+    # Bold LOWERCASE slugs are catalogue entries, not emphasis: `- **replace-vpn** — replace a
+    # legacy VPN…`. They are exactly as checkable as a backticked identifier, and dropping them
+    # made two index-style files (`learning-paths`, `reference-architecture`) report 13% audited
+    # when the bulk of each is a list of verifiable slugs. Found by printing the "unaudited" blocks
+    # of the two worst files instead of trusting the percentage — the same read-it check that
+    # validated the measure on a small file did not transfer to files of a different shape.
+    bold += re.findall(r"\*\*([a-z][a-z0-9]{2,}(?:-[a-z0-9]+)*)\*\*", body)
+    # Plain-prose proper nouns. A mechanical probe of the whole corpus found 394 real Cloudflare
+    # terms sitting in blocks the gate counted as unaudited — `Bot Management`, `Domain Scoped
+    # Roles`, `Google Help Center` — simply because the curator wrote them without markup. Ignoring
+    # markup for multi-word proper nouns recovers them. Sentence-initial noise is bounded by
+    # requiring 2+ words each capitalised.
+    # ...but only MID-SENTENCE. A capital after a sentence boundary is grammar, not a name, and
+    # gluing it to the following product produced `Shows Origin Response`, `Use Workers`,
+    # `Powers Pages` — 48 fresh false alarms in one sweep. Requiring a mid-sentence position costs
+    # the sentence-initial mentions and buys a clean report, which is the property that makes the
+    # gate worth reading at all.
+    prose = []
+    for m in re.finditer(r"(?<![*`\w])([A-Z][a-z]{2,}(?: [A-Z][a-z]{2,}){1,2})(?![*`])", body):
+        before = body[:m.start()].rstrip()
+        if not before or before[-1] in ".!?:;·—-([\n":
+            continue
+        prose.append(m.group(1))
+    for tok in re.findall(r"`([^`\n]{2,80})`", body) + bold + prose:
+        t = tok.strip()
+        low = t.lower()
+        if low in STOP or len(t) < 4:
+            continue
+        if t.startswith(("references/", "products/", "api/", "cloudflare:")):
+            continue          # pointers into this skill, not Cloudflare's text
+        if "developers.cloudflare.com" in t or t.startswith("http"):
+            continue          # URLs are proven by the fetch itself
+        # Single identifier-ish token, OR a Title Case multi-word doc term (`Order Completed`,
+        # `Click listener`). The multi-word form was invisible until 2026-08-25: the filter demanded
+        # an identifier character, so every quoted Cloudflare noun-phrase went unchecked — coverage
+        # silently lost, which is the failure mode a gate is least likely to report on itself.
+        ident = re.search(r"[._/@-]|^[A-Za-z][A-Za-z0-9]{3,}$", t)
+        phrase = re.match(r"^[A-Z][A-Za-z0-9]+(?: [A-Za-z][A-Za-z0-9]*){1,3}$", t)
+        if not (ident or phrase):
+            continue
+        # Placeholder / signature shorthand is the curator's notation, not Cloudflare's text.
+        # `phases: [...]`, `ctx.waitUntil(p)`, `any(cf.intel.ip.…[*] == …)` are authored
+        # illustrations that happen to sit in backticks; matching them measures nothing.
+        # This filter was added during calibration, after 11 of 11 not-founds on three
+        # hand-verified files turned out to be this class rather than stale facts.
+        if re.search(r"[…<>()\[\]{}]|\.\.\.", t):
+            continue
+        # Skill-internal pointers: paths into the raw corpus, this repo's own scripts, and
+        # filenames of the official skill's reference files. They describe where the curator
+        # looked, not what Cloudflare published, so the live docs will never contain them.
+        if t.startswith(("raw/", "scripts/", "docs-oficiais/")) or "docs-oficiais/" in t:
+            continue
+        if t.endswith(".md"):
+            continue
+        # Globs (`zaraz.*`, `step.*`) and obvious placeholders (`G-XXXXXXXXXX`) are notation.
+        if t.endswith(".*") or re.search(r"X{3,}", t):
+            continue
+        # A code span containing an ESCAPED backtick (`this.sql\`...\``) is captured wrong by any
+        # regex that stops at the first backtick, yielding a fragment of prose as a "token". Those
+        # tokens are meaningless in both directions — drop them rather than report noise.
+        if "\\" in t:
+            continue
+        out.append(("code", t))
+    for m in NUM.finditer(body):
+        n, unit = m.group(1), m.group(2)
+        if not unit and (len(n.replace(",", "")) < 4 or n.startswith("$")):
+            continue          # bare small integers are section numbers, plan counts, years
+        out.append(("num", normalise_number(n, unit)))
+    seen, uniq = set(), []
+    for kind, t in out:
+        if t not in seen:
+            seen.add(t)
+            uniq.append((kind, t))
+    return uniq
+
+
+def audited_lines(md, kept):
+    """How much of the file did the gate actually look at?
+
+    Denominator: prose lines that could carry a claim — excluding headings, the `## Contents`
+    table of contents (navigation, not assertions) and fenced code blocks (authored examples,
+    deliberately out of scope for extraction; counting them would understate the gate against a
+    rule it follows on purpose). Numerator: those lines containing at least one token that
+    SURVIVED filtering, i.e. one the gate genuinely checked against a source.
+
+    This exists because a confirmation rate answers the wrong question. `waf.md` reporting
+    "31/31 confirmed" reads as *this file is right*, when what it means is *the 31 things I could
+    read are right*. The share of the file that carried nothing checkable is the part where a
+    fabrication survives, and until now the report never mentioned it.
+    """
+    # The unit is a CLAIM BLOCK, not a raw line: a bullet wrapped over three lines is one
+    # assertion, and counting it as three would understate the gate for using a text width.
+    # A block starts at a bullet, table row or blockquote; indented continuations join it.
+    blocks, cur = [], None
+    in_code = in_toc = False
+    for raw in md.split("\n"):
+        line = raw.strip()
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        if line.startswith("#"):
+            in_toc = line.lower().startswith("## contents")
+            cur = None
+            continue
+        if in_toc or not line or line == "---":
+            cur = None
+            continue
+        if re.match(r"^\|[\s|:-]+\|?$", line):
+            continue                      # table separator row — structure, not a claim
+        starts = bool(re.match(r"^[-*>|]|^\*\*", line)) or not raw.startswith((" ", "\t"))
+        if starts or cur is None:
+            blocks.append(raw)
+            cur = len(blocks) - 1
+        else:
+            blocks[cur] += " " + raw
+    seen = sum(1 for b in blocks if any(t in b for t in kept))
+    return seen, len(blocks)
+
+
+def present(tok, kind, corpus, corpus_nc):
+    if kind == "code":
+        t = tok.lower()
+        if t in corpus_nc:
+            return True
+        # A curator writing a feature name in the plural (`Context Enrichers`) is quoting the
+        # singular the docs use. Accept the singular rather than reporting a pluralisation.
+        return len(t) > 4 and t.endswith("s") and t[:-1] in corpus_nc
+    n, _, unit = tok.partition(" ")
+    plain = n.lstrip("$")
+    try:
+        grouped = f"{int(plain):,}"
+    except ValueError:
+        grouped = plain
+    for form in {plain, grouped, n}:
+        if unit:
+            if re.search(rf"{re.escape(form)}\s*{re.escape(unit)}", corpus, re.I):
+                return True
+        elif re.search(rf"(?<![\d.]){re.escape(form)}(?![\d])", corpus):
+            return True
+    return False
+
+
+# Vocabulary that legitimately appears in a product file but is documented elsewhere: the Workers
+# runtime, the Wrangler CLI and account-level fundamentals are cited by nearly every product page
+# without those products repeating the definition. `worker-configuration.d.ts` in workers-ai.md is
+# the canonical case — correct, current, and absent from the Workers AI corpus by construction.
+# Checked only as a FALLBACK, so a token found here is still confirmed, never invented.
+SHARED = ("workers", "wrangler", "fundamentals")
+_shared_cache = {}
+
+# REST endpoints are not documentation prose — they are spec surface. `GET /user/tenants` will never
+# appear in the tenant docs corpus, but it either exists in the OpenAPI spec or it does not, and the
+# spec is the only instrument that settles it. Checking an endpoint against the docs corpus and
+# reporting NOT FOUND would be measuring with the wrong ruler, so endpoints get their own source.
+ENDPOINT = re.compile(r"^(?:(?:GET|POST|PUT|PATCH|DELETE)\|?)+ (/\S+)$|^(/[a-z0-9_{}/-]{4,})$", re.I)
+_spec_cache = {}
+
+
+def spec_paths(root):
+    if "p" not in _spec_cache:
+        paths = set()
+        stamp = os.path.join(root, "references", "api", "_spec-version.txt")
+        src = ""
+        if os.path.exists(stamp):
+            for line in open(stamp):
+                if line.startswith("source:"):
+                    src = line.split(" ", 1)[1].strip()
+        for cand in (src, os.path.join(os.path.dirname(root), src) if src else ""):
+            if cand and os.path.exists(cand):
+                try:
+                    paths = set(json.load(open(cand)).get("paths", {}))
+                except Exception:
+                    paths = set()
+                break
+        _spec_cache["p"] = "\n".join(sorted(paths))
+    return _spec_cache["p"]
+
+
+def shared_corpus(use_cache=True):
+    if "t" not in _shared_cache:
+        parts = []
+        for slug in SHARED:
+            txt, _ = corpus_for(slug, use_cache)
+            if txt:
+                parts.append(txt)
+        _shared_cache["t"] = "\n".join(parts)
+    return _shared_cache["t"]
+
+
+# Maturity words a product file asserts about its subject. These are the highest-consequence
+# claims in the skill and the least visible to token matching: "Beta product" is prose, unquoted
+# and unbolded, so the gate scored `containers.md` identically with and without it. It sat wrong
+# for months — Containers and Sandboxes went GA on 2026-04-13, the raw docs pulled on 2026-06-26
+# contain the word "beta" ZERO times, and the claim came from pre-training, not from any source.
+# A reader acting on "beta" makes different architectural decisions than one acting on "GA".
+MATURITY = ("beta", "alpha", "preview", "experimental", "deprecated", "sunset", "early access")
+
+
+def maturity_claims(md):
+    """Status words asserted in the file's own voice — its summary blockquote and its caveat lines.
+
+    Scoped deliberately: `preview` appears legitimately all over a file as a noun (preview URLs,
+    preview deployments). Only the summary and lines carrying a caveat marker assert the product's
+    own maturity, so only those are read.
+    """
+    out = set()
+    for raw in md.split("\n"):
+        line = raw.strip()
+        is_summary = line.startswith(">")
+        is_caveat = "⚠️" in line or re.match(r"^-?\s*\*\*(Status|Availability|Maturity)", line)
+        if not (is_summary or is_caveat):
+            continue
+        for w in MATURITY:
+            if re.search(rf"\b{re.escape(w)}\b", line, re.I):
+                out.add(w)
+    return out
+
+
+_ga = None
+
+
+def ga_announcements():
+    """Products the changelog says went generally available, from the live RSS feed.
+
+    THE RIGHT RULER, reached after four wrong ones. "Is this still beta?" was attacked by looking
+    for the word in the docs' prose, and every variant failed: the word absent (containers said
+    nothing either way), the word present as an unrelated link label, present as a section badge
+    (`## Automatic provisioning Beta`) marking one feature, or present under a different label
+    (`key-transparency.md` says preview where the docs say public beta). Prose does not carry a
+    status transition — the CHANGELOG does, as an announcement with a date. Containers' stale claim
+    is answered by one entry: "Containers and Sandboxes are now generally available", 2026-04-13.
+    """
+    global _ga
+    if _ga is None:
+        _ga = {}
+        try:
+            req = urllib.request.Request(
+                "https://developers.cloudflare.com/changelog/rss/index.xml",
+                headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                xml = r.read().decode("utf-8", "replace")
+        except Exception:
+            return _ga
+        for it in re.findall(r"<item>(.*?)</item>", xml, re.S):
+            t = re.search(r"<title>(.*?)</title>", it, re.S)
+            d = re.search(r"<pubDate>(.*?)</pubDate>", it, re.S)
+            title = html.unescape(t.group(1)).strip() if t else ""
+            if re.search(r"generally available|general availability|now GA\b", title, re.I):
+                date = (d.group(1)[:16].strip() if d else "")
+                for part in title.split(" - ")[0].split(","):
+                    _ga[part.strip().lower()] = (title, date)
+                for m in re.finditer(r"\b([A-Z][A-Za-z0-9]+(?: [A-Z][A-Za-z0-9]+)*)\b", title):
+                    _ga.setdefault(m.group(1).lower(), (title, date))
+    return _ga
+
+
+def check_maturity(slug, md, corpus):
+    """Flag a pre-GA claim that a GA announcement has since overtaken.
+
+    Reports only what the changelog positively contradicts. It cannot see a product that quietly
+    stopped being beta without an announcement — that gap is real and is logged in the CHANGELOG.
+    """
+    claimed = maturity_claims(md)
+    if not claimed:
+        return []
+    # A file that states GA is not asserting a stale product status — its remaining pre-GA words
+    # describe something narrower. `sandbox.md` calls SDK **1.0** a preview while the product has
+    # been GA since 2026-04-13; both are true, and flagging it would push a curator to delete a
+    # correct sentence. The file has to say GA for this exemption, which is why the fact was added
+    # there rather than special-cased here.
+    if re.search(r"\b(GA|generally available)\b", md, re.I):
+        return []
+    ga = ga_announcements()
+    name = slug.replace("-", " ").lower()
+    for key, (title, date) in ga.items():
+        # Exact, or the slug inside the announcement's word (sandbox → "Sandboxes"). The reverse
+        # direction — announcement word inside the slug — is DELIBERATELY absent: it let
+        # `privacy-gateway` inherit the GA of Cloudflare *Gateway* and `workers-vpc` inherit a
+        # Source Maps announcement for *Workers*. A narrower product never inherits a broader
+        # product's status; that error reads as authoritative and is invisible without knowing
+        # both products.
+        if key == name or (len(name) > 4 and name in key):
+            return [f"{'/'.join(sorted(claimed))} — but the changelog says GA: "
+                    f"\"{title}\" [{date}]"]
+    return []
+
+
+def main():
+    args = [a for a in sys.argv[1:]]
+    init = "--init-baseline" in args
+    use_cache = "--no-cache" not in args
+    root = INSTALLED if "--installed" in args else WORKBENCH
+    slugs = [a for a in args if not a.startswith("-")]
+    pdir = os.path.join(root, "references", "products")
+    if not slugs:
+        slugs = sorted(f[:-3] for f in os.listdir(pdir) if f.endswith(".md"))
+    bpath = os.path.join(root, "references", "_verify-baseline.json")
+    baseline = json.load(open(bpath)) if os.path.exists(bpath) else {}
+
+    print(f"🔎 verify-products — {len(slugs)} product file(s) vs the live docs "
+          f"({'workbench' if root == WORKBENCH else 'installed'})\n")
+    total_pages = tot_ok = tot_nf = tot_seen = tot_lines = 0
+    thin, status_hits = [], []
+    new_nf, cur = [], {}
+    cross_resolved = {}
+    skipped = []
+
+    for slug in slugs:
+        md = open(os.path.join(pdir, f"{slug}.md"), encoding="utf-8").read()
+        toks = atoms(md)
+        corpus, npages = corpus_for(slug, use_cache)
+        if corpus is None:
+            skipped.append(slug)
+            print(f"   ⚠️  {slug:<28} SKIPPED — no readable llms.txt index (corpus incomplete)")
+            continue
+        total_pages += npages
+        cnc = corpus.lower()
+        miss = [t for k, t in toks if not present(t, k, corpus, cnc)]
+        if miss:
+            sp = spec_paths(root)
+            if sp:
+                keep = []
+                for t in miss:
+                    m = ENDPOINT.match(t)
+                    tail = (m.group(1) or m.group(2)) if m else None
+                    # A spec path is templated (/zones/{zone_id}/…); compare on the literal
+                    # segments so `/rum/site_info/list` matches `/accounts/{id}/rum/site_info/list`.
+                    if tail and re.search(re.escape(tail.split("{")[0].rstrip("/")), sp):
+                        continue
+                    keep.append(t)
+                miss = keep
+        if miss and slug not in SHARED:
+            sc = shared_corpus(use_cache)
+            scnc = sc.lower()
+            kind_of = {t: k for k, t in toks}
+            miss = [t for t in miss if not present(t, kind_of[t], sc, scnc)]
+        # LAST fallback: products this file explicitly points at. A file that says
+        # "see `products/hyperdrive.md`" is declaring that Hyperdrive vocabulary belongs in it,
+        # and that vocabulary is documented in Hyperdrive's corpus, not this one. Before this,
+        # every such term was accused. Deliberately limited to DECLARED pointers rather than
+        # "any product mentioned anywhere": a token confirmed against an arbitrary corpus is a
+        # token nobody checked, and this gate is worth more narrow than wide.
+        if miss:
+            kind_of = {t: k for k, t in toks}
+            for cited in cited_products(md, slug):
+                if not miss:
+                    break
+                cc, _ = corpus_for(cited, use_cache)
+                if not cc:
+                    continue
+                ccnc = cc.lower()
+                before = len(miss)
+                miss = [t for t in miss if not present(t, kind_of[t], cc, ccnc)]
+                if before != len(miss):
+                    cross_resolved.setdefault(slug, []).append(
+                        (cited, before - len(miss)))
+        tot_ok += len(toks) - len(miss)
+        tot_nf += len(miss)
+        cur[slug] = sorted(miss)
+        known = set(baseline.get(slug, []))
+        fresh = [m for m in miss if m not in known]
+        new_nf += [(slug, m) for m in fresh]
+        stale_status = check_maturity(slug, md, corpus)
+        if stale_status:
+            status_hits.append((slug, stale_status))
+        seen_l, tot_l = audited_lines(md, [t for _, t in toks])
+        frac = (100 * seen_l // tot_l) if tot_l else 0
+        tot_seen += seen_l
+        tot_lines += tot_l
+        thin.append((frac, slug, seen_l, tot_l))
+        mark = "✅" if not miss else ("🆕" if fresh else "· ")
+        print(f"   {mark} {slug:<24} {len(toks) - len(miss):>3}/{len(toks):<3} confirmed "
+              f"· {frac:>3}% of {tot_l:>3} claims audited · {npages:>3} pages"
+              + (f"  ({len(fresh)} new NOT FOUND)" if fresh else ""))
+        for m in fresh:
+            print(f"        🆕 not found in live docs: {m}")
+
+    overall = (100 * tot_seen // tot_lines) if tot_lines else 0
+    if cross_resolved:
+        n = sum(c for v in cross_resolved.values() for _, c in v)
+        print(f"\n   ↔ {n} token(s) confirmed against a product this file explicitly points at "
+              f"(would have been false accusations):")
+        for sl, hits in sorted(cross_resolved.items()):
+            print("      " + sl + " → " + ", ".join(f"{c} in {c2}" for c2, c in hits))
+    print(f"\n── totals ──\n   {tot_ok} confirmed · {tot_nf} not found · "
+          f"{total_pages} live pages fetched")
+    print(f"   {overall}% of {tot_lines} claim blocks carried something checkable "
+          f"— the other {100 - overall}% is UNAUDITED, not verified.")
+    if status_hits:
+        print("\n   🚨 STALE STATUS — a pre-GA claim the changelog has overtaken:")
+        for slug, words in status_hits:
+            print(f"      {slug:<24} claims: {', '.join(words)}")
+    worst = sorted(t for t in thin if t[0] < 25)[:10]
+    if worst:
+        print("\n   ⬇️  least audited — prose with nothing quotable is where a fabrication survives:")
+        for frac, slug, sl, tl in worst:
+            print(f"      {frac:>3}%  {slug:<24} ({sl}/{tl} blocks)")
+    if skipped:
+        print(f"   ⚠️  {len(skipped)} product(s) SKIPPED (corpus incomplete): {', '.join(skipped)}")
+    print("   NOT FOUND = look at it. It is not a verdict that the file is wrong; prose framing is\n"
+          "   out of scope and never checked.")
+
+    if init:
+        json.dump(cur, open(bpath, "w"), indent=1, sort_keys=True)
+        print(f"\n✅ baseline written: {bpath} ({tot_nf} accepted not-found tokens)")
+        return 0
+    if new_nf:
+        print(f"\n❌ {len(new_nf)} NEW not-found token(s) since the baseline — review, then either fix\n"
+              f"   the product file or re-record with --init-baseline.")
+        return 1
+    print("\n✅ no regression against the baseline.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

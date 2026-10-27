@@ -1,0 +1,136 @@
+#!/usr/bin/env python3
+"""Add request-body fields to references/api/<slug>.md, resolved from the OpenAPI spec.
+
+WHY THIS IS NOT PART OF slice-api: slice-api answers "does this endpoint exist and what is it
+called". That is a flat question — one spec entry, one line. A request body is a *graph*: the
+`requestBody` of a typical Cloudflare operation is a `$ref` into one of 6,660 component schemas,
+which references others, sometimes cyclically. Rendering it means walking that graph and deciding
+where to stop. Mixing the two would make a failure in the hard half take down the easy half.
+
+WHAT IT EMITS, and why so little: for each operation that has a request body, the **top-level
+required fields with their types**, on the same line as the endpoint. Not the full schema. A full
+render of `POST /accounts/{id}/workers/scripts/{name}` is hundreds of lines of metadata bindings;
+nobody reads that in a reference file, and it would bury the endpoint list it is attached to. The
+required fields are the part you cannot guess and the part that fails the call at request time.
+
+WHAT IT DOES NOT ESTABLISH: optional fields, nested shapes, enums, and response bodies. The header
+of every touched slice says so. Verify shapes against /api/resources/<product> before relying on
+them — this narrows the guessing, it does not replace the docs.
+
+  slice-bodies <spec.json> [slug ...]    default: every slice
+  slice-bodies <spec.json> --dry <slug>  print, do not write
+"""
+import json, re, os, sys, glob
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+API = os.path.join(HERE, "..", "references", "api")
+MAX_DEPTH = 12  # cycle guard: Cloudflare schemas self-reference (rulesets inside rulesets)
+
+
+def resolve(node, spec, depth=0, seen=None):
+    """Follow $ref chains to a concrete schema. Returns {} rather than looping forever."""
+    seen = seen or set()
+    if depth > MAX_DEPTH or not isinstance(node, dict):
+        return {}
+    ref = node.get("$ref")
+    if ref:
+        if ref in seen:
+            return {}
+        seen = seen | {ref}
+        cur = spec
+        for part in ref.lstrip("#/").split("/"):
+            cur = cur.get(part, {}) if isinstance(cur, dict) else {}
+        return resolve(cur, spec, depth + 1, seen)
+    # allOf: merge the branches; oneOf/anyOf: take the first, and say so via the caller
+    if "allOf" in node:
+        merged = {"type": "object", "properties": {}, "required": []}
+        for branch in node["allOf"]:
+            r = resolve(branch, spec, depth + 1, seen)
+            merged["properties"].update(r.get("properties", {}) or {})
+            merged["required"] += r.get("required", []) or []
+        return merged
+    for key in ("oneOf", "anyOf"):
+        if key in node and node[key]:
+            return resolve(node[key][0], spec, depth + 1, seen)
+    return node
+
+
+def type_of(schema, spec):
+    s = resolve(schema, spec)
+    t = s.get("type")
+    if t == "array":
+        inner = resolve(s.get("items", {}), spec).get("type", "any")
+        return f"{inner}[]"
+    if isinstance(t, list):
+        return "|".join(t)
+    return t or "any"
+
+
+def body_fields(op, spec):
+    """Top-level required fields of the request body, as 'name:type'. Empty when there is none."""
+    rb = resolve(op.get("requestBody", {}), spec)
+    content = rb.get("content") or {}
+    media = content.get("application/json") or next(iter(content.values()), {})
+    schema = resolve(media.get("schema", {}), spec)
+    req = schema.get("required") or []
+    props = schema.get("properties") or {}
+    if not schema:
+        # The operation declares a body and the spec describes it as `{}` — 60 operations do this,
+        # mostly DELETEs. Say so explicitly: "absent from the reference" and "the spec is silent"
+        # are different facts, and leaving the line bare would report the second as the first.
+        return "(spec carries no schema — check the docs)"
+    if not req:
+        # A body with no required fields is still a fact worth stating — it means the call
+        # accepts an empty object, which is not guessable from the endpoint name.
+        return "(no required fields)"
+    return ", ".join(f"{n}:{type_of(props.get(n, {}), spec)}" for n in sorted(req))
+
+
+LINE = re.compile(r"^- `([A-Z]+) (/[^`]+)` — (.*?)  · required: (.*?)(  · body: .*)?$")
+NOTE = "> Body fields below are the **top-level required** ones only — not optional fields, nested\n> shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.\n"
+
+
+def process(path_file, spec, dry=False):
+    out, touched = [], 0
+    for line in open(path_file).read().split("\n"):
+        m = LINE.match(line)
+        if not m:
+            out.append(line)
+            continue
+        method, p, summary, req, _old = m.groups()
+        op = (spec["paths"].get(p) or {}).get(method.lower()) or {}
+        fields = body_fields(op, spec) if "requestBody" in op else ""
+        base = f"- `{method} {p}` — {summary}  · required: {req}"
+        out.append(base + (f"  · body: {fields}" if fields else ""))
+        touched += 1 if fields else 0
+    text = "\n".join(out)
+    if NOTE not in text and touched:
+        text = text.replace("> ⚠️ Verify shapes", NOTE + "\n> ⚠️ Verify shapes", 1)
+    if dry:
+        print(text[:2000])
+    else:
+        open(path_file, "w").write(text)
+    return touched
+
+
+def main():
+    args = sys.argv[1:]
+    dry = "--dry" in args
+    args = [a for a in args if a != "--dry"]
+    if not args:
+        sys.exit(__doc__)
+    spec = json.load(open(args[0]))
+    slugs = args[1:] or sorted(os.path.basename(f)[:-3] for f in glob.glob(os.path.join(API, "*.md")))
+    total = 0
+    for slug in slugs:
+        f = os.path.join(API, slug + ".md")
+        if not os.path.exists(f):
+            print(f"! {slug}: no slice")
+            continue
+        n = process(f, spec, dry)
+        total += n
+        print(f"{slug}: {n} operations gained body fields")
+    print(f"\n{total} operations documented")
+
+
+main()
