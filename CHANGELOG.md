@@ -38,14 +38,19 @@ ship in a repository that people install.
 - Cleanup of the repo root, same day: `_curation-guide.md` moved to `references/` (where `SKILL.md` and the
   scripts expect it); stale `_known-products.txt` and the one-off `_remove_category.py` removed.
 
+- Same day, after the first `check-repo` run: catalog counts corrected (heading "all 96"; "96 files against
+  112 live products, the other 18 uncovered", from `update-check` 2026-10-27); the 6 lines with a local path
+  now use placeholders (`<workbench>` / `<installed>` in the guide and the fixture log, a relative
+  `source: ../raw/...` in `_spec-version.txt`, which `scripts/refresh` resolves against the workbench);
+  empty `$dir/` and `data/` removed; `README.md` added with install steps.
+
 **Verified.** `scripts/check-pointers`: 118 cross-references across 100 product files, no broken pointers.
 A search for `data/blog` / `blog-search` outside this file finds nothing.
 
-**Deferred.** Not fixed yet, reported by `check-repo`: the "(all 93)" count in the catalog heading
-(the catalog lists 96 entries; 100 product files incl. 4 rename stubs; verify with `scripts/update-check`
-before changing it) and 6 lines with a local path in `evals/link-gate-fixture.log`,
-`references/_curation-guide.md` and `references/api/_spec-version.txt`. If a local "why" layer is wanted again, rebuild it from `blog.cloudflare.com`:
-the removed corpus is not in this repository's history (it was deleted before the first commit).
+**Deferred.** `scripts/update-check --shallow` (2026-10-27) reports `log-explorer` as gone/renamed (live 112,
+manifest 113). `products/log-explorer.md`, its catalog entry and `_known-products.txt` were not curated in
+this pass. If a local "why" layer is wanted again, rebuild it from `blog.cloudflare.com`: the removed corpus
+is not in this repository's history (it was deleted before the first commit).
 
 ---
 
