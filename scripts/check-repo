@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""check-repo — repository hygiene gate for cloudflare-atlas. Run it before every publish.
+
+WHY THIS EXISTS: on 2026-10-27 the repo went to GitHub with a stale copy of _known-products.txt in
+the root, a one-off script nobody called, and a pointer (references/_curation-guide.md) to a file that
+sat in the root. scripts/check-pointers could not see any of it: it only validates the
+products/<slug>.md cross-references between product files. This gate looks at the repo as a whole.
+
+Usage: scripts/check-repo [--strict]
+
+  ERRORS  (exit 1)
+    - a path cited in SKILL.md or in a script does not exist
+    - a catalog entry in SKILL.md has no references/products/<slug>.md
+    - a leftover reference to the removed blog corpus (data/blog, blog-search) outside CHANGELOG.md
+
+  WARNINGS  (exit 0; exit 1 with --strict)
+    - a product file the catalog does not list (rename stubs, whose first line has "-> renamed", are exempt)
+    - the "(all N)" count in the catalog heading disagrees with the number of entries
+    - an unexpected file in the repo root
+    - a script without the executable bit
+    - a local path or personal home directory in a tracked file
+    - a directory whose name contains "$" in the repo root
+
+It reads the tracked files (git ls-files), so untracked junk never counts as shipped.
+"""
+import os
+import re
+import subprocess
+import sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+STRICT = "--strict" in sys.argv
+SELF = "scripts/check-repo"
+ROOT_ALLOWED = {"SKILL.md", "ATTRIBUTION.md", "CATALOG-removed.md", "CHANGELOG.md",
+                "README.md", "LICENSE", ".gitignore"}
+
+errors, warnings = [], []
+
+
+def tracked_files():
+    try:
+        out = subprocess.run(["git", "-C", ROOT, "ls-files"], capture_output=True, text=True, check=True).stdout
+        return [t for t in out.split("\n") if t]
+    except Exception:
+        found = []
+        for d, dirs, files in os.walk(ROOT):
+            dirs[:] = [x for x in dirs if x not in (".git", "__pycache__")]
+            for f in files:
+                found.append(os.path.relpath(os.path.join(d, f), ROOT))
+        return found
+
+
+def read(rel):
+    try:
+        with open(os.path.join(ROOT, rel), encoding="utf-8", errors="ignore") as fh:
+            return fh.read()
+    except Exception:
+        return ""
+
+
+files = tracked_files()
+texts = {f: read(f) for f in files}
+
+# 1. cited paths must exist ---------------------------------------------------------------------
+cite = re.compile(r"(?<![\w./<-])((?:references|scripts|evals|data)/[A-Za-z0-9_./\-]+\.(?:md|txt|json|py|log)"
+                  r"|scripts/[A-Za-z0-9_\-]+)")
+for src in ["SKILL.md"] + [f for f in files if f.startswith("scripts/") and f != SELF]:
+    seen = set()
+    for m in cite.findall(texts.get(src, "")):
+        p = m.rstrip(".,)`'\"")
+        if p in seen:
+            continue
+        seen.add(p)
+        if not os.path.exists(os.path.join(ROOT, p)):
+            errors.append(f"cited path does not exist: {p}  (cited in {src})")
+
+# 2. catalog x product files --------------------------------------------------------------------
+skill = texts.get("SKILL.md", "")
+catalog = set(re.findall(r"→ products/([a-z0-9.\-]+)\.md", skill))
+products = {os.path.basename(f)[:-3]: f for f in files
+            if f.startswith("references/products/") and f.endswith(".md")}
+for slug in sorted(catalog - set(products)):
+    errors.append(f"catalog entry without a product file: products/{slug}.md")
+for slug in sorted(set(products) - catalog):
+    first = texts[products[slug]].split("\n", 1)[0]
+    if "→ renamed" not in first:
+        warnings.append(f"product file not in the catalog: {products[slug]}")
+m = re.search(r"Product catalog \(all (\d+)", skill)
+if m and int(m.group(1)) != len(catalog):
+    warnings.append(f"catalog heading says 'all {m.group(1)}' but SKILL.md lists {len(catalog)} entries")
+
+# 3. leftovers of the removed blog corpus -------------------------------------------------------
+for f, t in texts.items():
+    if f in ("CHANGELOG.md", SELF):
+        continue
+    if "data/blog" in t or "blog-search" in t:
+        errors.append(f"reference to the removed blog corpus in {f}")
+
+# 4. repo root ----------------------------------------------------------------------------------
+for f in files:
+    if "/" not in f and f not in ROOT_ALLOWED:
+        warnings.append(f"unexpected file in the repo root: {f}")
+for name in os.listdir(ROOT):
+    if "$" in name and os.path.isdir(os.path.join(ROOT, name)):
+        warnings.append(f"directory with '$' in its name (not tracked, delete it): {name}")
+
+# 5. executable bit on scripts ------------------------------------------------------------------
+try:
+    staged = subprocess.run(["git", "-C", ROOT, "ls-files", "-s", "scripts"],
+                            capture_output=True, text=True, check=True).stdout.split("\n")
+    for line in staged:
+        if not line or "\t" not in line:
+            continue
+        mode, path = line.split(" ", 1)[0], line.split("\t", 1)[1]
+        if not path.endswith(".py") and "__pycache__" not in path and mode != "100755":
+            warnings.append(f"script without the executable bit: {path}")
+except Exception:
+    pass
+
+# 6. local paths / personal data ----------------------------------------------------------------
+local = re.compile(r"/Users/[A-Za-z0-9._-]+|/home/[A-Za-z0-9._-]+|[A-Za-z]:\\Users\\")
+for f, t in texts.items():
+    if f == SELF:
+        continue
+    for i, line in enumerate(t.split("\n"), 1):
+        if local.search(line):
+            warnings.append(f"local path in a tracked file: {f}:{i}: {line.strip()[:90]}")
+
+# report ----------------------------------------------------------------------------------------
+print("── repo hygiene gate ──")
+print(f"   {len(files)} tracked files · {len(catalog)} catalog entries · {len(products)} product files")
+for e in errors:
+    print(f"   ❌ {e}")
+for w in warnings:
+    print(f"   ⚠️  {w}")
+if not errors and not warnings:
+    print("   ✅ clean.")
+else:
+    print(f"   {len(errors)} error(s), {len(warnings)} warning(s)" + (" (strict: warnings fail)" if STRICT else ""))
+sys.exit(1 if errors or (STRICT and warnings) else 0)
