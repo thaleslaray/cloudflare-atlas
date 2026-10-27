@@ -115,4 +115,4 @@ to as a protocol endpoint:
 - Relay REST API: `developers.cloudflare.com/api/resources/moq`. Reference client: `cloudflare/moq-rs`.
 - Protocol spec (authoritative): IETF MoQ WG — `datatracker.ietf.org/doc/html/draft-ietf-moq-transport-16`.
 - Related products: `stream` (managed VOD/live), `realtime` (WebRTC), `r2` (storage).
-- "Is MoQ GA / priced yet?" → re-check the live docs and `scripts/blog-search "Media over QUIC"`.
+- "Is MoQ GA / priced yet?" → re-check the live docs and the live blog (blog.cloudflare.com), search "Media over QUIC".

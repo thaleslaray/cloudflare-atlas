@@ -84,4 +84,4 @@ export default {
 - Covered by the official `cloudflare` skill (`references/hyperdrive/`) — use it for full API/patterns
   (`configuration.md`, `api.md`, `patterns.md`, `gotchas.md`).
 - Driver/ORM examples (Drizzle, Prisma, node-postgres, postgres.js, mysql2) → `pages/hyperdrive/examples/`.
-- "How Hyperdrive works / why" → `scripts/blog-search "Hyperdrive regional databases distributed"`.
+- "How Hyperdrive works / why" → the live blog (blog.cloudflare.com), search "Hyperdrive regional databases distributed".

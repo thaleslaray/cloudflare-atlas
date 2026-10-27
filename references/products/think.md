@@ -166,5 +166,5 @@ is inherited from Workers/DO (CPU 30 s per event, 1 GB state) — see `products/
   `products/dynamic-workers.md`, `products/browser-run.md`, `products/sandbox.md`, `products/workflows.md`.
 - Examples: `cloudflare/agents` → `examples/assistant` (multi-session, sub-agent routing, shared
   workspace, MCP, chat recovery, GitHub OAuth) and `examples/context-overflow-recovery`.
-- Why Think → `scripts/blog-search "Project Think"` (design inspired by Pi). Preview moves fast →
+- Why Think → the live blog (blog.cloudflare.com), search "Project Think" (design inspired by Pi). Preview moves fast →
   `scripts/changelog-check Agents` before relying on any API here.

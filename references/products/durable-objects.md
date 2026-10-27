@@ -120,4 +120,4 @@ WebSocket msg 32 MiB · KV pair 2 MB · memory 128 MB/DO · 6 outbound conns/req
 - Covered by the official `cloudflare` skill (`references/durable-objects/`) — use it for full
   API, patterns (sharding, locks, real-time, sessions), configuration, and gotchas.
 - Storage deep-dive: that skill's `references/do-storage/`. Agents on DOs → `cloudflare:agents-sdk`.
-- "DO concepts / lifecycle" → `scripts/blog-search "Durable Objects"`.
+- "DO concepts / lifecycle" → the live blog (blog.cloudflare.com), search "Durable Objects".

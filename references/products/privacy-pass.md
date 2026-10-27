@@ -159,4 +159,4 @@ Reference services: `cloudflare/privacypass-issuer` (Workers, key rotation) and
   (Issuance Protocols). Drafts (non-production): Batched Tokens, ARC, Privacy Pass Reverse Flow.
 - Related here: **turnstile** (easiest on-ramp), **privacy-proxy** (MASQUE), **ohttp-relay**
   (OHTTP, formerly Privacy Gateway), **cloudflare-challenges**. Background: blogs "Eliminating CAPTCHAs on iPhones and Macs" /
-  the Privacy Pass standard post; Apple WWDC22 → `scripts/blog-search "Privacy Pass"`.
+  the Privacy Pass standard post; Apple WWDC22 → the live blog (blog.cloudflare.com), search "Privacy Pass".

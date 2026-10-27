@@ -74,4 +74,4 @@ propagation **≤60s**. Verify on `developers.cloudflare.com/kv/platform/limits/
 - Covered by the official `cloudflare` skill (`references/kv/`) — use it for full API/patterns
   (caching, sessions, rate-limiting, A/B testing, bulk/REST operations).
 - Exact REST API: `references/api/kv.md` — exact endpoints sliced from the OpenAPI spec (verify shapes live).
-- "KV vs Durable Objects / when eventual consistency bites" → `scripts/blog-search "Workers KV consistency"`.
+- "KV vs Durable Objects / when eventual consistency bites" → the live blog (blog.cloudflare.com), search "Workers KV consistency".

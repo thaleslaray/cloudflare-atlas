@@ -105,4 +105,4 @@ pricing tiers and event volumes, not per-request limits; measure rather than ass
 - Covered by the official `cloudflare` skill (`references/zaraz/`) — use it for the full Web API,
   dashboard configuration, patterns (SPA, e-commerce, Worker integration), and troubleshooting.
 - Custom tools → Managed Components (`zaraz/advanced/load-custom-managed-component/`).
-- "Why server-side tagging / pricing rationale" → `scripts/blog-search "Zaraz pricing"`.
+- "Why server-side tagging / pricing rationale" → the live blog (blog.cloudflare.com), search "Zaraz pricing".

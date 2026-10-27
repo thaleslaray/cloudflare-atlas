@@ -76,4 +76,4 @@ const round42 = await (await fetch(`${base}/public/42`)).json();    // a specifi
 - Cloudflare's conceptual pages: `developers.cloudflare.com/randomness-beacon/` (about, cryptographic
   background: DKG / Shamir + Feldman VSS / Pedersen DKG, threshold BLS, chained vs unchained).
 - Background: "Scalable Bias-Resistant Distributed Randomness" (2017 IEEE S&P); Cloudflare blog
-  → `scripts/blog-search "League of Entropy"`.
+  → the live blog (blog.cloudflare.com), search "League of Entropy".
