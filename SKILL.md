@@ -275,7 +275,7 @@ NOT a boundary (common hallucinations to avoid):
 | Newest/limits/pricing | live changelog — `scripts/changelog-check <product>` |
 | Live doc search | the `cloudflare-docs` MCP server (if available) |
 | Workers types / wrangler schema | the project's `node_modules` (`@cloudflare/workers-types`, `wrangler/config-schema.json`) |
-| Design rationale / tradeoffs ("why") | `scripts/blog-search "<topic>"` (blog corpus) |
+| Design rationale / tradeoffs ("why") | the live blog — `blog.cloudflare.com/<slug>` (any post via `Accept: text/markdown`); no blog corpus is bundled |
 
 ## Core rule: retrieval-first, verify before asserting
 
@@ -302,7 +302,7 @@ Before changing anything on the strength of one:
 2. **Check whether the file is asserting the absence.** "There is no `agents/ai-react` subpath" and
    "`createSandboxTools` does not exist today" both read as NOT FOUND. The gate cannot tell a
    missing term from a term the file correctly reports as missing.
-3. **Check the blog and the OpenAPI spec** before concluding a term is invented — endpoints and
+3. **Check the live blog (`blog.cloudflare.com`) and the OpenAPI spec** before concluding a term is invented — endpoints and
    preview-product APIs often live in neither the docs prose nor the product's own pages.
 
 **A false accusation from this gate is more dangerous than a missed one.** A miss leaves the file
