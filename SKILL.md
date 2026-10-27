@@ -101,7 +101,7 @@ deeper detail than a reference holds, the **live docs** (`developers.cloudflare.
 canonical (fetch as Markdown). The official `cloudflare` skill is an optional extra *if installed* —
 never subordinate Atlas's own refs to it.
 
-## Product catalog (all 93 — the map)
+## Product catalog (all 96 — the map)
 
 Pick a product, then read `references/products/<slug>.md` for depth. If nothing here fits, that's a Boundary signal.
 ### Application performance
@@ -214,7 +214,7 @@ Pick a product, then read `references/products/<slug>.md` for depth. If nothing 
 
 ## Coverage boundary — the 18 live products this skill does NOT curate
 
-The catalog above is 93 files against **111 live products**. The other 17 have no reference file here,
+The catalog above is 96 files against **112 live products** (`scripts/update-check`, 2026-10-27). The other 18 have no reference file here,
 and until 2026-09-04 the skill never said so: a question about Access hit silence, and silence is
 where pre-trained guessing fills in. Say "atlas does not cover this" and route, rather than answering
 from memory.
