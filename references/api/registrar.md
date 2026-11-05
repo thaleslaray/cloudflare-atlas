@@ -9,9 +9,7 @@
 
 - `POST /accounts/{account_id}/registrar/domain-check` — Check domain availability  · required: account_id  · body: domains:string[]
 - `GET /accounts/{account_id}/registrar/domain-search` — Search for available domains  · required: account_id, q
-- `GET /accounts/{account_id}/registrar/domains` — List domains  · required: account_id
-- `GET /accounts/{account_id}/registrar/domains/{domain_name}` — Get domain  · required: domain_name, account_id
-- `PUT /accounts/{account_id}/registrar/domains/{domain_name}` — Update domain  · required: domain_name, account_id  · body: (no required fields)
+- `POST /accounts/{account_id}/registrar/domain-transfer-check` — Check domain transfer eligibility  · required: account_id  · body: domains:object[]
 - `GET /accounts/{account_id}/registrar/extensions` — List extensions  · required: account_id
 - `GET /accounts/{account_id}/registrar/extensions/{extension}` — Get extension  · required: account_id, extension
 - `GET /accounts/{account_id}/registrar/registrations` — List Registrations  · required: account_id
@@ -19,4 +17,6 @@
 - `GET /accounts/{account_id}/registrar/registrations/{domain_name}` — Get Registration  · required: account_id, domain_name
 - `PATCH /accounts/{account_id}/registrar/registrations/{domain_name}` — Update Registration  · required: account_id, domain_name  · body: (no required fields)
 - `GET /accounts/{account_id}/registrar/registrations/{domain_name}/registration-status` — Get Registration Status  · required: account_id, domain_name
+- `POST /accounts/{account_id}/registrar/registrations/{domain_name}/transfer-in` — Initiate Transfer  · required: account_id, domain_name  · body: (no required fields)
+- `GET /accounts/{account_id}/registrar/registrations/{domain_name}/transfer-in-status` — Get Transfer Status  · required: account_id, domain_name
 - `GET /accounts/{account_id}/registrar/registrations/{domain_name}/update-status` — Get Update Status  · required: account_id, domain_name

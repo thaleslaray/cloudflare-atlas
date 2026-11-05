@@ -84,12 +84,19 @@ selector, so both can coexist on one domain.
 
 ## Key concepts
 - **Verified destination addresses:** before onboarding a sending domain you can only send to
-  destination addresses verified in your account (these sends are always **free**, don't count
-  toward quota/limits, and allow up to 25 MiB). After onboarding a domain you can send to anyone.
+  destination addresses verified in your account (these sends are always **free** and don't count
+  toward quota/limits). After onboarding a domain you can send to anyone.
 - **Suppression list:** auto entries — `complaint` (no expiry), `hard_bounce` (7 days, or none if the
   mailbox/domain doesn't exist), `soft_bounce` (24 h default); plus `manual` (your expiry or none).
   Each has a **scope**: `account` (all sending domains) or `sending_domain` (that exact domain only —
   `mail.myappexample.com` ≠ `myappexample.com`). Suppressed sends show as **Rejected** in sending logs.
+- **Local dev:** `wrangler dev` simulates the `send_email` binding (nothing sent; content logged and
+  saved locally). `"remote": true` on the binding sends REAL mail through Email Service.
+- **Event subscriptions:** publish sending events to a Queue per sending domain — `message.delivered`,
+  `message.deferred`, `message.bounced`, `message.failed`, `message.rejected`, `message.complained`.
+  Routing events are not published.
+- **Routing rules in Wrangler:** top-level `addresses` (literal or `*@domain`) in the Worker config;
+  `wrangler deploy` reconciles the managed rules (Wrangler 4.113.0+).
 - **Observability:** sending metrics, logs, and audit logs in the dash; metrics also via the
   GraphQL Analytics API (`emailSendingAdaptive`/`...Groups`), retained 31 days. These are
   **zone-level** datasets — filter by `zoneTag` (zone ID, not account ID).
@@ -98,7 +105,7 @@ selector, so both can coexist on one domain.
 - **Errors throw** — wrap in try/catch and branch on `error.code`. Key codes: `E_SENDER_NOT_VERIFIED`,
   `E_SENDER_DOMAIN_NOT_AVAILABLE` (domain not onboarded), `E_RECIPIENT_NOT_ALLOWED` (binding
   allowlist), `E_RECIPIENT_SUPPRESSED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`,
-  `E_TOO_MANY_RECIPIENTS` (>50), `E_CONTENT_TOO_LARGE` (>5 MiB).
+  `E_TOO_MANY_RECIPIENTS` (>50), `E_CONTENT_TOO_LARGE` (>25 MiB).
 - **Worker-sent mail shows as "dropped" in the Email Routing summary even when delivered.** Track
   real send success via Email *sending* metrics/logs, not the Routing dashboard.
 - **`From` and other platform headers can't be set via `headers`** (`E_HEADER_USE_API_FIELD`); use
@@ -125,8 +132,7 @@ selector, so both can coexist on one domain.
   **verified destination addresses** are **free** and don't count.
 - Inbound (Email Routing): **unlimited/free**; Email Workers billed under normal Workers pricing.
 
-**Key limits:** recipients (to+cc+bcc) **50/email** · total message **5 MiB** (25 MiB to verified
-destinations) · subject **998 chars** · custom headers **16 KB** total, ≤20 non-`X-` headers,
+**Key limits:** recipients (to+cc+bcc) **50/email** · total message **25 MiB** incl. attachments · subject **998 chars** · custom headers **16 KB** total, ≤20 non-`X-` headers,
 attachments ≤32 · domains/zone **30** · suppression API: `per_page` ≤1,000, import ≤1,000 items,
 10 imports/min · daily quota starts low, auto-scales (request increases via
 the [Limit Increase form](https://forms.gle/eX6pXvit1wBv77Yw5)). Verify on
@@ -136,6 +142,7 @@ the [Limit Increase form](https://forms.gle/eX6pXvit1wBv77Yw5)). Verify on
 - Official `cloudflare` skill ships `cloudflare-email-service` — use it for full API/patterns.
 - Examples: magic-link, signup flow, attachments, recipients → `email-service/examples/email-sending/`.
 - REST OpenAPI: `developers.cloudflare.com/api/resources/email_sending/methods/send/`.
+- Local dev: `email-service/observability/local-development/sending/` (and `/routing/`); events: `email-service/reference/event-subscriptions/`; product changelog: `email-service/platform/changelog/`.
 - Concepts: deliverability, email-authentication, suppression triggers/expiry under
   `email-service/concepts/`. Managing the list (dashboard, CSV/JSON/TXT import, API) lives at
   `email-service/configuration/suppressions/`.

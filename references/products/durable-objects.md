@@ -69,6 +69,12 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
   operation, not total) — work continues with no client connected, and **duration is billed** the whole time.
 - **Wall time by invocation type**: alarm handler max **15 min**; HTTP/RPC handlers **unlimited**
   while the client remains connected (bounded by CPU/memory limits, not wall clock).
+- **Code updates are deferred by default** (2026-10-30; `durable-objects/deployments/`): an active DO keeps its current code until
+  it hibernates or `max_delay` (default **300 s**, max 86,400) passes, then resets onto the **latest** deployed version. Best
+  effort; Hibernation-API WebSockets stay connected. Set `durable_objects.code_update_strategy` in Wrangler
+  (`{ "mode": "deferred", "max_delay": 60 }` or `{ "mode": "immediate" }`; `{ "mode": "deferred", "max_delay": 0 }` = immediate) — one strategy for every
+  class in the Worker, not carried between deploys. Per-deploy flag: `--durable-objects-code-update-mode immediate` (or
+  `deferred 30s`). Keep code backward-compatible while older versions may still run.
 - **RPC session billing**: calls on a returned `RpcTarget` stub are the **same session** — only the
   initial call that creates the stub counts as a request.
 
@@ -92,8 +98,6 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
 - **Up to 10 distinct Dynamic Workers** may have in-flight requests from one DO (was 4, raised
   2026-08-28) — see `dynamic-workers.md`.
 - **Shard by entity** — a single DO is a serialization point (~1K req/s); don't funnel a whole app through one.
-- **Pending work keeps the DO alive (and billing)** — see Lifecycle: close idle outbound connections and
-  don't leave stray timers/`waitUntil()` promises if you want the DO to wind down.
 - Deleting a class (`deleted_classes` migration or `exports` `state: "deleted"`) **destroys all data**
   irreversibly — test with `--dry-run`.
 

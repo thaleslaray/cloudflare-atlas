@@ -1,6 +1,6 @@
 # API reference — zone-settings
 
-> Exact REST endpoints for **zone-settings**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 44 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **zone-settings**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 45 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -18,6 +18,7 @@
 - `PATCH /zones/{zone_id}/settings` — Edit multiple zone settings  · required: zone_id  · body: (no required fields)
 - `GET /zones/{zone_id}/settings/aegis` — Get aegis setting  · required: zone_id
 - `PATCH /zones/{zone_id}/settings/aegis` — Change aegis setting  · required: zone_id  · body: value:object
+- `DELETE /zones/{zone_id}/settings/aegis` — Delete aegis setting  · required: zone_id
 - `GET /zones/{zone_id}/settings/auto_origin_tls_kex` — Get Auto-Origin TLS KEX enrollment status for the given zone  · required: zone_id
 - `PATCH /zones/{zone_id}/settings/auto_origin_tls_kex` — Patch Auto-Origin TLS KEX enrollment status for the given zone  · required: zone_id  · body: enabled:boolean
 - `GET /zones/{zone_id}/settings/automatic_platform_optimization` — Get Automatic Platform Optimization setting  · required: zone_id

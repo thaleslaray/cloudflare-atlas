@@ -1,6 +1,6 @@
 # API reference — billing
 
-> Exact REST endpoints for **billing**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 15 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **billing**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 22 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -16,6 +16,13 @@
 - `PATCH /accounts/{account_id}/billing/profile` — Update Billing Email  · required: account_id  · body: (no required fields)
 - `DELETE /accounts/{account_id}/billing/profile` — Delete Billing Profile  · required: account_id
 - `POST /accounts/{account_id}/billing/profile/payment-method` — Create Payment Intent for Billing Profile  · required: account_id
+- `GET /accounts/{account_id}/billing/spend-policies` — List Spend Policies  · required: 
+- `POST /accounts/{account_id}/billing/spend-policies` — Create Spend Policy  · required:   · body: action:string, enabled:boolean, name:string, product_id:string, threshold_cents:integer
+- `GET /accounts/{account_id}/billing/spend-policies/activity` — List Spend Policy Activity  · required: 
+- `GET /accounts/{account_id}/billing/spend-policies/{policy_id}` — Get Spend Policy  · required: 
+- `PUT /accounts/{account_id}/billing/spend-policies/{policy_id}` — Update Spend Policy  · required:   · body: action:string, enabled:boolean, name:string, product_id:string, threshold_cents:integer
+- `DELETE /accounts/{account_id}/billing/spend-policies/{policy_id}` — Delete Spend Policy  · required: 
+- `GET /accounts/{account_id}/billing/spend-policies/{policy_id}/audit` — List Spend Policy Audit Entries  · required: 
 - `GET /accounts/{account_id}/billing/unpaid-invoice` — Get Unpaid Invoices  · required: account_id
 - `GET /accounts/{account_id}/billing/usage` — Get account billing usage  · required: 
 - `POST /billing/address-validation` — Validate Billing Address  · required:   · body: (no required fields)

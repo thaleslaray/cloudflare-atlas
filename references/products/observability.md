@@ -35,7 +35,7 @@
 - Query structured events from Workers/Containers/R2/AI Gateway/Zero Trust in one place → **Logs**.
 - Ship telemetry to Honeycomb/Grafana/Datadog/Sentry/etc. → **OpenTelemetry export**.
 - Worker failures that recur, grouped and routed to a team or coding agent → **Workers Issues**.
-- **Not** a simulation: **Cloudflare Trace** (`rules/trace-request/`) *simulates* how config would
+- **Not** a simulation: **Rules simulator** (formerly Cloudflare Trace; `rules/simulator/`) *simulates* how config would
   handle a request; **Cloudflare Traces** records actual production traffic.
 
 ## Workers config (`wrangler.jsonc`)

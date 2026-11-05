@@ -30,8 +30,21 @@
   your registrar to the two assigned `*.ns.cloudflare.com` names. Activation can take up to 24h; until
   then records stay **DNS-only** and protection is *pending*.
 - Review records *before* switching nameservers — a wrong/missing record can make the domain unreachable.
+- Dashboard: the new DNS records experience is the only one since 2026-10-30 (classic page retired, all plans); changing a
+  record's type (e.g. `A` → `CNAME`) is done in place via the batch endpoint.
 - Also supports **secondary DNS** (Cloudflare as secondary via zone transfer) and **partial (CNAME) setup**.
-- Enterprise + Foundation DNS → advanced nameservers, account-unique DNSSEC keys, custom SOA/NS TTL.
+- Enterprise + Foundation DNS → advanced nameservers (hosted under `foundationdns.com`/`.net`/`.org`,
+  three anycast network groups), account-unique DNSSEC keys, custom SOA/NS TTL.
+- **API type:** zone DNS settings (`/zones/{zone_id}/dns_settings`) represent Advanced Nameservers as
+  `nameservers.type: "cloudflare.advanced"` (rolling out from 2026-10-26, ~7 days; before it reaches an
+  account the API still returns `cloudflare.standard`). `foundation_dns` is a deprecated alias; a `PATCH`
+  with both values must match. Clients must not treat `type` as a closed enum.
+- **Nameserver sets** (beta, Enterprise): account-level group of 2–5 custom nameserver names (1–3 IPv4 and
+  IPv6 each, `ip_count`) assigned to zones in the same account via `/accounts/$ACCOUNT_ID/dns_settings/nameserver_sets`;
+  `advanced: true` (needs Foundation DNS; all names share one `ip_count`) makes an Advanced Custom set. Sets are
+  **immutable** (only the name changes); you manage the `A`/`AAAA`/`NS` records and glue yourself; a zone uses a set
+  or zone/account/tenant custom nameservers, never both; both kinds show `type: "custom"` on the zone. A set can't
+  be deleted while assigned; not yet usable as a zone default.
 
 ## DNS record types
 - **IP resolution (proxiable):** `A`, `AAAA` (IPv4/IPv6), `CNAME` (alias to another name). At least one

@@ -42,8 +42,8 @@ Adjacent AI-flavored products (not the core five):
   Cloudflare itself; an operations tool, not a building block (`products/agent-lee.md`).
 
 ## Model catalog (`ai/models/`) — one catalog, two hosting modes
-Measured 2026-10-12 on `ai/llms.txt`: **242 model pages** — 70 `@cf` (`Cloudflare-hosted`, Workers AI
-GPUs, id `@cf/<author>/<model>`) and 172 `Third-party` (proxied through AI Gateway, id
+Measured 2026-10-31 on `ai/llms.txt`: **272 model pages** (excluding the catalog index) in 31 vendor slugs — 73 `@cf` (`Cloudflare-hosted`, Workers AI
+GPUs, id `@cf/<author>/<model>`) and 199 `Third-party` (30 vendors, proxied through AI Gateway, id
 `<vendor>/<model>`, e.g. `openai/gpt-4.1`). **Same call path for both:**
 `env.AI.run(id, input, { gateway: { id } })`; over REST, text models take `/ai/v1/chat/completions`
 and every modality takes `/ai/run` with `{ "model", "input" }`. Each model page carries context
@@ -57,25 +57,24 @@ bill in Neurons → `products/workers-ai.md`.
 
 | vendor slug | pages | what it hosts |
 |---|---|---|
-| `@cf` | 70 | Workers AI open models: mostly text generation, plus text-to-image, embeddings, ASR, TTS, translation, classification; includes Cloudflare's own `@cf/cloudflare/clef` / `clef-omni` (audio+video decisions) |
-| `openai` | 32 | mostly text generation; image, TTS, ASR |
-| `google` | 22 | Gemini text generation; Veo video, Nano Banana images, TTS (`gemini-3.8-flash[-lite]-tts`) |
-| `alibaba` | 15 | Qwen text generation; Wan / HappyHorse video, Qwen images |
-| `xai` | 15 | Grok text generation; image, video, ASR, TTS, a websocket voice model |
-| `recraft` | 13 | text-to-image, incl. SVG variants |
-| `anthropic` | 13 | Claude text generation (`Anthropic Messages` format) |
-| `minimax` | 9 | video, text generation, TTS, music |
-| `bytedance` | 8 | text-to-video, text-to-image |
-| `pruna` | 8 | `image-to-image`, `image-to-video`, plus one each `text-to-image` / `text-to-video` |
-| `black-forest-labs` | 7 | FLUX text-to-image; one text-to-video, one video upscale |
-| `elevenlabs` | 5 | TTS; music |
-| `bria` | 4 | FIBO generate/edit images; background removal (image RMBG 2.0, video ≤60 s) |
-| `inworld` / `krea` | 3 each | TTS / text-to-image |
-| `assemblyai`, `pixverse`, `runwayml`, `vidu` | 2 each | ASR; video (other three) |
+| `@cf` | 73 | Workers AI open models: mostly text generation, plus text-to-image, embeddings, ASR, TTS, translation, classification; includes Cloudflare's own `@cf/cloudflare/clef` / `clef-omni` (decisions) and `clairic` (typed-value extraction, preview), plus `@cf/daily-co/phonellm-mini-alpha-2` (voice agents) |
+| `openai` | 34 | mostly text generation; image, TTS, ASR |
+| `google` | 24 | Gemini text generation (incl. `gemini-4-argon`); Veo video, Nano Banana images (incl. `nano-banana-2.1`), TTS (`gemini-3.8-flash[-lite]-tts`) |
+| `xai` / `alibaba` | 15 each | Grok text generation, image, video, ASR, TTS, a websocket voice model / Qwen text generation, Wan / HappyHorse video, Qwen images |
+| `recraft` | 14 | text-to-image (V4.1 family incl. `recraftv4-1-flash`), incl. SVG variants |
+| `anthropic` | 14 | Claude text generation (`Anthropic Messages` format), incl. `claude-haiku-5.5` |
+| `minimax` | 12 | video, text generation, TTS, music |
+| `pruna` / `bytedance` | 8 each | image/video editing and generation / `text-to-video`, `text-to-image` |
+| `black-forest-labs` | 8 | FLUX text-to-image (incl. `flux-3-image-klein`); `flux-3-video`, one video upscale |
+| `meta` | 5 | Muse Spark / Muse Wonder agentic and coding models (`muse-spark-open` is open weights) |
+| `elevenlabs` / `bria` | 5 each | TTS, music / FIBO generate/edit, background removal (image, video), `ad-delayer` (flat ad image to editable layers) |
+| `topaz` / `krea` | 4 each | Gigapixel image upscalers, Starlight video enhancement / text-to-image and editing (`krea-3`, beta) |
+| `inworld` | 3 | TTS |
+| `assemblyai`, `pixverse`, `runwayml`, `vidu`, `klingai` | 2 each | ASR; video (pixverse, runwayml, vidu); Kling image + `kling-v4` video |
 | `thinkingmachines` | 2 | Inkling open-weights reasoning model |
-| `deepseek`, `moonshotai`, `unbiased` | 1 each | text generation |
+| `typesafe` | 2 | `typesafe/jev` / `jev-1.14.0` decision models (typed questions → probabilities; Clef is the drop-in peer) |
+| `deepseek`, `moonshotai`, `unbiased`, `particle`, `reflection-ai`, `fireworks` | 1 each | text generation (`reflection-ai/beam-1.0-501b-a23b` open weights; `fireworks/ember-1` long-context multimodal reasoning) |
 | `lightricks` | 1 | LTX video |
-| `typesafe` | 1 | `typesafe/jev` decision model (typed questions → probabilities; Clef is its drop-in peer) |
 
 Ids and counts drift between passes — use this table to know *what kind* of vendor sits where, then open the
 live list (`developers.cloudflare.com/ai/models/`, filter by provider/task) for exact ids.

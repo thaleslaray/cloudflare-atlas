@@ -66,12 +66,16 @@ with a **Managed Challenge** action (legit users may fail it for network/adblock
 - **Challenge Passage:** zone-level cookie lifetime, default **30 min** (recommend 15–45). Does
   **not** apply to rate-limiting rules. Clearance stays valid for that duration *unless Precursor
   determines the session is suspicious*.
-- **Precursor** (zone setting, Security → Settings): client-side, **session-based** verification that
-  keeps re-running in the browser and updates the session state stored in `cf_clearance` — instead of
-  a single challenge event. Two modes: **Minimize Friction** (default, no interstitial, best-effort
-  session state) and **Maximize Security** (recommended; shows a lightweight interstitial to
-  establish a session — requests must then present a valid `cf_clearance`, which breaks non-browser
-  API clients like curl/mobile backends unless scoped with **Precursor Rules**).
+- **Precursor** (zone setting, Security → Settings; filter "Precursor"): client-side, **session-based**
+  verification that keeps running in the browser instead of a single challenge event. Modes: **Off** ·
+  **Monitor** (collects signals; does not change bot score or clearance) · **Armed** (signals can affect bot
+  score and clearance, update session state in `cf_clearance`, force re-challenges). **Precursor Interstitial**
+  = a lightweight challenge that establishes a verified session; set sitewide **Show Interstitial** On/Off
+  and override per request with **Interstitial Rules**. With it On, non-browser clients (curl, mobile
+  backends) and cookie-less fetches get challenged — for mixed browser + API zones keep it Off by default and
+  rule it On for e.g. `/checkout`, or On with Rules turning it Off for API hosts/paths; fetch needs
+  `credentials: "include"`. **Supersedes JavaScript Detections:** Armed disables JSD (its rules still apply),
+  Monitor keeps JSD running; without prior JSD, Armed may show more traffic with bot score below 30.
 - **Turnstile Pre-clearance:** opt-in mode where the Turnstile widget *also* issues a `cf_clearance`
   cookie (in addition to its token) at a chosen level (`interactive`/`managed`/`jschallenge`/
   `no_clearance`, default off). Lets a visitor solve once on an HTML page, then hit WAF-protected
@@ -85,6 +89,8 @@ with a **Managed Challenge** action (legit users may fail it for network/adblock
   the challenge. Account for this in CORS-heavy apps.
 - **Challenge loops:** combining challenges with Rules features, or a solve coming from a *different
   IP* than the one challenged (VPN/proxy hopping), causes repeated challenges. Same-IP solve required.
+- **China Network (2026-10-28):** Challenge Pages served via the China Network use Turnstile widgets hosted inside
+  the mainland (no cross-border requests); automatic, no action needed. Global-network visitors are unchanged.
 - **No iframes / cross-domain:** Challenge Pages can't be embedded in cross-origin iframes, and one
   domain can't serve a page challenged for another.
 - **Browser extensions** that spoof `User-Agent` or patch `Canvas`/`WebGL` break challenges; IE is

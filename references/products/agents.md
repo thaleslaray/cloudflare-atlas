@@ -33,13 +33,16 @@
 - **`this.sql`** (tagged template) — per-agent embedded SQLite for structured/large data; create tables in `onStart()`.
 - **Session API** (`agents/experimental/memory/session`) — `Session.create(this)`: tree-structured
   conversation history, context blocks, compaction, full-text search. DO-SQLite by default (or Postgres).
+  Newer: experimental `Sessions` capability (`agents/sessions`) — already in Think and `AIChatAgent`.
 - ⚠️ **This built-in memory is SEPARATE from the Agent Memory product.** Agents SDK memory = state/SQL
   you manage inside one instance. **Agent Memory** = a managed auto-extract/recall service across
   conversations. See `products/agent-memory.md`.
 
 ## Tools & MCP
-- Agents call tools in their harness loop (**Code Mode** = model orchestrates by writing code); built-in
-  tool surfaces: Browser, Sandbox (code exec), AI Search, Payments.
+- Agents call tools in their harness loop (**Code Mode** = model orchestrates by writing code); built-in tool
+  surfaces: Browser (persistent tabs/logins; **internal hostnames** such as `preview.internal` route to your
+  Durable Object, ≥0.31.0), Sandbox, AI Search, Payments, `web_search` (≥0.27.0), `web_fetch` (≥0.28.0), file
+  system below. **Agent Skills** (experimental): Think `getSkills()` with `skills.workspace()` / `skills.r2()`.
 - **MCP** — an Agent can be an MCP server (expose tools) or an MCP client. Client connections **do not
   survive hibernation** — re-register in `onStart()`.
 - **🚨 MCP servers went STATELESS (SDK v0.20.0, 2026-07-27).** `createMcpHandler` now takes a **factory**
@@ -72,7 +75,9 @@
   **Code Mode** collapses upstream tools into search + execute in a **Dynamic Worker**; built-ins
   `portal_list_servers` / `portal_toggle_servers` / `portal_toggle_single_server`. Machine clients get
   `401` + `WWW-Authenticate` (managed OAuth) or use an **Access service token**. Transport:
-  `/mcp` → Streamable HTTP, `/sse` → SSE, else probe (only `404`/`405`/`406` fall through).
+  upstream URL ending `/mcp` → Streamable HTTP only, ending `/sse` → SSE (Streamable HTTP with Gateway routing),
+  else probe (only `404`/`405`/`406` fall through). Cloudflare's own product MCP servers dropped `/sse` on
+  2026-10-22 (`410 Gone`) — see `products/agent-setup.md`.
   **Gotchas:** sessions die after **24 h of inactivity** · auto-OAuth tool sync only about **every 2
   hours** (and bypasses Gateway) · route through **Gateway** for HTTP logging and DLP.
   → `developers.cloudflare.com/cloudflare-one/access-controls/ai-controls/mcp-portals/`
@@ -90,22 +95,22 @@
   "method", maxBudgetMs } })` dispatches a sub-agent **without blocking the turn** — durable, survives
   eviction, calls back on finish. (**`runTurn`** = Think's unified turn-admission entry point, not bare `Agent`.)
 
-## Harnesses & model providers (beta, 2026-10-02)
-**Runtime vs harness:** the runtime (`Agent`, state, sessions, fibers) answers *where the agent lives
-and stays durable*; the **harness** is the per-turn loop (prompt, model call, tools, persistence,
-recovery). Options per `agents/harnesses/`: build your own on `Agent`, **Project Think**
-(`products/think.md`), or **Pi** — `PiHarness` from `agents/harness/pi` (import path singular), a
-"Lifecycle capability" registered with `this.lifecycle.use(harness)`. Pi Durable owns the loop,
-transcript and recovery; it stores in the DO's SQLite (tables prefixed `pi_`), and a Lifecycle job
-alarm restarts an evicted object mid-run. You choose the transport (WebSockets/HTTP/RPC). Needs
-`@earendil-works/pi-durable` + `@earendil-works/pi-ai` ≥1.0 (optional peers of `agents`), a
-SQLite-backed DO, `nodejs_compat`. Tools/prompt sections come via Pi's own extensions. Expect API churn.
-**Model providers** (`agents/models/`): `agents/models/ai-sdk` (AI SDK v7 provider — needs `ai@^7` +
-`@ai-sdk/provider@^4`; works with Think) and `agents/models/pi-ai` (needs `@earendil-works/pi-ai@^1.0.0`).
-Both: `createAI({ binding: env.AI })`. A `@cf/` id runs via `env.AI.run()`; a third-party model is
-built by the vendor's own package (e.g. `@ai-sdk/anthropic`) and routed through AI Gateway
-(`env.AI.gateway(id).run()`) — **no provider API keys in the Worker** (**Unified Billing** or BYOK), fallback
-lists mixing both, gateway log id/cache status on every result. (ai-sdk) a non-`@cf/` string throws `TypeError`.
+## Harnesses & model providers
+**Runtime vs harness:** the runtime (Lifecycle from `agents/lifecycle`, `routeAgentRequest()`, capabilities
+attached with `lifecycle.use()`, observability) answers *where the agent lives and stays durable*; the
+**harness** is the per-turn loop. Per `agents/harnesses/`: **Pi** (the docs' recommended start for a new
+agent), **OpenCode** (experimental, `OpenCodeHarness`, `@opencode/sdk@2`), **Think** (`products/think.md`), or
+your own loop on the runtime. `PiHarness` is from `agents/harness/pi` (singular), a Lifecycle capability;
+Pi Durable owns loop, transcript and recovery in the DO's SQLite (tables prefixed `pi_`); a Lifecycle job
+alarm restarts an evicted object. Install `agents` + `@earendil-works/pi-durable` + `@earendil-works/pi-ai`
++ `@earendil-works/chord`: optional peers at `~1.4.0` (agents ≥0.30.0 = Pi 1.4); Pi 1.4 migrates SQLite
+storage, **no rollback past it**. Pi Durable is experimental. Needs `nodejs_compat`.
+**Model providers** (`agents/models/`): **`createAI`** replaced `workers-ai-provider` and `ai-gateway-provider`
+(2026-10-21; both frozen and deprecated). `agents/models/ai-sdk` needs `ai@^7` + `@ai-sdk/provider@^4`;
+`agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.4.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs
+via Workers AI; catalog models and `dynamic/<route>` go through AI Gateway; a vendor model object (e.g.
+`@ai-sdk/anthropic`) is wrapped as `ai(model)`; `fallback` lists, **no provider keys in the Worker**
+(**Unified Billing** or BYOK). Any other string throws `TypeError`. AI Search → `ai-search-provider`.
 
 ## Binding & config (`wrangler.jsonc`)
 ```jsonc
@@ -117,13 +122,13 @@ lists mixing both, gateway log id/cache status on every result. (ai-sdk) a non-`
 ```
 Route with `routeAgentRequest(request, env)` (and `routeAgentEmail` for email). Package entry points:
 `agents` (server), `agents/react` (`useAgent`, `useAgentToolEvents`), plus `agents/client`,
-`agents/mcp`, `agents/workflows`, `agents/email`, `agents/harness/pi`, `agents/models/ai-sdk`,
-`agents/models/pi-ai`. There is no ai-react subpath.
+`agents/mcp`, `agents/workflows`, `agents/email`, `agents/lifecycle`, `agents/sessions`, `agents/harness/pi`,
+`agents/models/ai-sdk`, `agents/models/pi-ai`. There is no ai-react subpath.
 **`useAgentChat` is NOT in `agents/react`** → `@cloudflare/ai-chat/react`; `AIChatAgent` ships in
 `@cloudflare/ai-chat`, not `agents`. **AI SDK peer range (2026-07-23):** `agents`, `@cloudflare/ai-chat`,
 `@cloudflare/codemode`, `@cloudflare/think` accept `ai@^6` with `@ai-sdk/react@^3` or `ai@^7` with
 `@ai-sdk/react@^4` — **pair the majors**; no forced v6→v7 migration, but `agents/models/ai-sdk` is **v7-only**.
-**Quickstart:** `npx create-cloudflare@latest --template cloudflare/agents-starter` (no API key — Workers AI default).
+**Quickstart:** `npm create cloudflare@latest -- my-agent --type=hello-world --lang=ts`, then the Pi packages + `@cloudflare/computer`.
 
 ## Observability: agent traces (2026-08-04)
 Traces show each **agent turn** with its model calls, tool runs, approvals, token usage and Workers
@@ -131,16 +136,13 @@ runtime operations. Enable `traces` (`enabled: true`) under `observability` in `
 **Think and Flue apps emit agent traces automatically**; for **direct AI SDK calls** wrap the namespace
 once with `wrapAISDK()` (AI SDK v6 and v7; the v7 form also carries the agent identity).
 
-## `@cloudflare/computer` — agent runtime (early preview, 2026-08-03)
-Open-source npm package `@cloudflare/computer`: gives **each agent its own computer** — a
-SQLite-backed virtual filesystem (from cloud storage, source control or your files) where agents
-read/write/edit, run shell and Git; every operation gated, audited, observed. `new Workspace({ storage:
-this.ctx.storage })` inside any Durable Object. **Two backends:** *isolate* (`just-bash` + Dynamic
-Workers — fast, scalable, file/data work) and *container* (full Linux via Containers over FUSE — native
-binaries, package managers). AI SDK-compatible toolkit (`read`, `write`, `edit`, `ls`, `exec`).
-**vs Sandbox SDK:** Sandbox isolates *untrusted* code; computer gives a *trusted* agent a persistent
-workspace and picks isolate-vs-container per operation. Preview — `github.com/cloudflare/computer`;
-no production without a fallback.
+## File system — `@cloudflare/computer` (`agents/tools/filesystem/`)
+`new Workspace({ storage: this.ctx.storage })` in a Durable Object: a persistent SQLite-backed working
+directory (`workspace.fs`) with tools `read`, `write`, `edit`, `grep`, `ls`, and `exec` once a backend is added
+(`createAITools()`, `createPiTools()`; Think includes them). `WorkerJavaScriptBackend` runs ES modules in a
+Dynamic Worker (`LOADER` binding): no shell or native binaries; the container backend is experimental.
+`onInterrupt: "replay"` resumes runs after a restart (experimental). All users of one instance share its
+workspace; for Linux use Sandbox. `@cloudflare/shell` is deprecated (see `products/think.md`).
 
 ## Gotchas
 - **`setState` not syncing** → you mutated `this.state` directly; always `setState({...this.state, ...})`.
@@ -170,11 +172,9 @@ verify `developers.cloudflare.com/agents/platform/limits/`.
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/agents-sdk/` — note slug **agents-sdk**):
   `configuration.md`, `api.md`, `patterns.md`, `gotchas.md`. Prefer it for full API/patterns.
-- Starter to build on / tear apart: `cloudflare/agents-starter` repo.
 - Durable Objects internals → `products/durable-objects.md`; managed memory → `products/agent-memory.md`.
-- **Don't hand-roll the chat loop** → `products/think.md`. Project Think (`@cloudflare/think`,
-  ⚠️ experimental) is the opinionated chat harness over this same SDK (Pi is the other — see above). Only three of its primitives work on the
-  bare `Agent` — fibers (`runFiber`/`startFiber`), sub-agents (`subAgent`), Session; Actions, Channels,
-  Messengers, `runTurn` and extensions are Think-only (Code Mode is **not** — see Tools & MCP above).
-  The Session path above (`agents/experimental/memory/session`) is the **bare-`Agent`** one; Think exports
-  its own `Session` via `configureSession()`. Don't mix the two import paths.
+- **Don't hand-roll the chat loop** → `products/think.md`. Think (`@cloudflare/think`) is the opinionated chat
+  harness over this SDK (Pi is the other — see above). Only fibers (`runFiber`/`startFiber`), sub-agents
+  (`subAgent`) and Session work on the bare `Agent`; Actions, Channels, Messengers, `runTurn` and extensions are
+  Think-only (Code Mode is **not** — see Tools & MCP). The Session path above is the **bare-`Agent`** one; Think
+  exports its own `Session` via `configureSession()`. Don't mix the two import paths.

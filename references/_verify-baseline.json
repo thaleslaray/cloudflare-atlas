@@ -2,21 +2,12 @@
  "agent-lee": [
   "agents-sdk"
  ],
- "agent-memory": [
-  "Durable Object SQLite"
- ],
+ "agent-memory": [],
  "agent-setup": [
-  "/reload-plugins",
   "skills/list"
  ],
  "agents": [
-  "@cloudflare/computer",
-  "Metadata Documents",
-  "OAuthAuthorizationServer",
-  "OAuthResourceServer",
-  "github.com/cloudflare/computer",
   "migrate-to-1.0",
-  "model_error",
   "no_output",
   "tts_error",
   "turnmetrics"
@@ -196,7 +187,6 @@
   "Alerting v3 API",
   "Certificate Transparency Monitoring",
   "Editing PagerDuty",
-  "Pro or higher",
   "Transparency Monitorin"
  ],
  "observability": [],
@@ -250,9 +240,7 @@
   "pedersen-bls-chained",
   "schemeID"
  ],
- "realtime": [
-  "pages/realtime/sfu/"
- ],
+ "realtime": [],
  "reference-architecture": [],
  "registrar": [
   ".com.br",
@@ -291,7 +279,6 @@
  "support": [
   "/api/v3/incidents.rss|.atom",
   "/api/v3/maintenance.rss|.atom",
-  "Never share",
   "pages/support/troubleshooting/"
  ],
  "tenant": [
@@ -319,16 +306,7 @@
   "tf-migrate migrate --source-version v4 --target-version v5",
   "workers_*"
  ],
- "think": [
-  "@ai-sdk/react@^3 || ^4",
-  "@cloudflare/think/tools/sandbox",
-  "agents/api-reference/*",
-  "agents/harnesses/think/*",
-  "agents/runtime/*",
-  "ai@^6 || ^7",
-  "createSandboxTools",
-  "kimi-k2.5"
- ],
+ "think": [],
  "time-services": [
   "Config.Time"
  ],
@@ -352,7 +330,15 @@
  "version-management": [
   "dashboard-only"
  ],
- "waf": [],
+ "waf": [
+  "llm_prompt_custom_topic",
+  "llm_prompt_injection",
+  "llm_prompt_pii",
+  "llm_prompt_unsafe_topic",
+  "waf_content_scan",
+  "waf_score",
+  "waf_signature"
+ ],
  "waiting-room": [
   "?force_queue"
  ],

@@ -1,6 +1,6 @@
 # API reference — r2-data-catalog
 
-> Exact REST endpoints for **r2-data-catalog**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 15 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **r2-data-catalog**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 16 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -14,9 +14,10 @@
 - `GET /accounts/{account_id}/r2-catalog` — List R2 catalogs  · required: account_id
 - `GET /accounts/{account_id}/r2-catalog/{bucket_name}` — Get R2 catalog details  · required: account_id, bucket_name
 - `POST /accounts/{account_id}/r2-catalog/{bucket_name}/credential` — Store catalog credentials  · required: account_id, bucket_name  · body: token:string
+- `GET /accounts/{account_id}/r2-catalog/{bucket_name}/credential/status` — Get catalog credential status  · required: account_id, bucket_name
 - `POST /accounts/{account_id}/r2-catalog/{bucket_name}/delete` — Delete R2 catalog metadata  · required: account_id, bucket_name
 - `POST /accounts/{account_id}/r2-catalog/{bucket_name}/disable` — Disable R2 catalog  · required: account_id, bucket_name
-- `POST /accounts/{account_id}/r2-catalog/{bucket_name}/enable` — Enable R2 bucket as a catalog  · required: account_id, bucket_name
+- `POST /accounts/{account_id}/r2-catalog/{bucket_name}/enable` — Enable R2 bucket as a catalog  · required: account_id, bucket_name  · body: (no required fields)
 - `GET /accounts/{account_id}/r2-catalog/{bucket_name}/maintenance-configs` — Get catalog maintenance configuration  · required: account_id, bucket_name
 - `POST /accounts/{account_id}/r2-catalog/{bucket_name}/maintenance-configs` — Update catalog maintenance configuration  · required: account_id, bucket_name  · body: (no required fields)
 - `GET /accounts/{account_id}/r2-catalog/{bucket_name}/namespaces` — List namespaces in catalog  · required: account_id, bucket_name

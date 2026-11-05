@@ -34,8 +34,8 @@
   it from any framework, or even from outside Workers via the HTTP API.
 - The **Agents SDK has its own, different memory**: per-agent state in **Durable Object SQLite**
   (`this.state` / `this.sql`, Session API). That is local, agent-scoped conversation state.
-- They compose: the Get-started guide wires Agent Memory's `recall()` into the Agents SDK Session API
-  as a `search_context` tool — but that is integration, not membership. Use Agent Memory when you need
+- They compose: the Agents SDK concept page *Conversation state and memory* (`products/agents.md`) wires
+  Agent Memory's `recall()` in as a search-context tool — integration, not membership. Use Agent Memory when you need
   **cross-conversation, cross-agent durable knowledge**; use DO-SQLite for the live session.
 
 ## The 4 memory types

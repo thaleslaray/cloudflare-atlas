@@ -34,6 +34,10 @@
 - **Resource commands:** zones, DNS, R2, D1… e.g. `cf dns records list --zone example.com`. They take
   the IDs the API expects (D1 database **ID**, not name) and act on **remote** data (`--local` only for
   some KV/D1/R2). `--dry-run` prints the request as JSON and needs no credentials.
+- **Source maps:** `cf deploy` uploads every source map in the build output by default (since 2026-10-20). Vite plugin
+  ≥1.64.0 generates Worker maps by default; opt out by setting `build.sourcemap` to `false` on the Worker's Vite environment
+  (`ssr` by default). `cf migrate` does not carry `upload_source_maps` over.
+- **Docs search:** `cf docs search "<query>"` (live docs, needs Internet; `cf` ≥1.0.0-beta.16) complements `cf cli search`.
 - **Command discovery:** `cf cli search "<plain-language task>"` finds matching commands without
   memorizing subcommand trees.
 - **CI:** set `CI=true` to avoid prompts; token via env (or a project `.env`, which `cf` reads for

@@ -9,6 +9,7 @@
 - Rule types
 - Config (Rulesets API)
 - Key concepts & patterns
+- Use cases
 - Gotchas
 - Pricing & plan-gating
 - Going deeper
@@ -57,8 +58,10 @@ Each phase is a separate ruleset (entrypoint) per zone — you cannot mix phases
   score) only *score* traffic — they never block. Reference the score in a custom/rate-limiting
   rule to act. Attack score is 1 (malicious) → 99 (clean).
 - **Failed detections (2026-10-09, all plans)**: `cf.appsec.request.failed_detections` (`Array<String>`, default
-  `[]`) = IDs of detections that *reported a failure* (attack score, signatures, content scan, leaked creds e.g.
-  `waf_credential_check`, AI prompt detections) → choose fail-open/closed: `len(cf.appsec.request.failed_detections) gt 0`.
+  `[]`) = IDs of detections that *reported a failure*; deduped, unordered → choose fail-open/closed:
+  `len(cf.appsec.request.failed_detections) gt 0`. IDs (ruleset-engine field reference, 2026-10-31): `waf_score`,
+  `waf_signature`, `waf_content_scan`, `waf_credential_check`, `llm_prompt_pii`, `llm_prompt_injection`,
+  `llm_prompt_custom_topic`, `llm_prompt_unsafe_topic`.
   Zone/account custom + rate limiting, zone Request Header Transforms; grants no detection your plan lacks.
 - **Attack Signature Detection (2026-09, Early Access — account team):** the Managed Rules signature
   catalog run as a *detection* — same signatures, released to both at once, but it only populates fields
@@ -89,6 +92,18 @@ Each phase is a separate ruleset (entrypoint) per zone — you cannot mix phases
 - **`skip`** action bypasses later evaluation: `ruleset: 'current'` skips the rest of *this*
   ruleset; `phases: [...]` skips whole downstream phases (e.g. allowlist an IP past managed rules).
 - **Overrides**: tune a managed ruleset without forking — whole-ruleset action (e.g. `log`), per-category, or per-rule ID.
+
+## Use cases (custom rules; `waf/custom-rules/use-cases/`)
+- `Block Worker subrequests`: `cf.worker.upstream_zone` = the zone that spawned a Workers
+  subrequest. **Don't match the `CF-Worker` header in WAF rules** — it is added *after* rule evaluation; the field holds
+  the same value. One zone: `(cf.worker.upstream_zone eq "example.com")` → Block. All but your own:
+  `(not cf.worker.upstream_zone in {"" "your-zone.com"})` → Block (`""` = not from a Worker, so visitors are unaffected).
+- `Block Tor traffic`: Tor exit nodes carry continent code `T1` → `(ip.src.continent eq "T1")` → Block (or `Managed Challenge`);
+  also disable Onion Routing on the zone.
+- **Attack score + country:** `(ip.src.country in {"CN" "TW" "US" "GB"} and cf.waf.score lt 20)` → Block.
+- `Challenge bad bots` (`Bot Management`, Enterprise): prefer the built-in **Bot traffic** settings in Security Settings (Block AI bots,
+  Definitely/Likely automated, Verified bots) — no custom-rule quota; use custom rules on `cf.bot_management.score` /
+  `cf.bot_management.verified_bot` for path-specific logic. Custom rules run before Super Bot Fight Mode.
 
 ## Gotchas
 - **`update()` replaces the entire rule list** — GET the ruleset, spread existing rules, then update,

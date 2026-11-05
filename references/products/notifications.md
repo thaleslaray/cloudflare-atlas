@@ -26,10 +26,21 @@
 
 ## Delivery methods & plan gating
 - **Email** — all plans (incl. Free).
-- **Webhooks** — account needs ≥1 zone on **Pro or higher** (then usable even from Free zones).
+- **Webhooks** — **all plans**; accounts without a paid zone can configure up to **100** webhook destinations.
 - **PagerDuty** — account needs ≥1 zone on **Business or higher** (connected service, OAuth).
-- Availability of a *delivery method* is gated by the **highest** zone plan in the account; individual
+- PagerDuty availability follows the **highest** zone plan in the account; individual
   *alert types* are additionally gated by plan/product (many are Enterprise- or add-on-only).
+
+## Monitors (user-defined alerts)
+Alerts is part of Observability (dashboard **Observability → Alerts**; monitors under **Alerts → Monitors**).
+A **monitor** runs a **SQL API** query on a schedule and notifies when the result meets the detection criteria;
+**Platform Notifications** (the rest of this file) are Cloudflare's built-in alert types.
+- **Detection:** **Threshold** (`<`,`>`,`<=`,`>=`,`==`,`!=`) · **Anomaly detection** (z-score vs a baseline window
+  ≥6× the evaluation window and ≤`24h`; spikes/drops/both; needs 30 min of history) · **SLO** (bad vs total events,
+  short + long window, triggers below target on both).
+- **Query:** visual builder or custom SQL — one numeric column named `value`, one schema-qualified dataset, an
+  account/zone filter, no trailing semicolon. Execution interval ≥1 min (`Log Explorer` datasets ≥10 min);
+  repeat-notification interval 1 min–`168h` (default `1h`). Destinations: ≤20 emails, webhook, PagerDuty.
 
 ## Configuration (dashboard + API)
 Dashboard: **Notifications** page → **Add** → pick alert type → name it, add recipient email(s) and/or

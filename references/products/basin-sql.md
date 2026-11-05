@@ -50,7 +50,7 @@ REST: `POST https://api.sql.cloudflarestorage.com/api/v1/accounts/{ACCOUNT_ID}/b
 
 ### SQL surface
 
-Standard analytics SQL: `SELECT`, `JOIN` (inner/left/right/full/cross), CTEs, window functions (`ROW_NUMBER`, `LAG`, `LEAD`, running aggregates), `GROUP BY` with `ROLLUP`/`CUBE`/`GROUPING SETS`, `QUALIFY`, set operations (`UNION`, `INTERSECT`, `EXCEPT`), `EXPLAIN [FORMAT JSON]`. Schema discovery via `SHOW DATABASES`, `SHOW NAMESPACES`, `SHOW TABLES IN namespace_name`, `DESCRIBE namespace_name.table_name`.
+Standard analytics SQL: `SELECT`, `JOIN` (inner/left/right/full/cross), CTEs, window functions (`ROW_NUMBER`, `LAG`, `LEAD`, running aggregates), `GROUP BY` with `ROLLUP`/`CUBE`/`GROUPING SETS`, `QUALIFY`, set operations (`UNION`, `INTERSECT`, `EXCEPT`), `EXPLAIN [FORMAT JSON]`, `LIMIT number OFFSET number` (OFFSET added 2026-10-21 — page with `ORDER BY` on a unique column). Schema discovery via `SHOW DATABASES`, `SHOW NAMESPACES`, `SHOW TABLES IN namespace_name`, `DESCRIBE namespace_name.table_name`.
 
 Data types: `integer`, `float`, `string`, `boolean`, `timestamp` (RFC3339), `date`, `struct`, `array` (1-indexed), `map`.
 
@@ -65,7 +65,7 @@ Any engine that supports Apache Iceberg can read Basin Catalog tables directly (
 - **`NOT IN` on nullable columns is unsupported.** Use `NOT EXISTS` instead to avoid silent wrong results.
 - **`LATERAL` derived tables are not supported.** Subqueries in `FROM` cannot reference outer columns from sibling tables.
 - **Named `WINDOW` clause is not supported.** Inline the `OVER (...)` specification at each call site.
-- **`LIMIT` must be between 1 and 10,000** — larger values fail with `maximum LIMIT is 10000`. Resource-heavy queries (3+ large-table joins, `COUNT(DISTINCT)` across joins, `ARRAY_AGG`/`STRING_AGG`, big sorts) may time out: filter with `WHERE`, add `LIMIT`, prefer `approx_*` aggregates.
+- **`LIMIT` must be between 1 and 10,000** (`OFFSET` is accepted alongside it) — larger values fail with `maximum LIMIT is 10000`. Resource-heavy queries (3+ large-table joins, `COUNT(DISTINCT)` across joins, `ARRAY_AGG`/`STRING_AGG`, big sorts) may time out: filter with `WHERE`, add `LIMIT`, prefer `approx_*` aggregates. Budget-gated up front (rejected with `400` if too much data would be scanned): `MEDIAN`, `PERCENTILE_CONT`, `ARRAY_AGG`, `STRING_AGG`, any `DISTINCT` aggregate, window functions/`QUALIFY`.
 - **Metadata-only ops (`EXPLAIN`, `SHOW`, `DESCRIBE`) are free** for Basin SQL but still incur standard R2 Class B and Basin Catalog request charges.
 - **Failed queries are not charged** — neither syntax errors caught before execution nor runtime errors mid-execution.
 - **Formerly "R2 SQL":** legacy API names still work but are deprecated. Migrate to `basin sql` commands.

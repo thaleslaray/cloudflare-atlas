@@ -63,7 +63,9 @@ Managed Transforms → Request Header Transforms → Cache Rules → Snippets �
 All of these take **precedence over Page Rules**.
 - **Terminating actions** (Block, Redirect, Challenge) stop evaluation immediately — first match wins.
 - **Non-terminating** changes in the same phase: **last write wins** (later rules overwrite earlier).
-- Use **Cloudflare Trace** (`rules/trace-request/`) to see which rules fire for a given URL.
+- Use **Rules simulator** (Beta, all plans, Administrator/Super Administrator role; formerly Cloudflare Trace; `rules/simulator/`) to
+  simulate a request and see which rules fire, in evaluation order. Dashboard **Simulator** page or the Request Trace API
+  operation; works for grey-clouded hostnames. Not shown: DLS hostnames, Spectrum, Firewall rules, Load Balancing, IP Access rules.
 - **Expression language, 2026-10** (`ruleset-engine/rules-language/`):
   - **Dynamic comparisons** — `eq`/`ne`/`lt`/`le`/`gt`/`ge` accept a field or function result on the
     right side (same scalar type both sides): `http.request.uri.path ne raw.http.request.uri.path`.
@@ -117,4 +119,4 @@ Transform Rules, Configuration Rules, Compression Rules: available all plans (re
   `ruleset-engine/reference/phases-list/`.
 - Snippets vs Workers decision guide → `rules/snippets/when-to-use/`. For Workers itself, see the
   official `cloudflare` skill `references/workers/` and `references/snippets/`.
-- Examples gallery → `rules/examples/`. Debug with Cloudflare Trace → `rules/trace-request/`.
+- Examples gallery → `rules/examples/`. Debug with Rules simulator → `rules/simulator/`.

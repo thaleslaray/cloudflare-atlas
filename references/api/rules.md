@@ -46,8 +46,8 @@
 - `PUT /accounts/{account_id}/mnm/rules/bulk` — Update rules in bulk  · required: account_id  · body: (no required fields)
 - `GET /accounts/{account_id}/mnm/rules/{rule_id}` — Get rule  · required: rule_id, account_id
 - `PATCH /accounts/{account_id}/mnm/rules/{rule_id}` — Update rule  · required: rule_id, account_id  · body: automatic_advertisement:boolean, name:string, prefixes:string[], type:string
-- `DELETE /accounts/{account_id}/mnm/rules/{rule_id}` — Delete rule  · required: rule_id, account_id  · body: (spec carries no schema — check the docs)
-- `PATCH /accounts/{account_id}/mnm/rules/{rule_id}/advertisement` — Update advertisement for rule  · required: rule_id, account_id  · body: (spec carries no schema — check the docs)
+- `DELETE /accounts/{account_id}/mnm/rules/{rule_id}` — Delete rule  · required: rule_id, account_id
+- `PATCH /accounts/{account_id}/mnm/rules/{rule_id}/advertisement` — Update advertisement for rule  · required: rule_id, account_id
 - `GET /accounts/{account_id}/rules/lists` — Get lists  · required: account_id
 - `POST /accounts/{account_id}/rules/lists` — Create a list  · required: account_id  · body: kind:any, name:string
 - `GET /accounts/{account_id}/rules/lists/bulk_operations/{operation_id}` — Get bulk operation status  · required: operation_id, account_id

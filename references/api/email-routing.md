@@ -33,12 +33,12 @@
 - `GET /radar/email/routing/timeseries_groups/spf` — Get email SPF validation time series  · required: 
 - `GET /radar/email/routing/timeseries_groups/{dimension}` — Get email routing time series grouped by dimension  · required: dimension
 - `GET /zones/{zone_id}/email/routing` — Get Email Routing settings  · required: zone_id
-- `PUT /zones/{zone_id}/email/routing` — Update Email Routing settings  · required: zone_id  · body: (no required fields)
+- `PUT /zones/{zone_id}/email/routing` — Apply Email Routing settings  · required: zone_id  · body: (no required fields)
 - `PATCH /zones/{zone_id}/email/routing` — Update Email Routing settings  · required: zone_id  · body: (no required fields)
 - `POST /zones/{zone_id}/email/routing/disable` — Disable Email Routing  · required: zone_id
 - `GET /zones/{zone_id}/email/routing/dns` — Email Routing - DNS settings  · required: zone_id
 - `POST /zones/{zone_id}/email/routing/dns` — Enable Email Routing  · required: zone_id  · body: (no required fields)
-- `PATCH /zones/{zone_id}/email/routing/dns` — Unlock Email Routing  · required: zone_id  · body: (no required fields)
+- `PATCH /zones/{zone_id}/email/routing/dns` — Unlock Email Routing DNS records  · required: zone_id  · body: (no required fields)
 - `DELETE /zones/{zone_id}/email/routing/dns` — Disable Email Routing  · required: zone_id  · body: (no required fields)
 - `POST /zones/{zone_id}/email/routing/enable` — Enable Email Routing  · required: zone_id
 - `GET /zones/{zone_id}/email/routing/rules` — List routing rules  · required: zone_id

@@ -1,5 +1,9 @@
 # Log Explorer — native log storage + SQL search in the Cloudflare dashboard/API
 
+> **Docs moved (2026-10):** Log Explorer is no longer a top-level docs product. Its 9 pages live under
+> **Observability → Logs** at `observability/logs/log-explorer/` (index, `manage-datasets`, `log-search`,
+> `sql-queries`, `example-queries`, `api`, `pricing`, `faq`, `changelog`); the old `/log-explorer/…` URLs 301.
+
 > Store Cloudflare logs on Cloudflare's network and query them with SQL — in the dashboard or API —
 > **without forwarding to an external SIEM**. Cloudflare's native observability/forensics product.
 
@@ -94,7 +98,7 @@ curl https://api.cloudflare.com/client/v4/zones/{zone_id}/logs/explorer/query/sq
 
 ## Pricing & limits
 > ⚠️ Paid add-on, no free tier/trial — and pricing is volatile. Verify on the live page
-> (`developers.cloudflare.com/log-explorer/pricing/`) before quoting.
+> (`developers.cloudflare.com/observability/logs/log-explorer/pricing/`) before quoting.
 
 - **Cost driver:** GB of logs **ingested + stored** (consumption-based). Querying/scanning is **free**
   once stored — unlike query-billed models (e.g. BigQuery).
@@ -109,7 +113,7 @@ curl https://api.cloudflare.com/client/v4/zones/{zone_id}/logs/explorer/query/sq
 
 ## Going deeper
 - No dedicated official `cloudflare` skill ref for this product — this file is the primary reference.
-- Full SQL grammar + per-dataset field lists: `developers.cloudflare.com/log-explorer/sql-queries/`
+- Full SQL grammar + per-dataset field lists: `developers.cloudflare.com/observability/logs/log-explorer/sql-queries/`
   and the Logpush dataset docs (`logs/logpush/logpush-job/datasets/`).
-- Example investigations: `developers.cloudflare.com/log-explorer/example-queries/`.
-- Exact API shapes: `developers.cloudflare.com/log-explorer/api/`.
+- Example investigations: `developers.cloudflare.com/observability/logs/log-explorer/example-queries/`.
+- Exact API shapes: `developers.cloudflare.com/observability/logs/log-explorer/api/`.

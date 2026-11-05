@@ -1,6 +1,6 @@
 # API reference — dns
 
-> Exact REST endpoints for **dns**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 60 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **dns**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 65 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -19,6 +19,11 @@
 - `GET /accounts/{account_id}/dns_records/usage` — Get DNS Record Usage for Account  · required: account_id
 - `GET /accounts/{account_id}/dns_settings` — Show DNS Settings  · required: account_id
 - `PATCH /accounts/{account_id}/dns_settings` — Update DNS Settings  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/dns_settings/nameserver_sets` — List Custom Nameserver Sets  · required: account_id
+- `POST /accounts/{account_id}/dns_settings/nameserver_sets` — Create Custom Nameserver Set  · required: account_id  · body: name:string, nameservers:object[]
+- `GET /accounts/{account_id}/dns_settings/nameserver_sets/{nameserver_set_id}` — Get Custom Nameserver Set  · required: account_id, nameserver_set_id
+- `PATCH /accounts/{account_id}/dns_settings/nameserver_sets/{nameserver_set_id}` — Update Custom Nameserver Set  · required: account_id, nameserver_set_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/dns_settings/nameserver_sets/{nameserver_set_id}` — Delete Custom Nameserver Set  · required: account_id, nameserver_set_id
 - `GET /accounts/{account_id}/dns_settings/views` — List Internal DNS Views  · required: account_id
 - `POST /accounts/{account_id}/dns_settings/views` — Create Internal DNS View  · required: account_id  · body: (no required fields)
 - `GET /accounts/{account_id}/dns_settings/views/{view_id}` — DNS Internal View Details  · required: account_id, view_id

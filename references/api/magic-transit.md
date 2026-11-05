@@ -1,6 +1,6 @@
 # API reference — magic-transit
 
-> Exact REST endpoints for **magic-transit**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 155 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **magic-transit**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 126 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -59,35 +59,6 @@
 - `PUT /accounts/{account_id}/magic/cf_interconnects` — Update multiple interconnects  · required: account_id  · body: id:any
 - `GET /accounts/{account_id}/magic/cf_interconnects/{cf_interconnect_id}` — List interconnect Details  · required: cf_interconnect_id, account_id
 - `PUT /accounts/{account_id}/magic/cf_interconnects/{cf_interconnect_id}` — Update interconnect  · required: cf_interconnect_id, account_id  · body: (no required fields)
-- `GET /accounts/{account_id}/magic/cloud/catalog-syncs` — List Catalog Syncs  · required: account_id
-- `POST /accounts/{account_id}/magic/cloud/catalog-syncs` — Create Catalog Sync  · required: account_id  · body: destination_type:string, name:string, update_mode:string
-- `GET /accounts/{account_id}/magic/cloud/catalog-syncs/prebuilt-policies` — List Prebuilt Policies  · required: account_id
-- `GET /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Read Catalog Sync  · required: account_id, sync_id
-- `PUT /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Update Catalog Sync  · required: account_id, sync_id  · body: (no required fields)
-- `PATCH /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Patch Catalog Sync  · required: account_id, sync_id  · body: (no required fields)
-- `DELETE /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}` — Delete Catalog Sync  · required: account_id, sync_id
-- `POST /accounts/{account_id}/magic/cloud/catalog-syncs/{sync_id}/refresh` — Run Catalog Sync  · required: account_id, sync_id
-- `GET /accounts/{account_id}/magic/cloud/onramps` — List On-ramps  · required: account_id
-- `POST /accounts/{account_id}/magic/cloud/onramps` — Create On-ramp  · required: account_id  · body: cloud_type:string, dynamic_routing:boolean, install_routes_in_cloud:boolean, install_routes_in_magic_wan:boolean, name:string, type:string
-- `GET /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Read Magic WAN Address Space  · required: account_id
-- `PUT /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Update Magic WAN Address Space  · required: account_id  · body: prefixes:string[]
-- `PATCH /accounts/{account_id}/magic/cloud/onramps/magic_wan_address_space` — Patch Magic WAN Address Space  · required: account_id  · body: prefixes:string[]
-- `GET /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Read On-ramp  · required: account_id, onramp_id
-- `PUT /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Update On-ramp  · required: account_id, onramp_id  · body: (no required fields)
-- `PATCH /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Patch On-ramp  · required: account_id, onramp_id  · body: (no required fields)
-- `DELETE /accounts/{account_id}/magic/cloud/onramps/{onramp_id}` — Delete On-ramp  · required: account_id, onramp_id
-- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/apply` — Apply On-ramp  · required: account_id, onramp_id
-- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/export` — Export as Terraform  · required: account_id, onramp_id
-- `POST /accounts/{account_id}/magic/cloud/onramps/{onramp_id}/plan` — Plan On-ramp  · required: account_id, onramp_id
-- `GET /accounts/{account_id}/magic/cloud/providers` — List Cloud Integrations  · required: account_id
-- `POST /accounts/{account_id}/magic/cloud/providers` — Create Cloud Integration  · required: account_id  · body: cloud_type:string, friendly_name:string
-- `POST /accounts/{account_id}/magic/cloud/providers/discover` — Run Discovery for All Integrations  · required: account_id
-- `GET /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Read Cloud Integration  · required: account_id, provider_id
-- `PUT /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Update Cloud Integration  · required: account_id, provider_id  · body: (no required fields)
-- `PATCH /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Patch Cloud Integration  · required: account_id, provider_id  · body: (no required fields)
-- `DELETE /accounts/{account_id}/magic/cloud/providers/{provider_id}` — Delete Cloud Integration  · required: account_id, provider_id
-- `POST /accounts/{account_id}/magic/cloud/providers/{provider_id}/discover` — Run Discovery  · required: account_id, provider_id
-- `GET /accounts/{account_id}/magic/cloud/providers/{provider_id}/initial_setup` — Get Cloud Integration Setup Config  · required: account_id, provider_id
 - `GET /accounts/{account_id}/magic/connectors` — List Connectors  · required: account_id
 - `POST /accounts/{account_id}/magic/connectors` — Create Connector  · required: account_id  · body: device:object
 - `GET /accounts/{account_id}/magic/connectors/{connector_id}` — Get Connector  · required: account_id, connector_id

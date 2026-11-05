@@ -68,7 +68,9 @@ FROM weather_data WHERE double1 > 0 GROUP BY city ORDER BY avg_humidity DESC LIM
   `logs.` (e.g. `logs.workersLogs`, Log Explorer). WAE datasets appear as
   `events.analyticsEngine.<DATASET_NAME>` (account scope only). Token: **Account Analytics Read**
   (or **Zone Analytics Read** per named zone). Discover datasets with the introspection endpoint —
-  the catalog varies per account, don't hard-code it. CLI: `cf sql query`, `cf sql datasets`.
+  the catalog varies per account, don't hard-code it. CLI: `cf sql query`, `cf sql datasets`. To list a dataset's
+  `attributes` JSON keys (query as `attributes['http.method']`) add `include_attributes=true` + `dataset_name`
+  (last 7 days, types `String`/`Float64`/`Bool`); `include_custom_attributes` is deprecated.
 - **SQL API from a Worker** — `"analytics": { "binding": "ANALYTICS_SQL" }` (Wrangler **4.145.0+**),
   then `await env.ANALYTICS_SQL.query({ query, params: { start } })`; scoped to the Worker's account,
   no API token. Limits: 1 statement, 10 KiB, 1 dataset and 1 account per statement, `ORDER BY` needs

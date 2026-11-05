@@ -90,6 +90,9 @@ Health checks come **from Cloudflare's edge to your origin**, so origins must al
 - **Health Threshold:** a pool goes *Critical* (no traffic) once healthy endpoints drop below its
   threshold — unless it's the fallback pool and all pools are down.
 - Use `consecutive_up`/`consecutive_down` to avoid flapping on transient blips.
+- **Regional health** (`load-balancing/understand-basics/regional-health/`): pool field `health_sources: ["regional", "global"]` (only
+  accepted values: unset or that pair) gives each `check_regions` region its own health decision, global as fallback — for
+  region-specific reachability failures. Unset keeps global-only. China Network / FedRAMP High regions need separate approval.
 - Endpoint in multiple pools with different weights → actual share differs from any single pool's %.
 - Health monitors ≠ **standalone Health Checks** (separate product).
 

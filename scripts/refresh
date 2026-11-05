@@ -4,6 +4,15 @@
 #   scripts/refresh              phase 1 — detect. Runs update-check and stops. Curate by hand.
 #   scripts/refresh --close      phase 2 — close the pass, in the only safe order.
 #   scripts/refresh --close --spec <openapi.json>   also re-slice references/api/ from that spec.
+#   scripts/refresh --close --spec <new.json> --prev <old.json>
+#                                 validate the matcher against OLD (the spec the current slices came
+#                                 from — its sha256 must match _spec-version.txt), then slice NEW.
+#                                 Without --prev the validation runs against NEW, which FAILS whenever
+#                                 Cloudflare removes or renames a path upstream (2026-10-31: 78 paths,
+#                                 11 slugs) — a loss the matcher did not cause and cannot fix.
+#                                 Use --prev ONLY while the workbench slices still come from OLD. If you
+#                                 already re-sliced by hand or seeded a new root (a path OLD never had),
+#                                 omit it: the slices then derive from NEW and validate against NEW.
 #
 # WHY THIS EXISTS: the closing steps have a destructive one in the middle. Re-recording the page
 # baseline is what makes the next diff meaningful, and it is also what erases the only record of
@@ -22,11 +31,13 @@ INSTALLED="${ATLAS_INSTALLED:-$HOME/.claude/skills/cloudflare-atlas}"
 TODAY="$(date -u +%Y-%m-%d)"
 CLOSE=0
 SPEC=""
+PREV=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --close) CLOSE=1; shift ;;
     --spec)  SPEC="${2:?--spec needs a path to openapi.json}"; shift 2 ;;
+    --prev)  PREV="${2:?--prev needs a path to the previous openapi.json}"; shift 2 ;;
     -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -170,11 +181,11 @@ if [ "$CLOSE" = "0" ]; then
   echo
 
   echo "── copy sync ──"
-  if diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null 2>&1; then
+  if diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" >/dev/null 2>&1; then
     echo "✅ installed and workbench match"
   else
     echo "⚠️  installed and workbench DIVERGED — curation is stranded on one side:"
-    diff -rq "$INSTALLED" "$WORKBENCH" | sed 's/^/   /'
+    diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" | sed 's/^/   /'
   fi
   echo
   echo "▶ next: curate in $WORKBENCH (references/_curation-guide.md),"
@@ -215,10 +226,24 @@ if [ -n "$SPEC" ]; then
   [ -f "$SPEC" ] || { echo "✗ spec not found: $SPEC" >&2; exit 1; }
   echo
   echo "── re-slicing references/api/ ──"
-  echo "   validating first — a slug that would LOSE coverage aborts the pass"
-  "$WORKBENCH/scripts/slice-api" --validate "$SPEC" | grep -E '^✗|^FAIL|^OK' || true
-  "$WORKBENCH/scripts/slice-api" --validate "$SPEC" >/dev/null || {
-    echo "✗ BLOCKED: re-slicing would drop endpoints. Fix the matcher before closing." >&2; exit 1; }
+  VSPEC="$SPEC"
+  if [ -n "$PREV" ]; then
+    [ -f "$PREV" ] || { echo "✗ --prev not found: $PREV" >&2; exit 1; }
+    want="$(grep -m1 '^sha256:' "$WORKBENCH/references/api/_spec-version.txt" 2>/dev/null | cut -d' ' -f2)"
+    have="$(shasum -a 256 "$PREV" | cut -d' ' -f1)"
+    if [ -n "$want" ] && [ "$want" != "$have" ]; then
+      echo "✗ BLOCKED: --prev is not the spec the current slices came from (sha256 differs from _spec-version.txt)." >&2
+      exit 1
+    fi
+    VSPEC="$PREV"
+    echo "   validating the matcher against the PREVIOUS spec (the one the slices came from)"
+  else
+    echo "   validating against the new spec — upstream removals/renames will read as LOST; pass --prev <old.json> to separate them"
+  fi
+  echo "   a slug that would LOSE coverage aborts the pass"
+  "$WORKBENCH/scripts/slice-api" --validate "$VSPEC" | grep -E '^✗|^FAIL|^OK' || true
+  "$WORKBENCH/scripts/slice-api" --validate "$VSPEC" >/dev/null || {
+    echo "✗ BLOCKED: the matcher lost coverage. Fix the matcher before closing." >&2; exit 1; }
   "$WORKBENCH/scripts/slice-api" "$SPEC" | grep -E '\(\+|\(-' | sed 's/^/   /' || true
   echo "   (slices unchanged apart from the lines above)"
   # MUST run after slice-api, never before: slice-api rewrites each slice line from the spec, which
@@ -255,12 +280,14 @@ echo "── link gates (workbench, before promotion) ──"
   echo "  DEAD = reader lands on nothing. STALE = rides a 301 Cloudflare can retire." >&2; exit 1; }
 echo
 
+# The installed copy is a git repo since 2026-10-27 (published to GitHub); its .git is not curation
+# and must not count as divergence in any of the diffs below, nor be promoted or deleted.
 echo "── promoting workbench → installed ──"
 rsync -a "$WORKBENCH/" "$INSTALLED/"
-if diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null; then
+if diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" >/dev/null; then
   echo "✅ copies identical"
 else
-  echo "✗ promotion did not converge:" >&2; diff -rq "$INSTALLED" "$WORKBENCH" >&2; exit 1
+  echo "✗ promotion did not converge:" >&2; diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" >&2; exit 1
 fi
 
 echo
@@ -275,6 +302,6 @@ echo "$out" | grep -E '^📦|^✅|^🆕|^🗑️' | sed 's/^/   /'
 if echo "$out" | grep -q '^🆕'; then
   echo "⚠️  still reporting NEW products — the pass is not closed." >&2; exit 1
 fi
-diff -rq "$INSTALLED" "$WORKBENCH" >/dev/null && echo "   ✅ installed and workbench match"
+diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" >/dev/null && echo "   ✅ installed and workbench match"
 echo
 echo "✅ pass closed."

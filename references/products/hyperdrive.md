@@ -13,7 +13,7 @@
 
 ## When to use
 - You **already have** a Postgres/MySQL (RDS/Aurora, Neon, Supabase, PlanetScale, Timescale,
-  CockroachDB, Cloud SQL, Azure…) and want fast global access from Workers **without migrating**.
+  CockroachDB, Cloud SQL, Azure, ClickHouse Managed Postgres…) and want fast global access from Workers **without migrating**.
 - High read ratios, popular/repeated queries, connection-heavy loads, single-region DB served globally.
 - **Not** for: a brand-new app with no existing DB → use **d1** (serverless SQLite, edge-native).
   Also weak fit for write-heavy / real-time (<1s freshness) / single-region apps already next to the DB.

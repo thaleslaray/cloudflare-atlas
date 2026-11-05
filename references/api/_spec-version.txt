@@ -1,5 +1,5 @@
 # provenance of references/api/ — written by scripts/refresh --close --spec
-sliced: 2026-10-02
+sliced: 2026-10-31
 source: ../raw/api-schemas/openapi.json
-sha256: 476fceb8100f41547d5fa22087be469b5b2f609086e5b7cd70fb6136877f5c05
-bytes:  25769976
+sha256: cda658b222f273d562d6178a32df6537168eb7bbad1a8bda50b64621db419b18
+bytes:  27630274

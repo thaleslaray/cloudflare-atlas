@@ -40,7 +40,11 @@ The whole product is "point your existing client at the gateway." Entry shapes:
   providers, with the gateway supplying observability, logging, caching, security and **billing
   controls**. Use `gateway: { id: 'default' }` to auto-create a gateway on the first authenticated
   request, or name one to separate apps/workloads.
-- **Vercel AI SDK** — `ai-gateway-provider` pkg; pass a `gateway([modelA, modelB])` array for auto-fallback.
+- **Vercel AI SDK / Pi AI (2026-10-21)** — `createAI` from `agents/models/ai-sdk` (needs `ai@^7`) or `agents/models/pi-ai`:
+  `createAI({ binding: env.AI, id })`, or `{ accountId, apiToken, gateway }` outside a Worker. Takes catalog ids
+  (`anthropic/...`), `@cf/` ids, `dynamic/<route>` or a vendor model object (goes to the provider-native endpoint);
+  `fallback: [...]` replaces the old model array; also `byokAlias`, `zdr`, `vendorKey`. **`ai-gateway-provider`
+  is deprecated and feature frozen** (`createAiGateway(...)` → `createAI(...)`). → `ai-gateway/integrations/vercel-ai-sdk/`, `.../pi-ai/`.
 
 ## Key features (controlled via `cf-aig-*` headers or dashboard)
 - **Caching** — `cf-aig-cache-ttl` (60s–30d), `cf-aig-skip-cache`, `cf-aig-cache-key`; check
@@ -49,7 +53,8 @@ The whole product is "point your existing client at the gateway." Entry shapes:
 - **Dynamic routing / fallback** — define routes, call `dynamic/{route}` via `/compat/chat/completions`.
 - **Guardrails** — flag/block prompts+responses (`@cf/meta/llama-guard-3-8b` on Workers AI, billed as Workers AI tokens).
 - **DLP** — **flag or block** (no redaction) PII/financial/health matches; free, shares Cloudflare One profiles.
-- **Logging & analytics** — full request logs (prompt, tokens, cost, duration, metadata); Logpush export.
+- **Logging & analytics** — full request logs (prompt, tokens, cost, duration, metadata); Logpush export (account dataset
+  ai_gateway_events, fields at developers.cloudflare.com/logs/logpush/logpush-job/datasets/account/ai_gateway_events/). Log and request IDs are UUIDv7 since 2026-10-08.
 - **Custom metadata** — `cf-aig-metadata` (max 5 flat entries) for per-request tagging/filtering.
 - **Custom costs** — `cf-aig-custom-cost` with `per_token_in`/`per_token_out`, plus (2026-09-09)
   `per_cache_read_token`/`per_cache_write_token`; one cache rate set → the other defaults to `per_token_in`;
@@ -79,8 +84,12 @@ Answers "who spent this, who may call the model" **without trusting a client-sen
 - **Limits:** no `cf.user_id` without a valid JWT carrying a non-empty subject · **service-token
   requests never carry `cf.user_id`** (no individual user) · you cannot set metadata keys starting
   with `cf.` — reserved and silently dropped.
-- CLI/agent clients: `cloudflared access curl`; per-agent setup in `ai-gateway/integrations/coding-agents/` (now incl.
-  Gemini CLI — Access-protected custom domain — and VS Code / Xcode chat via a gateway custom domain).
+- CLI/agent clients: `cloudflared access curl`; per-agent setup in `ai-gateway/integrations/coding-agents/` (`Claude Code`,
+  Claude Desktop, Codex, OpenCode, Pi, Copilot CLI, Gemini CLI — Access-protected custom domain — VS Code / Xcode via a
+  custom domain). **Cursor:** custom OpenAI base URL `…/ai/v1` + Cloudflare token as OpenAI key; endpoint must be public
+  (Cursor calls from its servers); chat works with `@cf/` models, agent mode needs a Responses-capable third-party model.
+  **`Android Studio`:** built-in assistant or Copilot Chat via `…/compat` (deprecated, but the REST API has no `/v1/models`
+  for the model list); token needs **AI Gateway → Run**.
 
 ## User Insights — spend attribution & anomaly detection
 Free to all AI Gateway customers, **no setup** — it reads traffic already flowing through the gateway.
@@ -125,15 +134,16 @@ Free to all AI Gateway customers, **no setup** — it reads traffic already flow
 **Cost** (verified 2026-08-25): core features (analytics, caching, rate limiting) are **free** on all plans.
 - **DLP:** free. **Guardrails:** billed as Workers AI token inference.
 - **Unified Billing:** provider rates passed through at cost + **5% fee** on credit purchases.
-- **Logpush** (Paid only): 10M requests/mo, then **$0.05/million**.
+- **Logpush** (all plans): billed per Logpush pricing (volume exported and transformed) — the old "10M requests/mo then $0.05/million" line is gone from the AI Gateway page.
+- **Log storage:** first gateway created on/after **2026-09-24** → Workers Logs pricing and retention; earlier gateways → Legacy Logs.
 
 **Key limits:** cacheable request **25 MB** · cache TTL **1 month** · custom metadata **5/request** ·
-gateways **10/account free, 20 paid** · gateway name **64 chars** · log storage rate **500 logs/s/gateway** ·
-logs stored **100k/account free, 10M/gateway paid** · log size **10 MB/log** · datasets **10/gateway** ·
+gateways **10/account free, 20 paid** · gateway name **64 chars** · Legacy Logs only: storage rate **500 logs/s/gateway**,
+stored **100k/account free, 10M/gateway paid**, **10 MB/log** (datasets limit no longer on the limits page) ·
 Unified Billing rate **200 req/60s/gateway** (`429`; BYOK exempt) · Logpush jobs **4/account**, **1 MB/log**.
 
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/ai-gateway/`) — use it for full
-  patterns: `sdk-integration.md` (Vercel/OpenAI/Workers), `configuration.md`, `features.md`,
+  patterns: `sdk-integration.md` (Vercel/OpenAI/Workers; predates `createAI`), `configuration.md`, `features.md`,
   `dynamic-routing.md`, `troubleshooting.md`.
 - Provider-specific quirks → `developers.cloudflare.com/ai-gateway/usage/providers/`.

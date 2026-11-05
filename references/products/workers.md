@@ -39,6 +39,9 @@
 - **Secrets** via CLI, never in config: `wrangler secret put API_KEY` → read as `env.API_KEY`.
 - **Types**: run `wrangler types` after changing bindings; import the generated `Env`. Use
   `@cloudflare/workers-types` **v5** (simplified runtime types; dated entrypoints removed).
+- **Source maps upload by default** from Wrangler **4.150.0** (`wrangler deploy`, `versions upload`, `preview`; `cf deploy` too).
+  Opt out: `upload_source_maps: false` / `--no-upload-source-maps`; `true` makes unresolvable maps (inline `data:`) fail the
+  upload. Older Wrangler: needs `true`. Vite plugin ≥1.64.0 generates Worker maps by default.
 - Other bindings/triggers: `routes`, `triggers.crons`, `services` (Worker-to-Worker RPC),
   `durable_objects`, `queues`, `placement: { mode: "smart" }`, `analytics: { binding }` (Analytics SQL:
   `env.X.query({ query, params })`, one `SELECT`, Wrangler ≥4.145.0 — `runtime-apis/bindings/analytics-sql/`;
@@ -53,7 +56,7 @@
     },
   };
   ```
-- Other handlers: `scheduled(event, env, ctx)` (cron), `queue(batch, env, ctx)`, `tail(events, ...)`.
+- Other handlers: `scheduled(event, env, ctx)` (cron), `queue(batch, env, ctx)`, `tail(events, ...)`, `connect(socket, env, ctx)` (raw TCP forwarded from another Worker's service binding via `env.X.connect(addr)`; not reachable from the public Internet — `runtime-apis/handlers/connect/`).
 - `ctx.waitUntil(p)` — background work after the response (counts against CPU) ·
   `ctx.passThroughOnException()` — fall back to origin on error.
 - Web-standard APIs: `fetch`, `Request`/`Response`, `URL`, `Headers`, Streams, `crypto.subtle` — post-quantum
@@ -62,7 +65,8 @@
   binding needed (2026-09-27); shares instances with a same-`name` binding. Local-dev minimum versions:
   `developers.cloudflare.com/workflows/build/workers-api/`.
 - `fetch()` subrequests support **`cf.vary`** — key the edge cache by request headers (e.g. `Accept`,
-  `Accept-Language`); takes precedence over Cache Rules Vary for that subrequest.
+  `Accept-Language`); takes precedence over Cache Rules Vary for that subrequest. Cross-zone subrequests arrive with
+  `CF-Connecting-IP` = `2a06:98c0:3600::103`; BYOIP destinations follow this too and keep the `CF-Worker` header and the cf.worker.upstream_zone field (2026-10-30).
 - Dev loop: `wrangler dev` (local) · `wrangler dev --remote` (real resources) · `wrangler tail` (logs)
   · `wrangler deploy [--env staging] [--dry-run]` · auth profiles for multiple accounts (verify live).
 
@@ -76,6 +80,7 @@
 - Previews per Worker: **100** (Free) / **500** (Paid); **100** deployments per Preview; oldest auto-deleted.
   No separate pricing documented on `developers.cloudflare.com/workers/previews/`.
 - Per-PR automation: Git-connected CI builds create a Preview per branch — `developers.cloudflare.com/workers/ci-cd/builds/build-branches/`.
+- `Workers Builds`: pin npm/Yarn/pnpm/Bun via the exact-version `packageManager` field in `package.json` (`engines.npm` is ignored; `build-image/`); builds + logs kept **90 days** (`limits-and-pricing/`). Images reject the compromised eMudhra CAs (2026-10-23): `BUN_VERSION` must be ≥1.4.4; custom `SSL_CERT_FILE`/`PIP_CERT` must not trust them (build-image page, "Trusted certificates").
 
 ## Putting a Worker behind Access (sign-in) — 2026-08-14
 Require sign-in before a request reaches your Worker, without writing auth code. Needs **Zero Trust
@@ -107,11 +112,12 @@ app (`POST /accounts/{account_id}/access/apps`):
   large bodies (`TransformStream`); buffering >128 MB triggers Error 1102 `exceeded resource limits`.
 - **Node built-ins**: default-on for compat date **≥ 2026-08-04** (older: add `nodejs_compat`).
 - **Frameworks**: use Workers-native ones (Hono, itty-router); Express-style Node middleware won't run.
+- **MongoDB**: Hyperdrive supports only PostgreSQL/MySQL; connect directly (~300 ms per request) or hold the connection in a Durable Object — `workers/databases/third-party-integrations/mongodb/`.
 - DO calls: prefer **RPC** (`stub.method()`); legacy `stub.fetch()` still works for HTTP-shaped flows.
 - **Static Assets bypass auth middleware** (measured 3× 2026-08-27): `run_worker_first` defaults to
   **false**, so a request matching a file in `public/` is served without invoking the Worker. Fix:
   `assets.run_worker_first: ["/admin", "/admin/*", "/api/*"]` — list extensionless canonical paths too
-  (`html_handling` maps extensionless paths to their .html file); internal `env.ASSETS.fetch()` with `.html` gets a 307.
+  (`html_handling` maps extensionless paths to their .html file); `assets.base_path` serves assets from a URL prefix; internal `env.ASSETS.fetch()` with `.html` gets a 307.
   Vitest calls the handler directly and won't catch it — prove with `wrangler dev` + curl (expect 302/401).
 
 ## Pricing & limits
@@ -137,8 +143,8 @@ Business **200 MB**, Enterprise **up to 5 GB** self-serve from the zone's Networ
 - Deep-dive: live docs `developers.cloudflare.com/workers/` (canonical, fetch as Markdown). Official `cloudflare` skill `references/workers/` is an optional extra **if installed**.
 - Agents/MCP/durable workflows → `cloudflare:agents-sdk`, `cloudflare:build-mcp`. Wrangler depth → `cloudflare:wrangler`. Best practices → `cloudflare:workers-best-practices`.
 - Observability: OTLP export of logs/traces → `developers.cloudflare.com/workers/observability/opentelemetry-export/`
-  (page renamed 2026-10; the old *exporting-opentelemetry-data* slug is retired).
-  **Profiling in production** (CPU or Heap/allocation flamegraphs of deployed Workers & DOs, 1–50 s capture on live traffic): dashboard → Worker → Observability → *Flamegraph*, or `cf workers versions profile`; set `upload_source_maps` to true first → `developers.cloudflare.com/workers/observability/profiling-in-production/`
+  (page renamed 2026-10; the old *exporting-opentelemetry-data* slug is retired). Custom spans (`tracing` from `cloudflare:workers`) also have `span.spanContext()` (trace/span IDs), `setStatus()` (exported only, not in the dashboard) and `updateName()`.
+  **Profiling in production** (CPU or Heap/allocation flamegraphs of deployed Workers & DOs, 1–50 s capture on live traffic): dashboard → Worker → Observability → *Flamegraph*, or `cf workers versions profile`; on Wrangler <4.150.0 set `upload_source_maps` to true first → `developers.cloudflare.com/workers/observability/profiling-in-production/`
 - **Testing** (real runtime via Miniflare, per-test-file storage): `@cloudflare/vitest-pool-workers` was
   **renamed 2026-08-19** → **`@cloudflare/vitest-plugin`** (API, config, `/config` `/types` subpaths unchanged);
   migrate: `npx @cloudflare/codemods vitest:pool-workers-to-vitest-plugin`. Outbound mocking → **`@msw/cloudflare`**.

@@ -93,9 +93,14 @@ def fetch(url, use_cache=True):
 # A product file whose slug is NOT a top-level docs path. `think` ships as 14 pages under
 # `agents/harnesses/think/`, listed in the AGENTS index, so `/think/llms.txt` is a 404 and the file
 # was reported SKIPPED — i.e. neither verified nor probed — for four consecutive passes. Checked
-# across all product files: `think` is the only one. Kept as an explicit map rather than a guess,
+# across all product files on 2026-08-25: `think` was the only one. Kept as an explicit map rather than a guess,
 # so the next sub-product needs one line here instead of another four passes of silence.
-SUBPRODUCT = {"think": ("agents", "agents/harnesses/think/")}
+SUBPRODUCT = {
+    "think": ("agents", "agents/harnesses/think/"),
+    # 2026-10: Log Explorer left the top-level product list and became 9 pages under
+    # `observability/logs/log-explorer/`; `/log-explorer/llms.txt` is a 404 and the file went SKIPPED.
+    "log-explorer": ("observability", "observability/logs/log-explorer/"),
+}
 
 # ...and a sub-product's corpus is its subtree PLUS the whole parent. `think.md` correctly cites
 # `ctx.stash`, `ctx.snapshot` and `onFiberRecovered`, all documented one level up under
@@ -368,7 +373,13 @@ def spec_paths(root):
             for line in open(stamp):
                 if line.startswith("source:"):
                     src = line.split(" ", 1)[1].strip()
-        for cand in (src, os.path.join(os.path.dirname(root), src) if src else ""):
+        # Since 2026-10-27 the stamp carries a RELATIVE source (`../raw/api-schemas/openapi.json`, so the
+        # published repo holds no local path). It is relative to the WORKBENCH root, and the installed
+        # copy has no `raw/` sibling — so resolve it against the workbench too, or the installed audit
+        # silently loses the spec and reports every endpoint as NOT FOUND (31 false accusations, 10-31).
+        wb = os.environ.get("ATLAS_WORKBENCH") or os.path.expanduser("~/Projetos/temp/cloudflare-skill-prep/cloudflare-atlas")
+        cands = [src, os.path.join(root, src), os.path.join(wb, src), os.path.join(os.path.dirname(root), src)] if src else []
+        for cand in cands:
             if cand and os.path.exists(cand):
                 try:
                     paths = set(json.load(open(cand)).get("paths", {}))

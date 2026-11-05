@@ -14,4 +14,4 @@
 - `PATCH /accounts/{account_id}/hyperdrive/configs/{hyperdrive_id}` — Update Hyperdrive  · required: account_id, hyperdrive_id  · body: (no required fields)
 - `DELETE /accounts/{account_id}/hyperdrive/configs/{hyperdrive_id}` — Delete Hyperdrive  · required: account_id, hyperdrive_id
 - `POST /accounts/{account_id}/hyperdrive/configs/{hyperdrive_id}/restart` — Restart Hyperdrive  · required: account_id, hyperdrive_id
-- `POST /accounts/{account_id}/hyperdrive/integrationsOperations/{integration}/createDatabaseSignature` — Create Database Signature  · required: account_id, integration
+- `POST /accounts/{account_id}/hyperdrive/integrationsOperations/planetScale/createDatabaseSignature` — Create Database Signature  · required: account_id

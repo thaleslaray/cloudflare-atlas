@@ -19,10 +19,10 @@
 - `DELETE /accounts/{account_id}/ai/finetunes/{finetune_id}` — Delete a Finetune  · required: account_id, finetune_id
 - `POST /accounts/{account_id}/ai/finetunes/{finetune_id}/finetune-assets` — Upload a Finetune Asset  · required: account_id, finetune_id  · body: file:string, file_name:string
 - `GET /accounts/{account_id}/ai/finetunes/{finetune_id}/finetune-assets/{file_name}` — Download a Finetune Asset  · required: account_id, finetune_id, file_name
-- `GET /accounts/{account_id}/ai/models/schema` — Get Model Schema  · required: account_id, model
+- `GET /accounts/{account_id}/ai/models/schema` — Get an AI model's input and output schemas  · required: account_id, model
 - `GET /accounts/{account_id}/ai/models/search` — Model Search  · required: account_id
-- `POST /accounts/{account_id}/ai/run` — Execute AI Model (Generic)  · required: account_id  · body: input:object, model:string
-- `POST /accounts/{account_id}/ai/run/{model_name}` — Execute AI model  · required: account_id, model_name  · body: text:string
+- `POST /accounts/{account_id}/ai/run` — Run an AI model with request options  · required: account_id  · body: input:object, model:string
+- `POST /accounts/{account_id}/ai/run/{model_name}` — Run a Workers AI model  · required: account_id, model_name  · body: text:string
 - `GET /accounts/{account_id}/ai/tasks/search` — Task Search  · required: account_id
-- `POST /accounts/{account_id}/ai/tomarkdown` — Convert Files into Markdown  · required: account_id  · body: files:string[]
-- `GET /accounts/{account_id}/ai/tomarkdown/supported` — Get all converted formats supported  · required: account_id
+- `POST /accounts/{account_id}/ai/tomarkdown` — Convert uploaded files to Markdown  · required: account_id  · body: files:string[]
+- `GET /accounts/{account_id}/ai/tomarkdown/supported` — List supported Markdown conversion formats  · required: account_id

@@ -1,6 +1,6 @@
 # API reference — realtime
 
-> Exact REST endpoints for **realtime**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 72 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **realtime**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 74 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -8,18 +8,19 @@
 > ⚠️ Verify shapes/params against the live API docs before relying on them — specs drift.
 
 - `GET /accounts/{account_id}/calls/apps` — List apps  · required: account_id
-- `POST /accounts/{account_id}/calls/apps` — Create a new app  · required: account_id  · body: (no required fields)
-- `GET /accounts/{account_id}/calls/apps/{app_id}` — Retrieve app details  · required: app_id, account_id
-- `PUT /accounts/{account_id}/calls/apps/{app_id}` — Edit app details  · required: app_id, account_id  · body: (no required fields)
-- `DELETE /accounts/{account_id}/calls/apps/{app_id}` — Delete app  · required: app_id, account_id
-- `GET /accounts/{account_id}/calls/turn_keys` — List TURN Keys  · required: account_id
-- `POST /accounts/{account_id}/calls/turn_keys` — Create a new TURN key  · required: account_id  · body: (no required fields)
+- `POST /accounts/{account_id}/calls/apps` — Create an SFU app  · required: account_id  · body: (no required fields)
+- `GET /accounts/{account_id}/calls/apps/{app_id}` — Retrieve SFU app details  · required: app_id, account_id
+- `PUT /accounts/{account_id}/calls/apps/{app_id}` — Update SFU app details  · required: app_id, account_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/calls/apps/{app_id}` — Delete an SFU app  · required: app_id, account_id
+- `GET /accounts/{account_id}/calls/turn_keys` — List TURN keys  · required: account_id
+- `POST /accounts/{account_id}/calls/turn_keys` — Create a TURN key  · required: account_id  · body: (no required fields)
 - `GET /accounts/{account_id}/calls/turn_keys/{key_id}` — Retrieve TURN key details  · required: key_id, account_id
-- `PUT /accounts/{account_id}/calls/turn_keys/{key_id}` — Edit TURN key details  · required: key_id, account_id  · body: (no required fields)
+- `PUT /accounts/{account_id}/calls/turn_keys/{key_id}` — Update TURN key details  · required: key_id, account_id  · body: (no required fields)
 - `DELETE /accounts/{account_id}/calls/turn_keys/{key_id}` — Delete TURN key  · required: key_id, account_id
 - `GET /accounts/{account_id}/realtime/kit/apps` — Fetch all apps  · required: 
 - `POST /accounts/{account_id}/realtime/kit/apps` — Create App  · required:   · body: name:string
 - `GET /accounts/{account_id}/realtime/kit/apps/{app_id}` — Fetch app details  · required: account_id, app_id
+- `PATCH /accounts/{account_id}/realtime/kit/apps/{app_id}` — Update an app  · required: account_id, app_id  · body: name:string
 - `GET /accounts/{account_id}/realtime/kit/{app_id}/analytics/daywise` — Fetch day-wise session and recording analytics data for an App  · required: account_id, app_id
 - `GET /accounts/{account_id}/realtime/kit/{app_id}/analytics/livestreams/daywise` — Fetch day-wise analytics data for your livestreams  · required: account_id, app_id
 - `GET /accounts/{account_id}/realtime/kit/{app_id}/analytics/livestreams/overall` — Fetch complete analytics data for your livestreams  · required: account_id, app_id
@@ -48,7 +49,8 @@
 - `PUT /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}` — Replace a participant's detail  · required: meeting_id, participant_id  · body: custom_participant_id:string, preset_name:string
 - `PATCH /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}` — Edit a participant's detail  · required: meeting_id, participant_id  · body: (no required fields)
 - `DELETE /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}` — Delete a participant  · required: meeting_id, participant_id
-- `POST /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}/token` — Refresh participant's authentication token  · required: account_id, app_id, meeting_id, participant_id
+- `POST /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}/token` — Refresh participant's authentication token  · required: account_id, app_id, meeting_id, participant_id  · body: (no required fields)
+- `DELETE /accounts/{account_id}/realtime/kit/{app_id}/meetings/{meeting_id}/participants/{participant_id}/token` — Revoke participant's authentication token  · required: account_id, app_id, meeting_id, participant_id  · body: token:string
 - `GET /accounts/{account_id}/realtime/kit/{app_id}/presets` — Fetch all presets  · required: account_id, app_id
 - `POST /accounts/{account_id}/realtime/kit/{app_id}/presets` — Create a preset  · required: account_id, app_id  · body: config:object, name:string, permissions:object, ui:object
 - `GET /accounts/{account_id}/realtime/kit/{app_id}/presets/{preset_id}` — Fetch details of a preset  · required: account_id, app_id, preset_id

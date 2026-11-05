@@ -18,4 +18,4 @@
 - `GET /accounts/{account_id}/secrets_store/stores/{store_id}/secrets/{secret_id}` — Get a secret by ID  · required: 
 - `PATCH /accounts/{account_id}/secrets_store/stores/{store_id}/secrets/{secret_id}` — Patch a secret  · required:   · body: (no required fields)
 - `DELETE /accounts/{account_id}/secrets_store/stores/{store_id}/secrets/{secret_id}` — Delete a secret  · required: 
-- `POST /accounts/{account_id}/secrets_store/stores/{store_id}/secrets/{secret_id}/duplicate` — Duplicate Secret  · required:   · body: name:string, scopes:string[]
+- `POST /accounts/{account_id}/secrets_store/stores/{store_id}/secrets/{secret_id}/duplicate` — Duplicate Secret  · required:   · body: name:string

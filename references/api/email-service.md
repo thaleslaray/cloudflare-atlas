@@ -1,6 +1,6 @@
 # API reference — email-service
 
-> Exact REST endpoints for **email-service**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 64 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **email-service**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 70 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -15,6 +15,12 @@
 - `GET /accounts/{account_id}/dlp/email/rules/{rule_id}` — Get an email scanner rule  · required: account_id, rule_id
 - `PUT /accounts/{account_id}/dlp/email/rules/{rule_id}` — Update email scanner rule  · required: account_id, rule_id  · body: action:object, conditions:object[], enabled:boolean, name:string
 - `DELETE /accounts/{account_id}/dlp/email/rules/{rule_id}` — Delete email scanner rule  · required: account_id, rule_id
+- `GET /accounts/{account_id}/email/domain-changes` — List Email Domain changes  · required: account_id
+- `GET /accounts/{account_id}/email/domains` — List Email Domains  · required: account_id
+- `POST /accounts/{account_id}/email/domains` — Create an Email Domain  · required: account_id  · body: hostname:string
+- `GET /accounts/{account_id}/email/domains/{email_domain_id}` — Get an Email Domain  · required: account_id, email_domain_id
+- `DELETE /accounts/{account_id}/email/domains/{email_domain_id}` — Delete an Email Domain  · required: account_id, email_domain_id
+- `POST /accounts/{account_id}/email/domains/{email_domain_id}/verify` — Verify an Email Domain  · required: account_id, email_domain_id
 - `GET /accounts/{account_id}/email/sending/limits` — Get sending limits  · required: account_id
 - `GET /accounts/{account_id}/email/sending/messages/{message_id}` — Fetch an email message  · required: account_id, message_id
 - `GET /accounts/{account_id}/email/sending/reputation` — Get account reputation  · required: account_id

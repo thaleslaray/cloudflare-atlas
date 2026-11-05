@@ -48,34 +48,58 @@ Two participant types:
 | Subnet routing | can advertise CIDR routes | no — reach subnets through a node |
 | High availability | active-passive replicas | n/a |
 
-- Mesh IPs come from `100.96.0.0/12` (CGNAT space, so no clash with `10.x`/`172.16.x`/`192.168.x`).
+- Mesh IPs come from `100.96.0.0/12` (a carrier-grade NAT range that avoids common private ranges such as `10.0.0.0/8`).
   Elsewhere in Cloudflare One docs these are called **device IPs**. Custom subnet configurable.
 - **Client-to-client works with zero nodes** — two enrolled laptops reach each other directly.
   Nodes exist to run headless on a server or to route a subnet behind it.
 
 ## Setup
-Prerequisites: a Zero Trust organization (Free plan included).
+Prerequisites: a Zero Trust organization (Free plan included); first node → the required account settings
+(the dashboard wizard sets them for new accounts). Create the node in **Networking → Mesh → Add participant →
+Add node** (name → **Create node** → pick **Debian / Ubuntu** or **RHEL**): the dashboard shows the install +
+registration commands with the node token. Or via API (`Cloudflare One Connectors Write` / `Cloudflare One
+Connector: WARP Write`): `POST .../warp_connector`, then `GET .../{node_id}/token`; Terraform:
+`cloudflare_zero_trust_tunnel_warp_connector` (+ `_config`). Treat the token as a secret.
 
 ```sh
-# 1. IP forwarding (only needed if the node will advertise CIDR routes)
-printf 'net.ipv4.ip_forward = 1\nnet.ipv6.conf.all.forwarding = 1\nnet.ipv6.conf.all.accept_ra = 2\n' \
-  | sudo tee /etc/sysctl.d/99-zzz-cloudflare-warp-connector.conf && sudo sysctl --system
-
-# 2. Install cloudflare-warp (Debian/Ubuntu shown; RHEL/Fedora use the .repo + yum, plus epel-release)
+# Debian/Ubuntu: install cloudflare-warp
 curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor \
   -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(. /etc/os-release && echo $VERSION_CODENAME) main" \
   | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-sudo apt-get update -qq && sudo apt-get install -y -qq cloudflare-warp
+sudo apt-get update && sudo apt-get install -y cloudflare-warp
 
-# 3. Enroll the node
+# RHEL 9+: EPEL first (needs CodeReady Builder), then the Cloudflare repo — install from the repo, not a standalone .rpm
+sudo subscription-manager repos --enable codeready-builder-for-rhel-$(rpm -E %rhel)-$(arch)-rpms &&
+sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm
+curl -fsSL https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo | sudo tee /etc/yum.repos.d/cloudflare-warp.repo
+sudo dnf install -y cloudflare-warp
+
+# Enroll the node, then verify with `warp-cli status` ("Connected") and the dashboard (Online + Mesh IP)
 sudo warp-cli --accept-tos connector new <TOKEN> && sudo warp-cli --accept-tos connect
 ```
+RHEL specifics: `subscription-manager` needs a registered host (RHUI cloud images name CRB differently); on Rocky/AlmaLinux
+`sudo dnf config-manager --set-enabled crb` + `sudo dnf install -y epel-release` — not tested by Cloudflare. RHEL 9/10 need
+Cloudflare One Client 2026.6.822.0+. **IP forwarding** is only needed to advertise CIDR routes; the dashboard Linux
+commands include persistent forwarding (sysctl file `/etc/sysctl.d/99-zzz-cloudflare-warp-connector.conf`; Gotchas has the fix).
 
 Node host requirements: RHEL 9/10, Debian 12/13, Fedora 43/44, Ubuntu 22.04/24.04/26.04 LTS;
 AMD64 or ARM64; **3 vCPU min (4 rec.)**; RAM 1 GB min / 2 GB rec. headless (4 / 8 GB with a desktop);
 disk 250 MiB min / 500 MiB rec.; **MTU 1381 recommended** (1281 minimum with PMTUD).
-RHEL 9+ needs `sudo dnf install epel-release` first.
+
+**Guides** (`mesh/guides/`): `connect-servers` — one node per server, each with its **own** token; reach services on the
+nodes by Mesh IP, no route/forwarding needed; the service must listen on the Mesh IP or all interfaces. `connect-sites` —
+a node per site, each advertises its subnet as a CIDR route, Split Tunnels on each node must include the **other** site's
+subnet and `100.96.0.0/12` (Exclude mode: exclude neither), and site routers need a static route to the remote subnet via the
+node's **local IP** (not Mesh IP) unless the node is the default gateway; subnets must not overlap each other or the Mesh range.
+Verify with `nc -vz <ip> 22` from a host *behind* each node — `ping` needs the ICMP Gateway proxy. Node traffic logs as
+`warp_connector@<team>.cloudflareaccess.com`.
+
+**Troubleshooting** (`mesh/troubleshooting/`; **Online** only means connected to Cloudflare): offline → `warp-cli status`/`connect`,
+firewall to client IPs/ports; Mesh IP unreachable → same account, nodes in Traffic and DNS mode, Split Tunnels include
+`100.96.0.0/12`, Gateway proxy on for the protocol, host firewall; subnet unreachable → CIDR route, forwarding, a host firewall
+allowing forwarded traffic, return route; one-way site traffic → config must be symmetric; hostname fails → DNS/MASQUE/Local Domain
+Fallback; big packets → MTU. Check Gateway network logs.
 
 API (note the legacy path — see Gotchas):
 ```

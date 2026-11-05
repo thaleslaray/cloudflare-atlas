@@ -22,34 +22,34 @@
 - `GET /accounts/{account_id}/ai-search/instances/{id}/stats` — Get instance statistics.  · required: id, account_id
 - `GET /accounts/{account_id}/ai-search/namespaces` — List namespaces  · required: account_id
 - `POST /accounts/{account_id}/ai-search/namespaces` — Create a namespace  · required: account_id  · body: name:string
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances` — List AI Search instances.  · required: account_id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances` — Create an AI Search instance.  · required: account_id, namespace  · body: id:string
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}` — Get an AI Search instance.  · required: account_id, id, namespace
+- `PUT /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}` — Update an AI Search instance.  · required: account_id, id, namespace  · body: (no required fields)
+- `PATCH /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}` — Move an instance to a different namespace.  · required: account_id, namespace, id  · body: new_namespace:string
+- `DELETE /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}` — Delete an AI Search instance.  · required: account_id, id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/chat/completions` — Chat Completions  · required: id, account_id, namespace  · body: messages:object[]
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items` — Items List.  · required: id, account_id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items` — Upload Item.  · required: id, account_id, namespace  · body: file:string
+- `PUT /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items` — Create or Update Item.  · required: id, account_id, namespace  · body: key:string, next_action:string
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}` — Get Item.  · required: id, item_id, account_id, namespace
+- `PATCH /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}` — Sync Item.  · required: id, item_id, account_id, namespace  · body: next_action:string
+- `DELETE /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}` — Delete Item.  · required: id, item_id, account_id, namespace
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}/chunks` — List Item Chunks.  · required: id, item_id, account_id, namespace
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}/download` — Download Item Content.  · required: id, item_id, account_id, namespace
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/items/{item_id}/logs` — Item Logs.  · required: id, item_id, account_id, namespace
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/jobs` — List Jobs  · required: id, account_id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/jobs` — Create new job  · required: id, account_id, namespace  · body: (no required fields)
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/jobs/{job_id}` — Get a Job Details  · required: id, job_id, account_id, namespace
+- `PATCH /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/jobs/{job_id}` — Cancel an indexing job.  · required: id, job_id, account_id, namespace  · body: action:string
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/jobs/{job_id}/logs` — List Job Logs  · required: id, job_id, account_id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/purge_cache` — Purge search cache.  · required: account_id, id, namespace
+- `POST /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/search` — Search  · required: id, account_id, namespace  · body: (no required fields)
+- `GET /accounts/{account_id}/ai-search/namespaces/{namespace}/instances/{id}/stats` — Get instance statistics.  · required: id, account_id, namespace
 - `GET /accounts/{account_id}/ai-search/namespaces/{name}` — Get a namespace  · required: account_id, name
 - `PUT /accounts/{account_id}/ai-search/namespaces/{name}` — Update a namespace  · required: account_id, name  · body: (no required fields)
 - `DELETE /accounts/{account_id}/ai-search/namespaces/{name}` — Delete a namespace  · required: account_id, name
 - `POST /accounts/{account_id}/ai-search/namespaces/{name}/chat/completions` — Multi-Instance Chat Completions  · required: account_id, name  · body: ai_search_options:object, messages:object[]
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances` — List AI Search instances.  · required: account_id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances` — Create an AI Search instance.  · required: account_id, name  · body: id:string
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}` — Get an AI Search instance.  · required: account_id, id, name
-- `PUT /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}` — Update an AI Search instance.  · required: account_id, id, name  · body: (no required fields)
-- `PATCH /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}` — Move an instance to a different namespace.  · required: account_id, name, id  · body: new_namespace:string
-- `DELETE /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}` — Delete an AI Search instance.  · required: account_id, id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/chat/completions` — Chat Completions  · required: id, account_id, name  · body: messages:object[]
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items` — Items List.  · required: id, account_id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items` — Upload Item.  · required: id, account_id, name  · body: file:string
-- `PUT /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items` — Create or Update Item.  · required: id, account_id, name  · body: key:string, next_action:string
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}` — Get Item.  · required: id, item_id, account_id, name
-- `PATCH /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}` — Sync Item.  · required: id, item_id, account_id, name  · body: next_action:string
-- `DELETE /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}` — Delete Item.  · required: id, item_id, account_id, name
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}/chunks` — List Item Chunks.  · required: id, item_id, account_id, name
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}/download` — Download Item Content.  · required: id, item_id, account_id, name
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/items/{item_id}/logs` — Item Logs.  · required: id, item_id, account_id, name
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs` — List Jobs  · required: id, account_id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs` — Create new job  · required: id, account_id, name  · body: (no required fields)
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs/{job_id}` — Get a Job Details  · required: id, job_id, account_id, name
-- `PATCH /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs/{job_id}` — Cancel an indexing job.  · required: id, job_id, account_id, name  · body: action:string
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/jobs/{job_id}/logs` — List Job Logs  · required: id, job_id, account_id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/purge_cache` — Purge search cache.  · required: account_id, id, name
-- `POST /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/search` — Search  · required: id, account_id, name  · body: (no required fields)
-- `GET /accounts/{account_id}/ai-search/namespaces/{name}/instances/{id}/stats` — Get instance statistics.  · required: id, account_id, name
 - `POST /accounts/{account_id}/ai-search/namespaces/{name}/search` — Multi-Instance Search  · required: account_id, name  · body: ai_search_options:object
 - `GET /accounts/{account_id}/ai-search/tokens` — List tokens  · required: account_id
 - `POST /accounts/{account_id}/ai-search/tokens` — Create a token  · required: account_id  · body: cf_api_id:string, cf_api_key:string, name:string

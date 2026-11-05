@@ -7,7 +7,7 @@
 ## Contents
 - When to use (and when not)
 - Binding & config
-- Three ways to evaluate
+- Ways to evaluate
 - Targeting & rollouts
 - Gotchas
 - Limits & pricing
@@ -34,7 +34,7 @@
 - Run `npx wrangler types` → `Env` interface types each binding as `Flagship`.
 - Local: `wrangler dev` works but uses the **live** app (no local flag store) — `app_id` must be valid.
 
-## Three ways to evaluate
+## Ways to evaluate
 1. **Workers binding** (`env.FLAGS`) — recommended inside Workers; no HTTP, auto auth via binding.
    ```ts
    const enabled = await env.FLAGS.getBooleanValue("new-feature", false, { userId: "user-42" });
@@ -47,7 +47,11 @@
    Python: `cloudflare-flagship` (server, HTTP). Go: `github.com/cloudflare/flagship/sdks/go` (server, HTTP).
    Inside a Worker you can pass the binding into the SDK
    (`new FlagshipServerProvider({ binding: env.FLAGS })`) to keep OpenFeature API + binding speed.
-3. **REST API / dashboard / `wrangler flagship`** — manage flags (CRUD), organize into apps. Management
+3. **Evaluation API** (when you can't use the binding): The `GET` endpoint
+   takes **scalar** context as query params (numbers/booleans coerced; JSON-looking values stay strings). `POST` to
+   `/accounts/$ACCOUNT_ID/flagship/apps/$APP_ID/evaluate` with body `{ "flagKey", "context": { "targetingKey", "profile": {...}, "tags": [...] } }` carries structured
+   context; both return `flagKey`, `value`, `variant`, `reason`. Invalid context → `400`.
+4. **REST API / dashboard / `wrangler flagship`** — manage flags (CRUD), organize into apps. Management
    endpoints use Cloudflare v4 envelopes (`result`, `result_info`, `errors`) + snake_case; the `/evaluate`
    endpoint is the exception (OpenFeature-style camelCase, not enveloped). Wrangler ships a
    `wrangler flagship` command family (apps, flags, rules, rollouts, evaluate, changelog);
@@ -55,7 +59,12 @@
 
 ## Targeting & rollouts
 - **Rules** are priority-ordered (lower priority number first); **first match wins**, else default variant.
-- 11 comparison operators, logical AND/OR grouping (nesting up to 5 levels deep).
+- 13 comparison operators (`equals`, `in`, `has`, `not_has`, `starts_with`…), logical AND/OR grouping (nesting up to 5 levels).
+- **Structured context** (2026-10-23): evaluation context may hold nested objects, arrays and `null`. Target nested
+  attributes with dot paths (`profile.plan`, max 5 segments; a literal top-level key wins over path traversal) and
+  arrays with `has` / `not_has` (`tags has "beta"`). Rollouts can bucket on a nested id such as `profile.id`.
+  Missing attributes never match (even negative operators); `null` only matches `not_equals` / `not_in`.
+  Works via the binding, the evaluation API `POST`, and the TS/Python/Go OpenFeature SDKs from `0.6.0`.
 - **Rollouts**: any rule can add `rollout: { percentage, attribute }`. Consistent hashing on the attribute
   (default `targetingKey`) gives sticky bucketing — same user → same value. `reason` is `SPLIT` when a
   rollout serves the variant. For A/B/n via API, use **cumulative** thresholds (30/40/30 → 30, 70, 100).
@@ -65,6 +74,7 @@
   rollouts/experiments won't stick across requests.
 - **Flag always returns default?** Check: flag enabled, rules actually match, and you passed the
   attributes the rules reference in `context`.
+- **Invalid context:** binding `*Details` return the default with `reason` `ERROR`, `errorCode` `INVALID_CONTEXT`.
 - **Type mismatch** (e.g. `getBooleanValue` on a string flag) → returns default; `*Details.errorCode` =
   `"TYPE_MISMATCH"`. All variants on one flag must share a single type.
 - **REST PUT replaces the whole flag** — read-modify-write the full definition; partial PUT drops rules/variants.
@@ -83,6 +93,8 @@
 flag/app/variant keys **64 chars** · condition attribute names **64** · condition string values **256** ·
 variant value size **10 KB** · condition nesting depth **5 levels** · flag description **512 chars** ·
 flag config size per app **25 MB**. Keys allow letters/numbers/hyphens/underscores.
+**Evaluation context limits:** ≤100 top-level attributes · key length 1–256 chars · nesting depth 10 · 32 KiB serialized JSON.
+**API tokens:** account-wide or app-scoped (specified apps only), each with Read / Write / Evaluate permissions.
 
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/flagship/`) — use it for full REST API

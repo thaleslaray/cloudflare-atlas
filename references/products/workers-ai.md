@@ -46,6 +46,10 @@ await env.AI.run('@cf/zai-org/glm-5.2', { messages: [...] }, { gateway: { id: 'd
 ```
 `id: 'default'` auto-creates a gateway on the first authenticated request. → `products/ai-gateway.md`.
 
+**AI SDK / Pi AI (2026-10-21):** use `createAI` from `agents/models/ai-sdk` (needs `ai@^7`) or `agents/models/pi-ai`;
+`createAI({ binding: env.AI })`, or `{ accountId, apiToken }` outside a Worker. It replaces `workers-ai-provider`
+(now deprecated and feature frozen — `createWorkersAI` becomes `createAI`). → `workers-ai/configuration/ai-sdk/`, `.../pi-ai/`.
+
 ## The `env.AI.run` API
 - **Text gen**: `{ messages, temperature, max_tokens, stream }` → `{ response }`. `temperature: 0`
   for deterministic output.
@@ -60,15 +64,18 @@ await env.AI.run('@cf/zai-org/glm-5.2', { messages: [...] }, { gateway: { id: 'd
   silently ignore it, and the request queues normally.
 
 ## Model catalog
-69 Cloudflare-hosted models (measured 2026-10-03), each addressed by a `@cf/...` ID; they share the
-unified `ai/models/` catalog with 164 third-party models — vendor index in `products/ai.md`. Full
+73 Cloudflare-hosted models (measured 2026-10-31), each addressed by a `@cf/...` ID; they share the
+unified `ai/models/` catalog with 199 third-party models — vendor index in `products/ai.md`. Full
 catalog (capabilities, schemas, pricing) lives as JSON under
 `raw/github-repos/cloudflare-docs/src/content/workers-ai-models/` — one file per model — and at
 `developers.cloudflare.com/workers-ai/models/`. Examples: `@cf/meta/llama-3.1-8b-instruct` (chat),
 `@cf/baai/bge-base-en-v1.5` (embeddings), `@cf/black-forest-labs/flux-1-schnell` (image),
 `@cf/openai/whisper` (STT), `@cf/meta/m2m100-1.2b` (translation). Recent additions:
 `@cf/zai-org/glm-5.2` (agentic-coding text gen — function calling + reasoning, 262K-token context)
-and `@cf/moondream/moondream3.1-9B-A2B` (vision language / image-to-text).
+`@cf/moondream/moondream3.1-9B-A2B` (vision language / image-to-text),
+`@cf/deepseek-ai/deepseek-v4.1-flash-1017` (multimodal MoE, function calling + reasoning, 1,048,576-token context,
+`$0.30`/M input, `$1.20`/M output; paid plan or credits) and `@cf/daily-co/phonellm-mini-alpha-2` (voice-agent text
+gen, 262,140 tokens, function calling, `$0.06`/M input, `$0.24`/M output).
 
 **Clef — decision models, not chat (2026-10-01; omni 2026-10-09).** `@cf/cloudflare/clef` (27B, 65,536-token
 context, `$0.24`/M input tokens), `clef-flash` (9B, **24,576** tokens since the 2026-10-09 cut to `$0.038`/M — cheaper
@@ -79,6 +86,11 @@ video; **clef-omni adds audio** (WAV/MP3; video MP4/WebM with its soundtrack) as
 one of your `criteria`), `score` (ordered rubric). Same System One API as `typesafe/jev`: switch by changing endpoint +
 model. Input: `{ model: "clef", state, questions }`. Use for routing/triage/policy scoring on the hot path, then hand
 off to an LLM. Verify prices on the model pages. Open weights on Hugging Face.
+
+**Clairic — extraction, not decision (preview, 2026-10-19).** `@cf/cloudflare/clairic` (65,536 tokens, vision, `$0.10`/M
+input) takes `{ model: "clairic", state, fields }` and returns a typed value per named field (`text`, `date`, `number`,
+`list`, `estimate`…): extract, compute, estimate or forecast. `null` = input insufficient; text answers carry source-span
+offsets, estimates a p10–p90 interval. Types constrain form, not correctness. → `workers-ai/concepts/extraction-models/`.
 
 ## `env.AI.toMarkdown` — document → text (the native "read a PDF in a Worker" answer)
 When the need is **extract text/data from a document** (PDF, docx, images…) inside a Worker, this
@@ -153,18 +165,18 @@ const [out] = await env.AI.toMarkdown([
   on Paid → billed at the rate above. Per-model rates are quoted in tokens *and* neurons, e.g.
   Llama-3.1-8b ≈ 25.6K neurons / M input tokens; embeddings cents-per-M-tokens; images per tile+step.
 - **Some models require a paid billing method** — `@cf/moonshotai/kimi-k2.6`,
-  `@cf/moonshotai/kimi-k2.7-code`, `@cf/zai-org/glm-5.2`, `@cf/deepseek-ai/deepseek-v4-flash-0731`,
-  `@cf/deepseek-ai/deepseek-v4-pro-0813`. Reachable with the Workers Paid plan **or** prepaid
+  `@cf/moonshotai/kimi-k2.7-code`, `@cf/zai-org/glm-5.2`, `@cf/zai-org/glm-5.3`, `@cf/zai-org/glm-5.3-flash`,
+  `@cf/deepseek-ai/deepseek-v4-flash-0731`, `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, `@cf/deepseek-ai/deepseek-v4-pro-0813`. Reachable with the Workers Paid plan **or** prepaid
   AI Gateway credits; on Free they fail with `5035` · 403. `.../platform/pricing/`.
 
 **Rate limits** (per task type, default; some per-model overrides — verify on the limits page):
 text generation **300 req/min**, embeddings/image-classification/object-detection **3000**,
 text-to-image / STT / translation / image-to-text **720**, summarization **1500**, text
 classification **2000**.
-- **Frontier models are far tighter — per account, per model: 20 req/min** (kimi-k2.6,
-  kimi-k2.7-code, glm-5.2), rising to **50 req/min** if you pay via prepaid AI Gateway credits with
+- **Frontier models are far tighter — per account, per model: 20 req/min** (every model that
+  requires Workers Paid — the list above, e.g. kimi-k2.6, glm-5.2), rising to **50 req/min** if you pay via prepaid AI Gateway credits with
   the gateway's Workers AI billing set to *Unified billing*. Don't plan a fan-out on glm-5.2 at the
-  300/min text-gen number. `.../platform/limits/#frontier-models`.
+  300/min text-gen number. `.../platform/limits/#paid-models`.
 
 ## Going deeper
 - Deep-dive: the live docs `developers.cloudflare.com/workers-ai/` (canonical, fetch as Markdown). The official `cloudflare` skill `references/workers-ai/` is an optional extra **if installed**

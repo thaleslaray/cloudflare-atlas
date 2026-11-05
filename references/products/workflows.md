@@ -36,6 +36,9 @@
 Class extends `WorkflowEntrypoint<Env, Params>` with an `async run(event, step)` method. Trigger via
 `env.MY_WORKFLOW.create({ id, params })` from a Worker, Pages Function, cron, `schedules`, REST API, or wrangler.
 On Paid, `schedules`-created instances get ~1h per firing without using a concurrency slot.
+**Jurisdiction** (2026-10-27, Wrangler **4.152.0+**): `"jurisdiction": "eu"` (also `us`, `fedramp`) on a `workflows` binding or an
+`exports` Workflow keeps instances running and storing data there; settings stay outside it. Fixed at creation — a mismatch
+stops `wrangler deploy`/`versions upload`; removing it later keeps the old one; no `script_name`; ignored locally.
 
 ## Core API
 ```typescript

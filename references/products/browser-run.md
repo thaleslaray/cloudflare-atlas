@@ -122,6 +122,8 @@ Workers, built for AI agents rather than for full web-app fidelity.
   (`createBrowserContext`) to isolate cookies/cache between tasks.
 - Audit closures via `puppeteer.history()` — sessions closing as `BrowserIdle` (vs `NormalClosure`)
   mean you forgot to close them. Sessions also close on Browser Run platform releases.
+- **Chrome 152** (2026-10-30) is the default. Quick Actions' default User-Agent now says `Chrome/152.0.0.0` (was 119) — don't
+  allowlist on it (changes with Chrome); override via `userAgent`. `/links` returns absolute URLs.
 - Local dev: `wrangler dev --remote` (or `remote: true` binding) to hit a real headless browser.
 
 ## Pricing & limits

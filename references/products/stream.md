@@ -17,7 +17,7 @@
 - **On-demand**: user-generated uploads, course/VOD libraries, a video platform. Direct Creator Uploads
   let end users upload straight to Stream with a one-time URL (no API token in the browser).
 - **Live**: RTMPS/SRT ingest from OBS/FFmpeg, auto-recorded to on-demand, simulcast to YouTube/Twitch.
-- **Vs. Stream WebRTC (beta)**: use Stream's WHIP/WHEP for **sub-second** live (sports, auctions, live
+- **Vs. Stream WebRTC (GA)**: use Stream's WHIP/WHEP for **sub-second** live (sports, auctions, live
   Q&A) to unlimited viewers. Regular HLS/DASH live is ~seconds of latency.
 - **Vs. Realtime (WebRTC SFU)**: choose **Realtime** for interactive many-to-many calls (video
   conferencing, where viewers also publish). Stream is one/few-to-many broadcast + storage.
@@ -72,6 +72,7 @@ SDKs: `cloudflare` (official), `@cloudflare/stream-react` (player), `tus-js-clie
 included):
 - **Stored**: prepaid **$5 / 1,000 minutes** stored (by duration, *not* file size; rounded up to the second).
 - **Delivered**: post-paid **$1 / 1,000 minutes** delivered (counted by segment requests; ~4s segments for VOD).
+  **WebRTC (WHEP) playback is billed too since 2026-10-15** (WebRTC went GA); WebRTC broadcasts can't be recorded, so use no storage.
 - **Media Transformations** (separate, GA — billing from 2025-11-01): **$0.50 / 1,000** unique ops,
   5,000 free/month (shared with Image Transformations).
 - No standalone free tier — storage must be purchased before uploading.
@@ -80,7 +81,7 @@ included):
 playback · resolutions **360p–1080p** (H.264) · simulcast **50 concurrent destinations / live input** ·
 caption file **10 MB** · watermark **2 MiB, PNG only** and **not supported on live** · live recordings
 truncated at **7 days** · up to **120 videos** queued/encoding concurrently · **1 webhook subscription
-/ account** · up to **1,000 signing keys**. (Removed for lack of a doc source: webhook retry
+/ account** · up to **1,000 signing keys** · **WHIP and WHEP must be used together** (no RTMP/SRT-in → WHEP, no WHIP-in → HLS/DASH or recording). (Removed for lack of a doc source: webhook retry
 count/timeout, search results-per-page.) Verify on the docs/FAQ.
 
 ## Going deeper
@@ -88,5 +89,5 @@ count/timeout, search results-per-page.) Verify on the docs/FAQ.
   `configuration.md`, `api.md` (on-demand), `api-live.md` (live/WebRTC/simulcast), `patterns.md`
   (TUS, JWT signing, full-stack flows), `gotchas.md` (error codes).
 - Exact REST API: `developers.cloudflare.com/api/resources/stream/`.
-- Live ultra-low-latency: WebRTC WHIP/WHEP (`stream/webrtc-beta/`); for calls/conferencing see the
+- Live ultra-low-latency: WebRTC WHIP/WHEP, **GA** (`stream/webrtc/`); for calls/conferencing see the
   Realtime product instead.

@@ -51,7 +51,6 @@ key-transparency
 kv
 learning-paths
 load-balancing
-log-explorer
 logs
 magic-transit
 mesh

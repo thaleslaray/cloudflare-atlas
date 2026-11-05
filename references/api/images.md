@@ -1,6 +1,6 @@
 # API reference — images
 
-> Exact REST endpoints for **images**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 38 operations. Base: `https://api.cloudflare.com/client/v4`.
+> Exact REST endpoints for **images**, sliced from the Cloudflare OpenAPI spec (api.cloudflare.com v4). 40 operations. Base: `https://api.cloudflare.com/client/v4`.
 
 > Body fields below are the **top-level required** ones only — not optional fields, nested
 > shapes, enums or responses. Added by scripts/slice-bodies; verify shapes against the live docs.
@@ -45,3 +45,5 @@
 - `GET /accounts/{account_id}/settings/transformations` — List Image Resizing configurations for account  · required: account_id
 - `GET /accounts/{account_id}/settings/ut-billing` — Get Unique Transformations billing setting  · required: account_id
 - `PATCH /accounts/{account_id}/settings/ut-billing` — Change Unique Transformations billing setting  · required: account_id  · body: value:string
+- `GET /zones/{zone_id}/images/v1/flows` — Get transformation flows  · required: zone_id
+- `PUT /zones/{zone_id}/images/v1/flows` — Update transformation flows  · required: zone_id  · body: flows:object[], version:number

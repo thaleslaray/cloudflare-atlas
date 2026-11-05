@@ -116,7 +116,14 @@ gRPC works over private subnet routing only — **not** supported on published/p
 - **Per-tunnel RBAC (2026-09):** resource-scoped roles can grant a member one specific tunnel
   (Members → policy → Scope: *Specific resources* → *Cloudflare Tunnel instances*). Additive only — an
   account-level `Cloudflare Access` role still sees and edits every tunnel; `GET /cfd_tunnel` and
-  `GET /teamnet/routes` are filtered to what the caller can read.
+  `GET /teamnet/routes` are filtered to what the caller can read. GA 2026-10-22:
+  `Cloudflare Tunnel - Granular Connector cloudflared Read And Monitor` = the Read role (selected tunnels, IP/hostname routes, connector host
+  details) **plus remote log streaming**; plain Read does not grant log streaming.
+- **URL normalization (`cloudflared` ≥ `2026.10.0`)**: normalizes the path before ingress matching (removes `.`/`..`
+  dot segments, backslashes → `/`, merges repeated slashes) to harden rules that require Access validation; the path
+  sent to the origin is unchanged. **Off by default now** — enable with `--disable-path-normalization=false` before
+  `run` or `TUNNEL_DISABLE_PATH_NORMALIZATION=false` + restart each replica. Releases from **2027-01-25** turn it on
+  by default — test path-based routing first.
 - **HA via replicas, not a single process** — run 2–4 replicas (same tunnel UUID, unique connector IDs); traffic routes to the geographically closest.
   Replicas do **no** steering and a Load Balancer sees one UUID as one endpoint — for steering/affinity
   give each host its **own tunnel**; TCP monitors don't work on tunnel endpoints (monitor an `http_status:200` route).
@@ -124,8 +131,12 @@ gRPC works over private subnet routing only — **not** supported on published/p
 ## Pricing & limits
 > ⚠️ Pricing changes — verify on the live page (`developers.cloudflare.com/tunnel/`) before quoting.
 
-- **Cost:** Cloudflare Tunnel itself is **free on all plans**, including unlimited tunnels and traffic.
+- **Cost:** Cloudflare Tunnel itself is **free on all plans**; every account includes **1,000 tunnels** (inactive
+  ones count). **Tunnels for Platforms** (2026-10-16) adds capacity beyond 1,000 at **$4.50 per extra tunnel/month**
+  (dashboard **Networking → Tunnels → Usage → Buy more tunnels**; Enterprise: committed/usage-based) for one tunnel
+  per device/customer/environment. At the limit, existing tunnels keep working and creating new ones fails.
   (Downstream Cloudflare features you layer on — e.g. Load Balancing, Zero Trust seats — bill separately.)
+- **Routes:** CIDR + hostname routes (Tunnel and Mesh) **50,000 per account** (was 1,000; published apps excluded) · virtual networks 1,000.
 - **Replicas:** up to **25 per tunnel** (100 connections); each replica = 4 connections to ≥2 data centers.
 - **Sizing:** 2 dedicated hosts/location, ≥4 GB RAM + 4 cores, **50,000 ports**/host, `ulimit -n` ≥ **70,000**
   — throughput is bound by ports, not hardware.

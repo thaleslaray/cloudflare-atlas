@@ -21,8 +21,7 @@ ports, outbound interception and snapshots live there; `@cloudflare/sandbox` kee
 
 "The package does not start, stop, or monitor the container", retries nothing and sets no time
 limits — lifetime, retries and timeouts are your code. The container uses the `durable_object`
-scheduling policy (public beta). Median `start()` to first command: under 600 ms on a prepared
-image, vs about 4 s on 0.x.
+scheduling policy (public beta).
 
 ## When to use
 - **Container** — the code expects Linux: `npm test`, a preview server holding a port, native
@@ -47,7 +46,7 @@ image, vs about 4 s on 0.x.
   Wrangler `4.141.0` or later and Docker running for `wrangler dev`.
 - `Files` / `S3Mount` / `DirectoryBackup` need the `sandbox-shim` helper in your image, from the
   `cloudflare/sandbox` tag matching the installed package (static `linux/amd64`; base e.g. `node:24-trixie-slim`):
-  `COPY --from=docker.io/cloudflare/sandbox:1.0.0 /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim`
+  `COPY --from=docker.io/cloudflare/sandbox:1.0.1 /usr/local/bin/sandbox-shim /usr/local/bin/sandbox-shim`
 - Instance size is chosen per `start()` with the runtime `instance` property (not `instance_type`).
 
 ## Key API / access patterns
@@ -69,6 +68,7 @@ export class MyContainer extends DurableObject<Env> {
 - Previews: no public port; your Worker forwards via `getTcpPort(port)`. Listen on `0.0.0.0`.
 - Outbound: `enableInternet: false` is the default; `interceptOutboundHttps` routes a hostname to
   Worker code that adds the credential. Snapshots: `snapshotContainer()` (public beta).
+- Follow a process log as SSE or wait for a `ready` line: `sandbox/commands/follow-a-background-process/`.
 - Terminal: `exec` with a `pty` option on a `tmux` session over a WebSocket, xterm.js in the page
   (`sandbox/commands/open-a-terminal-in-the-browser/`).
 
@@ -117,8 +117,10 @@ returns a diff; model calls go through AI Gateway, the Worker adding `AI_GATEWAY
 0.x (`getSandbox`, `runCode`, `exposePort`, `proxyToSandbox`, …) lives under `sandbox/sdk/` for
 existing apps: bug and security fixes until 2026-12-31, no new features; deployed apps keep running
 after. Coding-agent skill for 0.x docs: `sandbox-stable`.
-- Until you move, pin `0.12.10` (package and `docker.io/cloudflare/sandbox:0.12.10`); avoid the
-  2026-06-09 deprecations: HTTP/WebSocket transports, `exposePort()`, default sessions, streaming methods.
+- Until you move, pin `0.12.14` (package and `docker.io/cloudflare/sandbox:0.12.14`, keep any `-python`/`-opencode`/
+  `-musl` suffix): earlier images trust the eight compromised eMudhra CAs (2026-10-22). 1.x needs no SDK
+  update, but rebuild the image from fresh bases and replace running sandboxes and old snapshots. Avoid
+  the 2026-06-09 deprecations: HTTP/WebSocket transports, `exposePort()`, default sessions, streaming methods.
 - The deploy moving a class to `scheduling_policy: "durable_object"` cannot be undone, even by
   `wrangler rollback`. In place: one deploy, 0.12 commands end, container files are lost
   (`createBackup()` first). Side by side: both classes in one Worker, move sandboxes one at a time.

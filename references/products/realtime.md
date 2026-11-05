@@ -31,7 +31,19 @@
 | Primitives | Meetings, Sessions, Participants, Presets, Stage, Waiting Room | Sessions (PeerConnections), Tracks — pub/sub, **no rooms** | Allocations, relayed transport addresses |
 
 - **RealtimeKit** abstracts media routing, peer management, recording, chat, polls, breakout rooms,
-  virtual backgrounds, transcription. Start here for standard meeting/webinar apps.
+  virtual backgrounds, transcription. Docs (restructured 2026-10-19): **`humans/`** = SDKs for people
+  (`sdk-selection/`, prebuilt **UI Kit**, **Core SDK** + ~630-page API reference, not mirrored here);
+  **`agents/`** = Agent Participant; also `collaboration/` (key-value store, broadcast),
+  `custom-plugins/` (Whiteboard), `platform/` (pricing, limits, retention, allowlist).
+- **Agent Participant**: a server-side agent that joins a meeting over a WebSocket — no client SDK,
+  any backend (Worker, Durable Object, own server). Add a participant with an agent **preset**, then
+  open the `agent-ws/v1` endpoint on `api.realtime.cloudflare.com` (`?subscriptions=transcript,participant,broadcast`)
+  with its token (`Authorization: Bearer`, subprotocol `realtimekit.v1`) → JSON events
+  (`session.started`, `participant.join`, `transcript.received`, `broadcast.received`, `session.ended`).
+  **Receive-only today** (sending chat/broadcasts/audio is planned). `hidden_participant` hides it from
+  the list/grid only. `transcript` needs real-time transcription on the speakers' presets. Billed as a
+  participant and **keeps the session alive** after everyone leaves — close the socket with `1000` or
+  call Kick all participants. Resume with `connection_id` (5 s grace). Docs: `realtime/realtimekit/agents/`.
 - **SFU** is unopinionated: no SDK, no "room" concept — just pub/sub of audio/video/data tracks by ID.
   *You* build the presence protocol (e.g. track IDs in a Durable Object). See Orange Meets demo.
 - **TURN** relays media when peers can't connect directly (restrictive NAT/firewall). Used by browsers,
@@ -93,21 +105,28 @@ curl https://rtc.live.cloudflare.com/v1/turn/keys/$KEY_ID/credentials/generate-i
 - TURN credentials are short-lived: refresh mid-call via `RTCPeerConnection.setConfiguration()`.
 - App Secret / TURN key are long-term secrets — never ship to the client; only mint scoped creds.
 - **RealtimeKit keeps artifacts 7 days** (composite/track recordings, transcripts, chat without
-  `persist_chat`) — copy them out; meetings, participants and persisted chat stay indefinitely,
-  call analytics 6 months, webhook logs 1 month.
+  `persist_chat`) — copy them out; meetings, participants, persisted chat and Whiteboard plugin boards
+  stay indefinitely, call analytics 6 months, webhook logs 1 month (`data-retention`).
+- Locked-down networks: `*.realtime.cloudflare.com` does not cover `r2.cloudflarestorage.com`,
+  `stun.cloudflare.com`, `turn.cloudflare.com` (`network-allowlist`).
 
 ## Pricing & limits
 > ⚠️ Pricing changes — verify on the live pages (`developers.cloudflare.com/realtime/sfu/platform/pricing/`,
-> `.../realtimekit/pricing/`) before quoting.
+> `.../realtimekit/platform/pricing/`) before quoting.
 
 **Cost drivers** (as of 2026-06):
 - **SFU & TURN: $0.05 / GB** egress (Cloudflare → client). Push-to-Cloudflare is free.
   **Free tier: first 1,000 GB/mo shared** across SFU + TURN (one line item, not two). TURN↔SFU/Stream
   traffic isn't double-charged. TURN is **free** when used with Cloudflare SFU.
-- **RealtimeKit: Beta — free now.** At GA, per-minute: A/V participant **$0.002/min**, audio-only
-  **$0.0005/min**, recording/RTMP/HLS export **$0.010/min** (audio-only export **$0.003/min**),
-  raw-RTP→R2 **$0.0005/min**,
-  real-time transcription via Workers AI model pricing.
+- **RealtimeKit: per participant-minute** (the live pricing page no longer mentions Beta/free): A/V
+  participant **$0.002/min**, audio-only **$0.0005/min** (set by the preset's `Meeting Type`),
+  recording/RTMP/HLS export **$0.010/min** (audio-only export **$0.003/min**), raw-RTP→R2
+  **$0.0005/min**, real-time transcription via Workers AI model pricing. Agent Participants bill as
+  participants.
+
+**RealtimeKit limits** (`.../realtimekit/platform/limits/`): all APIs 3,500 req/5 min (shared with the
+Cloudflare API limit), Recording APIs 1,000 req/50 s; per-participant SDK ops — KV writes and
+`broadcastMessage()` 5/s, `sendTextMessage()` 180/min, image/file messages 20/min.
 
 **SFU limits:** 50 API calls/s per **session** (no per-app limit) · ≤64 tracks per API call · unlimited
 tracks/session (bandwidth-bound) · track inactivity timeout 30s · DataChannel `waitForAck` window
@@ -118,6 +137,7 @@ H264/H265/VP8/VP9/AV1 video, Opus/G.711 audio.
 - Official `cloudflare` skill splits this — use those for full API/patterns:
   `references/realtimekit/`, `references/realtime-sfu/`, `references/turn/`
   (each has `api.md` · `configuration.md` · `patterns.md` · `gotchas.md`).
-- SFU full HTTPS API, DataChannels, simulcast, media-transport adapters: `pages/realtime/sfu/`.
+- RealtimeKit SDK reference (UI Kit, Core SDK `rtkclient` etc.): `realtime/realtimekit/humans/`.
+- SFU full HTTPS API, DataChannels, simulcast, media-transport adapters: `developers.cloudflare.com/realtime/sfu/`.
 - Demos: Orange Meets (`github.com/cloudflare/orange`), echo example, `realtimekit-web-examples`.
 - Stream (VOD/live broadcast) → `stream.md`; live media transport → `moq.md`.

@@ -141,7 +141,7 @@ Pick a product, then read `references/products/<slug>.md` for depth. If nothing 
 - **Observability** — Cross-product hub for logs, traces and OpenTelemetry export (Workers + Cloudflare services) → products/observability.md
 - **Billing** — Manage billing, plans, and subscriptions for your account → products/billing.md
 - **Cloudflare Fundamentals** — Learn about using Cloudflare and features that span across Cloudflare products → products/fundamentals.md
-- **Log Explorer** — Store and explore your logs in the Cloudflare dashboard or API → products/log-explorer.md
+- **Log Explorer** — Store and explore your logs in the Cloudflare dashboard or API (docs now live under Observability → Logs, `observability/logs/log-explorer/`) → products/log-explorer.md
 - **Logs** — Logpush (usage-based on every plan since 2026-09-30), Transformers, Instant Logs, Logpull → products/logs.md
 - **Network** — Manage Cloudflare network settings for your website → products/network.md
 - **Notifications** — Define what you want to be notified about and how → products/notifications.md
@@ -165,7 +165,7 @@ Pick a product, then read `references/products/<slug>.md` for depth. If nothing 
 - **Agent Memory** — Persistent AI-powered memory for agents and applications — automatically extract, classify, and recall… → products/agent-memory.md
 - **Agent setup** — Wire your own coding agent (Claude Code, Codex, Cursor, Copilot, VS Code, OpenCode, Windsurf) to Cloudflare via Skills + MCP servers → products/agent-setup.md
 - **Agents** — Build AI-powered agents to perform tasks, persist state, browse the web, and communicate in real-time → products/agents.md
-- **Think (Project Think)** — ⚠️ preview. Opinionated chat-agent harness inside the Agents SDK (`@cloudflare/think`): durable execution (fibers), sub-agents, tree-structured sessions, sandboxed code execution → products/think.md
+- **Think** (announced as "Project Think") — ⚠️ preview. Opinionated chat-agent harness inside the Agents SDK (`@cloudflare/think`): durable execution (fibers), sub-agents, tree-structured sessions, sandboxed code execution → products/think.md
 - **AI** — Run AI models on Cloudflare's global network → products/ai.md
 - **AI Gateway** — Observe and control your AI applications → products/ai-gateway.md
 - **Web Search API** — Web search results for AI agents and LLM apps, via AI Gateway (launched 2026-10-02) → products/web-search.md

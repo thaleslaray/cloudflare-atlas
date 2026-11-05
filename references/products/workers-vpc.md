@@ -30,7 +30,7 @@
 | | **VPC Services** | **VPC Networks** |
 |---|---|---|
 | Scope | one specific host + port (pre-registered) | a whole Tunnel, or all of Mesh/WAN (`cf1:network`) |
-| Config key | `service_id` | `tunnel_id` **or** `network_id: "cf1:network"` |
+| Config key | `service_id` | `tunnel_id`, `network_id: "cf1:network"` (account default vnet) **or** `cf1:vnet:<VNET_UUID>` (a specific virtual network) |
 | Routing | fixed by service config (URL host/port in `fetch` is **ignored**) | URL/address you pass at runtime picks the destination |
 | Protocols | HTTP `fetch()`; TCP **only via Hyperdrive** | HTTP `fetch()` **and** raw TCP `connect()` (Redis, MQTT, custom) |
 | SSRF | service-scoped — can't reach the rest of the network | broad — you must allowlist destinations yourself |
@@ -45,6 +45,7 @@
   "vpc_networks": [
     { "binding": "MY_VPC", "network_id": "cf1:network", "remote": true }
     // or bind one tunnel:  { "binding": "MY_VPC", "tunnel_id": "<UUID>", "remote": true }
+    // or one virtual network:  { "binding": "STAGING", "network_id": "cf1:vnet:<VNET_UUID>", "remote": true }
   ]
 }
 ```
@@ -69,6 +70,8 @@ Create a service: `npx wrangler vpc service create <name> --type http --tunnel-i
 - **Roles gate everything:** `Connectivity Directory Bind` to bind existing services; `…Admin` to
   create/update services and to bind a Tunnel directly via a VPC Network. Token must carry the role.
 - **Networks are broad → SSRF risk:** validate user-controlled destinations against an allowlist.
+- **Overlapping private IPs:** one binding per virtual network (`cf1:vnet:<UUID>`), so one Worker can reach
+  prod and staging backends that share the same IP (`env.PRODUCTION.fetch("http://10.0.1.50/status")`).
 - `connect()` over VPC Networks is **plaintext TCP only** today (no TLS).
 - For databases, prefer Hyperdrive over raw `connect()` — pooling avoids per-request connection overhead.
 
