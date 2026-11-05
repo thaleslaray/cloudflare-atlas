@@ -101,13 +101,13 @@ attached with `lifecycle.use()`, observability) answers *where the agent lives a
 **harness** is the per-turn loop. Per `agents/harnesses/`: **Pi** (the docs' recommended start for a new
 agent), **OpenCode** (experimental, `OpenCodeHarness`, `@opencode/sdk@2`), **Think** (`products/think.md`), or
 your own loop on the runtime. `PiHarness` is from `agents/harness/pi` (singular), a Lifecycle capability;
-Pi Durable owns loop, transcript and recovery in the DO's SQLite (tables prefixed `pi_`); a Lifecycle job
-alarm restarts an evicted object. Install `agents` + `@earendil-works/pi-durable` + `@earendil-works/pi-ai`
-+ `@earendil-works/chord`: optional peers at `~1.4.0` (agents ≥0.30.0 = Pi 1.4); Pi 1.4 migrates SQLite
-storage, **no rollback past it**. Pi Durable is experimental. Needs `nodejs_compat`.
+Pi Durable owns loop, transcript and recovery in the DO's SQLite (`pi_` tables); a Lifecycle job alarm restarts an evicted object. Install `agents` + `@earendil-works/pi-durable` + `pi-ai` + `pi-schema` + `chord`:
+optional peers `~1.5.0` (agents ≥0.33.0; one Pi minor per release); after a conversation runs on 1.5, **roll forward,
+never back** to Pi 1.4 (unreadable). 1.5 batches writes (crash loses ≤~1 s of streamed progress); `session.watch()` replaces
+`events()`, `session.continue()` re-runs without a new message, `retry()`/`parked` removed. Experimental. Needs `nodejs_compat`.
 **Model providers** (`agents/models/`): **`createAI`** replaced `workers-ai-provider` and `ai-gateway-provider`
 (2026-10-21; both frozen and deprecated). `agents/models/ai-sdk` needs `ai@^7` + `@ai-sdk/provider@^4`;
-`agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.4.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs
+`agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.5.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs
 via Workers AI; catalog models and `dynamic/<route>` go through AI Gateway; a vendor model object (e.g.
 `@ai-sdk/anthropic`) is wrapped as `ai(model)`; `fallback` lists, **no provider keys in the Worker**
 (**Unified Billing** or BYOK). Any other string throws `TypeError`. AI Search → `ai-search-provider`.

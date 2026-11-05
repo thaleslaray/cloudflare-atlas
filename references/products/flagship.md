@@ -32,7 +32,9 @@
 ```
 - `app_id` comes from the Flagship **app** (top-level org unit; create one in the dashboard first).
 - Run `npx wrangler types` → `Env` interface types each binding as `Flagship`.
-- Local: `wrangler dev` works but uses the **live** app (no local flag store) — `app_id` must be valid.
+- Local (`wrangler dev` ≥4.135.0, Vite plugin ≥1.56.0, Vitest, `cf dev`): flags evaluate against an **empty local store** (code defaults
+  until you add flags). Seed with `npx wrangler flagship flags pull <APP_ID>`; `--local` on `flagship flags` commands edits it; `Local Explorer`
+  needs Wrangler ≥4.148.0. Binding `"remote": true` evaluates the live app instead (`flagship/configuration/#local-development`).
 
 ## Ways to evaluate
 1. **Workers binding** (`env.FLAGS`) — recommended inside Workers; no HTTP, auto auth via binding.
@@ -45,6 +47,7 @@
 2. **OpenFeature SDK** (`@cloudflare/flagship`) — for Node.js, browser, or OpenFeature vendor-neutrality.
    TypeScript: `@cloudflare/flagship` + `@openfeature/server-sdk` (server) or `@openfeature/web-sdk` (browser).
    Python: `cloudflare-flagship` (server, HTTP). Go: `github.com/cloudflare/flagship/sdks/go` (server, HTTP).
+   Rust: `cargo add cloudflare-flagship` (Rust ≥1.88, Tokio; HTTP or `.local_evaluation(true)` with a Read token; no Workers binding — `flagship/sdk/rust/`).
    Inside a Worker you can pass the binding into the SDK
    (`new FlagshipServerProvider({ binding: env.FLAGS })`) to keep OpenFeature API + binding speed.
 3. **Evaluation API** (when you can't use the binding): The `GET` endpoint

@@ -67,6 +67,9 @@ Always-Use-HTTPS), **cookie + client-IP fallback** (`ip_cookie`), **header** (de
 30s–3600s). Affinity takes precedence over weights/steering. DNS-only LBs use **DNS persistence**
 instead. **Endpoint drain** lets you stop new sessions to an origin while existing ones finish.
 
+**Private LBs** (`cloudflare-one/networks/load-balancing/`): since 2026-11-04 pool **Endpoint steering = Hash**
+or API `session_affinity` set to `ip_cookie`; keyed on Cloudflare One Client device, else source IP. Pins endpoint, not replica.
+
 ## Config (API / Terraform — no Workers binding)
 Load Balancing is **not** a Worker binding — there is no `wrangler.jsonc` entry. Manage via dashboard,
 the **Cloudflare API**, or **Terraform**. Account-level resources:
@@ -82,7 +85,7 @@ Health checks come **from Cloudflare's edge to your origin**, so origins must al
 - **Paid add-on** — account needs a billing profile; only **Off-Failover** & **Random** are available
   without buying *Traffic steering* (or an Enterprise plan).
 - **Monitor probes multiply by region:** each selected Health Monitor Region probes from **3 data
-  centers**; "All Regions" = 39 probes, "All Data Centers" (Ent) = every PoP. Low intervals + many
+  centers**; "All Regions" (Ent only) = 13 regions × 3 = 39 probes, "All Data Centers" (Ent only) = every PoP. Low intervals + many
   regions can flood your origin. Tune `interval` and region count.
 - **DNS caching breaks DNS-only failover** — resolvers may serve stale IPs past the TTL. Prefer L7
   (proxied) for fast, accurate failover.

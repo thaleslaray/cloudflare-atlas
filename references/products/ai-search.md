@@ -21,7 +21,7 @@
   R2 objects **without a filename extension** index only with an explicit supported `Content-Type`
   (2026-09-11); missing, malformed or `application/octet-stream` is skipped.
 - Want a ready answer → `chatCompletions()`. Want raw chunks for your own UI/LLM → `search()`.
-- **Not** for: real-time freshness (connected sources re-index on a cycle, not instantly); when you
+- **Not** for: real-time freshness (connected sources sync on a schedule, 24 h default); when you
   need full control of embeddings/chunking/index → hand-roll with **Vectorize** + **Workers AI**;
   simple generation with no retrieval → **Workers AI** directly.
 
@@ -29,8 +29,8 @@
 Hand-rolling RAG means wiring: doc parsing → chunking → embeddings → Vectorize upserts → query embedding
 → vector search → (rerank) → prompt assembly → LLM. **AI Search does all of it.**
 - **Indexing (async):** ingest → Workers AI Markdown conversion (incl. images via object-detection +
-  vision-to-language) → chunk → embeddings → vector + BM25 index → storage. Connected sources auto
-  re-index; uploads index on arrival.
+  vision-to-language) → chunk → embeddings → vector + BM25 index → storage. Connected sources sync
+  on a schedule; uploads index on arrival.
 - **Querying (sync):** optional query rewrite → embed query → vector search (+ optional BM25 →
   fusion) → optional cross-encoder rerank → retrieve chunks → (`chatCompletions` only) generate.
 
@@ -110,11 +110,14 @@ Everything here is **opt-in**; previous behaviour stays the default.
   `sitemap.xml` (see the crawl gotcha below).
 
 ## Gotchas
-- **Not real-time.** Connected R2/website sources re-index on a cycle — don't expect sub-minute
-  freshness. Built-in-storage uploads index on arrival.
-- **File size cap 4 MB** — larger files "will not be indexed and will show up in the error logs". Supported
-  list is broad (plain text + code + rich formats: .pdf .html .xml .docx .xlsx .ods/.odt .csv .numbers,
-  images). **`.doc` is NOT supported** — only `.docx`.
+- **Not real-time.** R2/website sources sync on a schedule, **every 24 h by default** (was 6 h; changed
+  2026-11-02). `sync_interval` (seconds): `900, 1800, 3600, 7200, 14400, 21600, 43200, 86400`. Trigger now:
+  `wrangler ai-search jobs create <instance>` (at most once per 30 s). Built-in-storage uploads index
+  immediately. No search for 31 days → scheduled syncs auto-pause (still searchable, source changes not
+  picked up until traffic resumes or **Resume indexing**). → `ai-search/configuration/indexing/syncing/`
+- **File size caps (not a flat 4 MB):** PDF with OCR / plain text & code **10 MiB**; PDF without OCR and other
+  rich formats **4 MiB**. Larger files "are not indexed" (error logs). Rich formats: .pdf .html .xml .docx .xlsx
+  .xls .ods/.odt .csv .numbers, images. **`.doc` is not in the supported list** — only `.docx`.
 - **`timestamp` metadata is a Unix timestamp in milliseconds**; "comparisons round down to seconds".
   The `or`-only-`eq` / no-nesting restriction belongs to the **legacy** AutoRAG filter format, not the current one.
 - **Website crawl** only works on a domain "onboarded onto the same Cloudflare account", and Bot
@@ -130,13 +133,19 @@ Everything here is **opt-in**; previous behaviour stays the default.
 
 ## Pricing & limits
 > ⚠️ Generally available (GA) as of 2026-10-01 — verify on the live page (`developers.cloudflare.com/ai-search/platform/limits-pricing/`).
-- **AI Search is generally available (GA) and FREE** within plan limits. **Workers AI + AI Gateway bill
-  separately** (embeddings, rerank, generation); storage/vector indexing/crawl are included (managed
-  infra). Pricing announced ≥30 days before billing starts.
+- **GA, but billing starts 2026-12-01** (postponed from 2026-11-01; "not charged before December 1, 2026";
+  rates and included usage unchanged — changelog 2026-11-02). Until then usage is not billed.
+- **Included monthly, every account:** 5M ingestion tokens · 10 GB-month storage · 1,000 semantic + 1,000 full-text queries.
+- **Beyond that:** ingestion **$0.75/M tokens** (+**$0.50/M** image processing; `cl100k_base` counted on
+  final chunks, overlap counted) · storage **$2.00/GB-month** · semantic/vector/hybrid **$0.75/1K queries** ·
+  full-text **$0.10/1K** · instances past 5,000 **$0.10/month** each.
+- Workers AI **embedding + reranking are included** in AI Search usage (not on your Workers AI bill/AI Gateway
+  logs); **generation, query rewriting and external providers** still bill via your account/gateway.
+  Storage, vector indexing and crawl (`Browser Run`) usage are included.
 
-**Limits (Free / Paid):** instances per account **100 / 5,000** · files per instance **100K / 1M
-(500K hybrid)** · max file size **4 MB** · queries/month **20K / unlimited** · pages crawled/day
-**500 / unlimited** · custom metadata fields **5** · metadata value len **500 chars**. Verify live.
+**Limits (Free / Paid):** instances **100 / 5,000 default** · namespaces **100** · files per instance **100K / 1M
+(500K hybrid)** · pages crawled/day **500 / unlimited** · instances per cross-instance search **10** ·
+custom metadata fields **5** · metadata per vector **10 KiB** · file sizes as in Gotchas. Verify live.
 
 ## Going deeper
 - Official `cloudflare` skill ref — `references/ai-search/` (README, api/configuration/patterns/gotchas).

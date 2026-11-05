@@ -15,8 +15,8 @@
 
 ## When to use
 - Edge APIs, request/response transformation, auth layers, routing/proxy, A/B tests, rate limiting.
-- WebSocket apps, cron jobs, queue consumers — anywhere you want compute close to the user.
-- The **host for bindings**: Workers is what you attach KV / D1 / R2 / DO / Queues / AI to.
+- WebSocket apps, cron jobs, queue consumers — anywhere you want compute close to the user. The **host for bindings**:
+  what you attach KV / D1 / R2 / DO / Queues / AI to.
 - Pairs with: Static Assets (serve a frontend free), Durable Objects (state), Workflows (durable steps).
 - **Not** for: long-running stateful processes (→ durable-objects), heavy/long compute or full
   containers (→ Containers), or anything needing a real filesystem / native binaries.
@@ -39,9 +39,10 @@
 - **Secrets** via CLI, never in config: `wrangler secret put API_KEY` → read as `env.API_KEY`.
 - **Types**: run `wrangler types` after changing bindings; import the generated `Env`. Use
   `@cloudflare/workers-types` **v5** (simplified runtime types; dated entrypoints removed).
-- **Source maps upload by default** from Wrangler **4.150.0** (`wrangler deploy`, `versions upload`, `preview`; `cf deploy` too).
-  Opt out: `upload_source_maps: false` / `--no-upload-source-maps`; `true` makes unresolvable maps (inline `data:`) fail the
-  upload. Older Wrangler: needs `true`. Vite plugin ≥1.64.0 generates Worker maps by default.
+- **Source maps upload by default** from Wrangler **4.150.0** (`deploy`, `versions upload`, `preview`; `cf deploy`); older: set `true`
+  (which also makes unresolvable inline `data:` maps fail the upload). Opt out: `upload_source_maps: false` / `--no-upload-source-maps`.
+  Vite plugin ≥1.64.0 generates Worker maps by default.
+- **Vite plugin v2 (beta)**, `@cloudflare/vite-plugin@beta` + `cf`): config is `cloudflare.config.ts` (no Wrangler files), deploys with `cf deploy` (Wrangler can't), Vite ≥7, `ssr` environment, output `.cloudflare/output` — `workers/vite-plugin/v2-beta/`.
 - Other bindings/triggers: `routes`, `triggers.crons`, `services` (Worker-to-Worker RPC),
   `durable_objects`, `queues`, `placement: { mode: "smart" }`, `analytics: { binding }` (Analytics SQL:
   `env.X.query({ query, params })`, one `SELECT`, Wrangler ≥4.145.0 — `runtime-apis/bindings/analytics-sql/`;
@@ -77,9 +78,8 @@
 - Settings are **not inherited**: a `previews` block (required, may be empty) holds `vars`/bindings; secrets
   via commands. DOs and Containers get a fresh namespace/app per Preview automatically; KV/D1/R2 isolate
   only if you bind a separate resource. Limits: crons, routes, Queue consumers, service bindings → prod only.
-- Previews per Worker: **100** (Free) / **500** (Paid); **100** deployments per Preview; oldest auto-deleted.
-  No separate pricing documented on `developers.cloudflare.com/workers/previews/`.
-- Per-PR automation: Git-connected CI builds create a Preview per branch — `developers.cloudflare.com/workers/ci-cd/builds/build-branches/`.
+- Previews per Worker: **100** (Free) / **500** (Paid); **100** deployments per Preview; oldest auto-deleted. No separate pricing
+  documented (`workers/previews/`). Git-connected CI builds create one per branch — `workers/ci-cd/builds/build-branches/`.
 - `Workers Builds`: pin npm/Yarn/pnpm/Bun via the exact-version `packageManager` field in `package.json` (`engines.npm` is ignored; `build-image/`); builds + logs kept **90 days** (`limits-and-pricing/`). Images reject the compromised eMudhra CAs (2026-10-23): `BUN_VERSION` must be ≥1.4.4; custom `SSL_CERT_FILE`/`PIP_CERT` must not trust them (build-image page, "Trusted certificates").
 
 ## Putting a Worker behind Access (sign-in) — 2026-08-14
@@ -111,9 +111,11 @@ app (`POST /accounts/{account_id}/access/apps`):
 - **Bodies are streams, read once** — "Body has already been used" → `response.clone()` first. Stream
   large bodies (`TransformStream`); buffering >128 MB triggers Error 1102 `exceeded resource limits`.
 - **Node built-ins**: default-on for compat date **≥ 2026-08-04** (older: add `nodejs_compat`).
-- **Frameworks**: use Workers-native ones (Hono, itty-router); Express-style Node middleware won't run.
+- **Defaults flip at compat date ≥ 2026-11-17** (changelog 2026-11-02; older dates unchanged): new module registry (JS only; `import.meta`,
+  `require()` of ESM without top-level `await`, rejects invalid import attributes; keep old via `legacy_module_registry`, try early via
+  `new_module_registry`) and `request.signal` client-disconnect events (opt out `disable_request_signal`; does not enable `request_signal_passthrough`, pass the signal to `fetch()` yourself).
+- **Frameworks**: use Workers-native ones (Hono, itty-router); Express-style Node middleware won't run. DO calls: prefer **RPC** (`stub.method()`); legacy `stub.fetch()` still works.
 - **MongoDB**: Hyperdrive supports only PostgreSQL/MySQL; connect directly (~300 ms per request) or hold the connection in a Durable Object — `workers/databases/third-party-integrations/mongodb/`.
-- DO calls: prefer **RPC** (`stub.method()`); legacy `stub.fetch()` still works for HTTP-shaped flows.
 - **Static Assets bypass auth middleware** (measured 3× 2026-08-27): `run_worker_first` defaults to
   **false**, so a request matching a file in `public/` is served without invoking the Worker. Fix:
   `assets.run_worker_first: ["/admin", "/admin/*", "/api/*"]` — list extensionless canonical paths too

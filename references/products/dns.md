@@ -117,9 +117,18 @@ no per-query or per-record charge. Paid value is plan-based (Pro/Business/Enterp
 - **TTL:** proxied = Auto (300s, fixed). DNS-only = **30s** (Enterprise) / **60s** (non-Ent) up to **1 day**.
 - Secondary DNS: ≤30 linked peers per zone.
 
+## Private origins (beta)
+- Proxy public hostnames to **origins on a private IP**: `A`/`AAAA` record → private IP, proxied, **Use private
+  network routing** on; CDN/WAF/Cache still apply. Needs `Private Origins` enabled by your account team and a
+  route to the origin in the **default virtual network** (no other vnet). Via **Cloudflare WAN, Tunnel or Mesh**.
+- **Tunnel:** healthy `cloudflared` + CIDR route; no Unified Routing or return routes (origin sees the `cloudflared` host).
+  **Mesh** (and WAN): **Unified Routing** + return routes for `100.64.0.0/12` (default, configurable) and
+  `2606:4700:cf1:5000::/64`. No Argo Smart Routing; origin health needs Load Balancing. `dns/private-origins/`.
+
 ## Going deeper
 - No dedicated official `cloudflare` skill ref for DNS — this file is the primary reference.
 - Full record-type fields & examples: `docs-oficiais/pages/dns/manage-dns-records/reference/dns-record-types/`.
 - Proxy behavior/limits: `.../proxy-status/` · CNAME flattening setup: `.../cname-flattening/`.
 - Exact REST API: Cloudflare API docs → `resources/dns/subresources/records` (create/batch/import/export).
+- Private origins: `dns/private-origins/set-up-via-cloudflare-{tunnel,mesh}/`.
 - Related: **Registrar** (domain ownership), **DNSSEC**, **Foundation DNS** (Enterprise), **1.1.1.1** (resolver).

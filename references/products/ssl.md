@@ -8,6 +8,7 @@
 - Encryption modes (Off / Flexible / Full / Full strict)
 - Edge certificates (Universal / Advanced / Custom)
 - Origin certificates & Authenticated Origin Pull
+- Keyless SSL
 - Client certificates (mTLS)
 - Config / API
 - Gotchas
@@ -67,6 +68,11 @@ Controls connection 1 (browser↔Cloudflare) and connection 2 (Cloudflare↔orig
   Cloudflare (client cert on the CF side). Stops attackers bypassing the proxy to hit the origin directly.
   - **Post-quantum (2026-06):** upload an **ML-DSA** client cert for AOP, and an ML-DSA CA to the **Custom
     Origin Trust Store** (validated under Full strict) — post-quantum auth on the CF→origin hop.
+
+## Keyless SSL (Enterprise add-on)
+- Keep TLS **private keys on your own infrastructure** (you run the `gokeyless` key server) while using Cloudflare
+  edge TLS. **Enterprise only** (paid add-on); you must bring a cert bought from a CA — Cloudflare supplies none.
+- **TLS 1.3 with ECDSA certs** (2026-10-30); RSA certs negotiate up to TLS 1.2. Source: `ssl/keyless-ssl/`.
 
 ## Client certificates (mTLS, account-level)
 - mTLS = server also verifies the **client's** cert. Use Cloudflare's managed CA or BYOCA (Enterprise).

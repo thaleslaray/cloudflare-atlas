@@ -70,11 +70,17 @@ if (s && s < 30 && !request.cf?.botManagement?.verifiedBot)
 - Enforcement is done in **WAF custom rules** keyed on score — BM scores requests; *you* decide the action.
 - Log fields once enabled: `BotScore`, `BotScoreSrc`, `BotTags`, `BotDetectionIDs` (Logpush/Logpull).
 - **AI traffic controls (2026-07, all plans):** manage AI crawlers by behavior — **Search / Agent / Training** —
-  with per-category actions (Block all pages / Block on pages with ads / Allow). The new defaults (Training +
-  Agent blocked on ad-displaying pages, Search allowed) apply **only to new domains from 2026-09-15**; the
-  legacy "Block AI bots" toggle is deprecated on that date. Enterprise
+  with per-category actions (Block all pages / Block on pages with ads / Allow). Setting renamed **AI Crawler and
+  Agent access policies** (**Security → Settings**); since 2026-11-04 you can also set actions per top **Personal Agent**
+  (they inherit the Agents policy). New domains default to **Allow (do not block)** for Search, Agents and Training
+  (live page 2026-11-05; an older 2026-07-01 changelog announced ad-page blocking — superseded). Enterprise
   BM adds **BotBase** (searchable directory of tracked bots/agents + detection IDs) and **Attribution
   Business Insights** (site-wide & per-operator crawl-to-referral ratios).
+
+- **Account Abuse Protection** (`Early Access`, any BM Enterprise customer; no extra cost for now; ask account team):
+  dashboard under **Security → Account Abuse Protection** (2026-11-02) for login/sign-up events by hashed User ID;
+  roles *Account Abuse Protection* / *…PII* (PII needed for Logpush jobs with PII). Since 2026-11-03 it flags
+  recognized AI assistants on login/sign-up events only. `bots/account-abuse-protection/`.
 
 ## Gotchas
 - **Score = 0 ≠ human.** Means BM didn't run (internal request, Worker/Orange-to-Orange routing, or a

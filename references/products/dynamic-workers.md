@@ -88,6 +88,7 @@ return worker.getEntrypoint().fetch(request);
   `this.env.X.method()`; each call is an RPC **back into your loader Worker**, where the real logic
   (auth, key-prefixing, logging) runs. `ctx.props` are visible only to the loader, never the
   dynamic Worker — use them to scope per-tenant (e.g. prefix a shared KV/R2/D1 per customer).
+- **Tenant auth is yours to build** (`usage/authentication/`): gate in the loader Worker before invoking; require a route manifest (`method`/`path`/`access`) published with the code, 404 undeclared routes; also check permissions inside capabilities.
 - **Egress control** via `globalOutbound`:
   - omitted → **inherits parent's network access** (usually full public Internet — the unsafe default).
   - `null` → fully cut off; `fetch()`/`connect()` throw.

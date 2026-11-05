@@ -40,6 +40,7 @@ Four components (request flow: client → dispatch Worker → user Worker → [o
 2. **Dynamic dispatch Worker** — your entry point. Routes each request to a user Worker via
    `env.DISPATCHER.get(name)` then `.fetch(request)`. Add auth, validation, per-tenant limits here.
    Route by **subdomain**, **path**, or **KV/custom-hostname-metadata** lookup.
+   Tenant auth is yours, not inferred from app code (`configuration/authentication/`): require a route manifest (`method`/`path`/`access`) with each upload, 404 undeclared routes, and check permissions inside platform-owned data operations too.
 3. **User Workers** — your customers' code, isolated. Deployed via the **Upload User Worker API**
    (multipart, not Wrangler config). Attach per-tenant **bindings** (KV/D1/R2/DO/Analytics Engine) in the
    `metadata` object — use `keep_bindings` to preserve existing ones on update.

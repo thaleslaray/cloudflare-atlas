@@ -16,13 +16,20 @@
 - You call **any** AI provider and want **observability**: requests, tokens, latency (p50/p95/p99),
   cost, cache-hit rate — per request, with custom metadata.
 - **Cost control:** cache deterministic prompts (free), rate-limit to stop abuse, track spend.
-- **Resilience:** automatic **retries / fallback** across models or providers (dynamic routing).
+- **Resilience:** automatic **retries / fallback** across models or providers (routing: Auto Router, model aliases, dynamic routes).
 - **Governance:** guardrails (content filtering) and DLP (PII detection) on prompts/responses.
 - **Simpler keys:** Unified Billing (pay through Cloudflare, no provider key) or BYOK (store keys).
 - **Not** a model host — that's Workers AI. AI Gateway sits *in front of* providers, including Workers AI.
 
 ## How to wire (change the base URL)
 The whole product is "point your existing client at the gateway." Entry shapes:
+- **🚨 New gateways require authentication (changelog 2026-11-03).** Creating via API: `authentication` defaults
+  to `true`; `false` → HTTP `400`. Once on it **cannot be turned off** (update with `false` → `400`
+  "Authentication cannot be disabled once enabled."). Existing gateways with auth off keep working; turn on
+  in Settings or `{"authentication": true}`. Unauthenticated HTTP calls to a new gateway fail (missing
+  authorization): REST API → `Authorization: Bearer <CF token>`; `gateway.ai.cloudflare.com` endpoints →
+  `cf-aig-authorization`; Workers bindings are pre-authenticated. Tokens (`AI Gateway Run`) are account-scoped,
+  not per-gateway. → `ai-gateway/configuration/authentication/`
 - **REST API (preferred for single-model calls)** — base `https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai`,
   auth = Cloudflare API token with **Account → Workers AI → Read** (an AI-Gateway-only token returns `401`
   code `10000`). Endpoints: `/ai/run` (any model/modality), `/ai/v1/chat/completions`, `/ai/v1/responses`,
@@ -31,8 +38,7 @@ The whole product is "point your existing client at the gateway." Entry shapes:
   Cloudflare token as `apiKey` — no provider key needed (billed via Unified Billing).
 - **Unified / OpenAI-compatible** — `…/{gateway_id}/compat/chat/completions`, `model: "{provider}/{model}"`,
   `cf-aig-authorization: Bearer <token>` on authenticated gateways. **Deprecated for standard single-model
-  chat completions** (still works for existing integrations) but **required for dynamic routing** —
-  `model: "dynamic/{route}"` is only callable here.
+  chat completions** (still works for existing integrations).
 - **Provider-specific** — `…/{gateway_id}/{provider}/{endpoint}` (keep the provider's own request shape).
 - **Workers AI binding** — pass `{ gateway: { id: 'my-gateway', metadata: {...} } }` to `env.AI.run(...)`.
   **Since 2026-08-07 this is the unified path:** the same `env.AI` binding and the same REST `/ai/`
@@ -50,7 +56,20 @@ The whole product is "point your existing client at the gateway." Entry shapes:
 - **Caching** — `cf-aig-cache-ttl` (60s–30d), `cf-aig-skip-cache`, `cf-aig-cache-key`; check
   `cf-aig-cache-status` (`HIT` or `MISS`). Cuts cost+latency on repeat prompts.
 - **Rate limiting** — fixed or sliding window; returns `429` when exceeded.
-- **Dynamic routing / fallback** — define routes, call `dynamic/{route}` via `/compat/chat/completions`.
+- **Routing** (dashboard: gateway → **Routing**; `ai-gateway/features/routing/`, 2026-11-04 reorg of the old
+  `auto-router/` and `dynamic-routing/` roots; no app-code change; `model-aliases`):
+  - **Auto Router** (`.../routing/auto-router/`) — model `cloudflare/auto` picks by task vs cost, falls back on
+    failure; `Chat Completions` + Responses only (no WebSockets API); headers `cf-aig-routed-model`, `cf-aig-routing-reason`.
+  - **Model aliases** (`.../model-aliases/`, 2026-11-04) — a pool called by one name `custom/<name>`, per
+    gateway; algorithm `preferred` (default order, fall back on failure) or `smart`; per-request override
+    `options.routing` (`algorithm`). Call via `/ai/run` with `cf-aig-gateway-id`. Limits: 100 aliases/gateway,
+    1–50 models each, name 1–64 chars, no alias-of-alias, **no x402**. Errors: `404` `Model not found`,
+    `400` `has no available models`, `503` temporarily unavailable.
+  - **Dynamic routes** (`.../dynamic-routing/`, + `json-configuration/`, `usage/`) — versioned flow of nodes
+    (Start, Conditional, Percentage, Model, Rate Limit, Budget Limit, End); `model: "dynamic/{route}"`,
+    OpenAI chat-completions shape only (else `400`). Callable via `/ai/v1/chat/completions`, the AI binding or
+    `/compat/chat/completions`; **not `/ai/run`** (`400` code `7003`). Scoped per gateway: set `cf-aig-gateway-id`
+    (REST/binding) or default gateway → `404`. Needs authentication on + BYOK keys. Response headers `cf-aig-model`, `cf-aig-provider`.
 - **Guardrails** — flag/block prompts+responses (`@cf/meta/llama-guard-3-8b` on Workers AI, billed as Workers AI tokens).
 - **DLP** — **flag or block** (no redaction) PII/financial/health matches; free, shares Cloudflare One profiles.
 - **Logging & analytics** — full request logs (prompt, tokens, cost, duration, metadata); Logpush export (account dataset
@@ -108,7 +127,7 @@ Free to all AI Gateway customers, **no setup** — it reads traffic already flow
   active days.
 - **Task analysis (changelog 2026-09-29, not yet on the docs page):** groups conversations by task,
   tracks turns, compares model fit vs cost/latency; a **Potential Savings** view flags requests a
-  faster/cheaper model could serve — the same signals the Auto Router (`ai-gateway/features/auto-router/`) uses.
+  faster/cheaper model could serve — the same signals the Auto Router (`ai-gateway/features/routing/auto-router/`) uses.
 
 ## Gotchas
 - **Streaming responses are not cached by default**; caching covers text and image responses only.
@@ -118,7 +137,7 @@ Free to all AI Gateway customers, **no setup** — it reads traffic already flow
 - **Credential precedence, not a mix:** provider key on the request → BYOK `default` alias → Unified
   Billing. On Unified Billing paths (`env.AI.run()`, `/ai/v1/chat/completions`) only the `default`
   alias stops fall-through — a key under another alias is ignored and the call **silently bills credits**.
-- **401 checklist:** Cloudflare token goes in `cf-aig-authorization` (not `Authorization`) · provider path or
+- **401 checklist:** token in `Authorization` on the REST API but `cf-aig-authorization` on `gateway.ai.cloudflare.com` · provider path or
   `{provider}/` model prefix present · BYOK key aliased `default` or named via `cf-aig-byok-alias`.
 - **Rejected provider key on REST `POST /ai/run` (changelog 2026-10-06):** now always HTTP `401`, error code `2009` — was
   `403` (ElevenLabs), `500` with retries (Vertex, now no retry), `402`/provider-specific (others). Unified Billing
@@ -145,5 +164,5 @@ Unified Billing rate **200 req/60s/gateway** (`429`; BYOK exempt) · Logpush job
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/ai-gateway/`) — use it for full
   patterns: `sdk-integration.md` (Vercel/OpenAI/Workers; predates `createAI`), `configuration.md`, `features.md`,
-  `dynamic-routing.md`, `troubleshooting.md`.
+  `troubleshooting.md` (official ref still names `dynamic-routing.md` — predates the `routing/` reorg; use the paths above).
 - Provider-specific quirks → `developers.cloudflare.com/ai-gateway/usage/providers/`.

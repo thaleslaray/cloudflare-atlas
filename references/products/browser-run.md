@@ -35,8 +35,8 @@ labeled "browser-rendering" as authoritative for this product.
 1. **Quick Actions** — stateless, single-shot HTTP/binding calls. No script to deploy. Endpoints:
    `screenshot`, `pdf`, `content` (HTML), `markdown`, `snapshot`, `accessibilityTree` (a11y tree),
    `links`, `scrape` (HTML elements), `json` (AI structured extraction via prompt),
-   `crawl` (async multi-page). Billed for
-   **browser hours only**. Cloudflare manages session lifecycle.
+   `crawl` (async multi-page; per-URL `outcome` e.g. `robots_disallowed`/`timeout`/`page_error`, job-level `robots[]` state
+   for ≤50 origins — `browser-run/quick-actions/crawl-endpoint/`). Billed for **browser hours only**. Cloudflare manages session lifecycle.
 2. **Browser Sessions** — full scripted browser control via **Puppeteer**, **Playwright**, **CDP**
    (WebSocket, drive from anywhere — local/CI/external), or **Stagehand** (AI finds elements by
    intent, not selectors). Billed for **browser hours + concurrent browsers**.

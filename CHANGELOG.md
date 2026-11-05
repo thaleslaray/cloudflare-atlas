@@ -12,6 +12,53 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-05
+
+**Light pass on the 2026-11-02 weekly check, re-detected 2026-11-05: 13 product files curated by three Sonnet agents on disjoint sets, 9 factual errors fixed, no structural drift.**
+
+**What the check said (2026-11-05):** products 112 live = 112 known. New subtree `ai-gateway/features/routing` (+6) replacing the gone `ai-gateway/features/auto-router` and `…/dynamic-routing` (now 301); gone `cloudflare-one/…/cloudflare-wan/configuration/third-party` (no atlas file covers Cloudflare One). 8 single pages (dns private origins ×2, `flagship/sdk/rust`, `workers/vite-plugin/v2-beta`, the two platform `authentication` pages, `cloudflare-one/networks/load-balancing`, `security/web-assets/field-extraction`). New not-found: `agents` `~1.4.0` ×2 (Pi 1.5 shipped), `ai-gateway` `features/auto-router/` (stale 301). API spec 5 days old (not re-sliced). Copy sync clean; the 10-31 pass was committed and pushed as `c81bce1` (closes backlog #10).
+
+**Method.** Coordinator re-ran detection, briefed three Sonnet agents from live pages fetched today (AI · Workers platform · network/security), spot-checked eight of their riskiest claims against the live pages (all held), resolved one conflict the agent left open (bots defaults), trimmed the ai-gateway Auto Router paragraph, updated the exemption table and wrote this entry. Each file closed with `verify-products <slug>`, `check-doc-urls` (277 URLs, 0 dead, 0 stale), `probe-blindness` (no product over baseline). Agent token spend: 177k · 190k · 177k.
+
+**Errors fixed (9)**
+- `ai-search.md` — "FREE" → billing starts **2026-12-01** (postponed; rates unchanged); "queries/month 20K / unlimited" → **1,000 semantic + 1,000 full-text** included; file cap "4 MB" → **10 MiB** for plain text/code and PDF with OCR, 4 MiB otherwise; sync default 6 h → **24 h**.
+- `ai-gateway.md` — dynamic routes are not `/compat`-only (also `/ai/v1/chat/completions` and the AI binding; `/ai/run` → `400` `7003`); 401 checklist: `Authorization` on the REST API, `cf-aig-authorization` on `gateway.ai.cloudflare.com` (the file said always the latter).
+- `flagship.md` — "`wrangler dev` uses the live app, no local flag store" → **local store by default** (Wrangler ≥4.135.0, Vite plugin ≥1.56.0); `"remote": true` evaluates the live app.
+- `bots.md` — new-domain AI-crawler defaults are **Allow** for Search/Agents/Training (the 2026-07-01 ad-page-blocking default is superseded); "legacy toggle deprecated" dropped (on no live page).
+- `load-balancing.md` — "All Regions = 39 probes" kept but now **Enterprise only** (13 regions × 3), closing part of backlog #4.
+
+**Curated**
+- `ai-gateway.md` 149 → 168 — 🚨 new gateways require authentication (2026-11-03; API default `true`, `false` → `400`, cannot be turned off once on, existing gateways may opt in; tokens account-scoped); Routing rebuilt for `features/routing/` (Auto Router `cloudflare/auto`; **model aliases** `custom/<name>`, `preferred`/`smart`, 100/gateway, 1–50 models, no x402 — 2026-11-04; dynamic routes nodes, per-gateway scope).
+- `ai-search.md` 151 → 160 — billing/sync above; `sync_interval` 900–86400 s, manual sync ≤1 per 30 s.
+- `workers.md` 150 → 152 — compat date **2026-11-17** flips `new_module_registry` (opt-out `legacy_module_registry`) and `enable_request_signal` (opt-out `disable_request_signal`); Vite plugin v2 beta (`cloudflare.config.ts`, `cf deploy`, Vite ≥7).
+- `flagship.md` 104 → 107 — local store (`wrangler flagship flags pull`, `--local`), Rust SDK (`cloudflare-flagship`, Rust ≥1.88, local evaluation).
+- `agents.md` 180 → 180 — Pi `~1.5.0` (agents ≥0.33.0, one Pi minor per release, roll forward only after 1.5), `pi-schema`, batched writes, `session.watch()`/`session.continue()`.
+- `browser-run.md` 151 → 151 — crawl per-URL `outcome` + job-level `robots[]`. `r2.md` 80 → 82 — request metrics by region and HTTP status (changelog-sourced).
+- `dynamic-workers.md` 147 → 148, `cloudflare-for-platforms.md` 129 → 130 — tenant auth is yours to build (route manifest; pattern, not a Cloudflare mechanism).
+- `ssl.md` 129 → 135 — **Keyless SSL** section (Enterprise add-on, `gokeyless`, TLS 1.3 with ECDSA; RSA up to 1.2), closes backlog #7.
+- `dns.md` 125 → 134 — Private origins (beta; account-team enablement, default virtual network; Tunnel vs Mesh/WAN return routes).
+- `load-balancing.md` 118 → 121 — private LBs: Hash steering / `session_affinity: ip_cookie` keyed on the Cloudflare One Client device.
+- `bots.md` 106 → 112 — "AI Crawler and Agent access policies" with per-Personal-Agent actions (2026-11-04); Account Abuse Protection dashboard + AI-assistant flags (Early Access, BM Enterprise).
+
+**Deferred**
+1. (carried, #1) `agents.md` dedicated re-read against the new Agents IA; the Pi 1.5 breaking-change list and agents 0.33.0 upgrade steps were only folded in, not fully mapped. File at its 180-line exemption.
+2. (carried, #2) `failed_detections` IDs unauditable by the gate — tooling.
+3. (carried, #3) `registrar.md` / `tenant.md` not re-read against the spec.
+4. (carried, #4 minus load-balancing) baselined not-found in web-analytics, tenant, speed, hyperdrive, durable-objects never investigated.
+5. (carried, #5) `realtime.md` RealtimeKit React package names.
+6. (carried, #6) API MCP server changelog items (10-13, 10-19).
+7. (carried, #8) over-cap files unaudited for padding.
+8. (carried, #9) removed blog corpus at `../raw/blog-corpus-removed-2026-10-27/` — operator's call.
+9. `ai-gateway.md`: valid alias target models not enumerated; alias-API endpoint details; `routing/dynamic-routing/json-configuration/` named but not fetched.
+10. `workers.md`: new module registry migration pitfalls (bundling / Node-compat pages) not mapped.
+11. `waf.md`: `security/web-assets/field-extraction` (API-only `llm_prompts` extractor, `cf-llm` label, AI Security for Apps) not added.
+12. `bots.md`: which Personal Agents are covered and plan limits on per-agent actions.
+13. `r2.md`: region/error-code metrics sourced from the changelog only; the metrics page does not show them yet — re-check.
+14. `flagship.md`: 71/72, one not-found token the gate classifies as baseline (not new); not identified — `Local Explorer` and v4.148.0 are on the live configuration page, so it is something else. Re-check next pass.
+15. Out of scope (no atlas file): Cloudflare One/Access items (SCIM population viewer, service-token tags, Browser Isolation data-entry block, WAN regional Gateway inspection, Linux client), Audit Logs v2, Radar Zero Wire, Network Firewall CVE rule.
+
+---
+
 ## 2026-10-31
 
 **Weekly pass, run as a curation round (detection 2026-10-26, re-detected and closed 2026-10-31): 33 product files curated by six agents on disjoint sets, 9 factual errors fixed, API re-sliced from a fresh spec (78 paths removed / 200 added upstream), one stranded publish pass reconciled, and three tooling defects fixed that were producing false accusations.**
