@@ -7,6 +7,7 @@ Skill do Claude Code com conhecimento atualizado da Cloudflare. Ela ajuda o agen
 - Escolher o produto certo para cada necessidade (Workers, D1, R2, KV, Queues, Durable Objects e outros 90 e poucos).
 - Consultar um arquivo por produto (`references/products/`) e os endpoints exatos da API (`references/api/`).
 - Revisar código de Workers e arquivos `wrangler` (`references/code-review/`).
+- Frameworks full-stack na Cloudflare (TanStack Start, vinext): `references/frameworks/`.
 - Regra principal: **a documentação ao vivo da Cloudflare vence** o que está salvo aqui. Os arquivos são uma foto, e a skill manda conferir a página atual antes de citar qualquer número.
 
 ## Como instalar

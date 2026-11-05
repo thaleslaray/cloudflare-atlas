@@ -76,6 +76,8 @@ run this fixed rite — don't improvise it:
 Run code?      → workers · full-stack w/ git: pages · stateful/realtime: durable-objects
                · long multi-step: workflows · containers · multi-tenant: cloudflare-for-platforms
                · scheduled: workers (cron) · on-demand isolates: dynamic-workers
+               · full-stack framework (TanStack Start, React Router, Next.js→vinext): `references/frameworks/`
+                 (tanstack-start.md · vinext.md — EXPERIMENTAL; React Router: live guide only)
 Store data?    → key-value: kv · SQL (SQLite): d1 · object/files: r2 · existing PG/MySQL: hyperdrive
                · queue: queues · vectors/RAG: vectorize · per-entity state: durable-objects
                · streaming ETL→R2: basin-pipelines · Iceberg lakehouse on R2: basin-catalog
@@ -272,6 +274,7 @@ NOT a boundary (common hallucinations to avoid):
 |------|--------|
 | Product docs (any page) | `developers.cloudflare.com/<product>/llms.txt` (index) · any page via `Accept: text/markdown` or `index.md` |
 | Exact API endpoints | `references/api/<slug>.md` (exact REST paths/methods/required params, sliced from the OpenAPI spec) — then `references/products/<slug>.md` for usage; verify shapes live |
+| Full-stack framework config (plugin order, `main`, prerender, remote bindings) | `references/frameworks/<slug>.md` — then the live framework guide under `workers/framework-guides/web-apps/` |
 | Newest/limits/pricing | live changelog — `scripts/changelog-check <product>` |
 | Live doc search | the `cloudflare-docs` MCP server (if available) |
 | Workers types / wrangler schema | the project's `node_modules` (`@cloudflare/workers-types`, `wrangler/config-schema.json`) |

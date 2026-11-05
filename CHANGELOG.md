@@ -12,6 +12,38 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-05 (second pass) — new `references/frameworks/` folder
+
+**First framework references: `tanstack-start.md` (178 lines, over the 150 new-file cap on purpose: every line carries a live-checked fact or a labeled practitioner claim) and `vinext.md` (≈70 lines), wired into `SKILL.md`. No product file touched.**
+
+**Why.** The skill only knew that `workers/framework-guides/web-apps/tanstack-start` exists (`_known-pages.txt`), so a Claude Code session asked to build on TanStack Start had nothing to stop it inventing plugin order, `main`, prerender or remote-binding config. Source research: `~/pesquisas/pesquisa-tanstack-start-cloudflare-2026-11-05.md` (190 sources). Folder is new because these are not Cloudflare *products* (no `products/<slug>` fits the catalog contract).
+
+**Method.** Every number, flag and API name was re-fetched live on 2026-11-05 before it was written: the TanStack Start guide, the Vite plugin pages (index, API, Vite environments, static assets, v2 beta), `local-development/` + `bindings-per-env/`, `platform/limits/`, `automatic-configuration/`, `ci-cd/builds/configuration/`, `compatibility-flags/`, `runtime-apis/nodejs/{,fs/}`, the three TanStack changelog posts, the Next.js guide, the vinext README and blog, the TanStack 1.0 and hosting docs, and the original practitioner posts for each lesson quoted.
+
+**Corrections to the research file (live wins).**
+- `node:fs` **exists** (memory-based virtual FS: `/bundle` read-only, `/tmp` writable, default for `nodejs_compat` + compat date ≥ 2025-09-01). The research said it "does not exist at runtime".
+- `waitUntil`: the research recommended it; OVOV's post says the opposite for server functions (`ctx` often not in hand → *await everything*). Written that way.
+- `workers-sdk#13425` (HMR 30–40 s) is **closed**, not "contested/open"; TanStack/router #7740, #6330, #7431 are open (state via `gh api`).
+- React Router is **v8** in the live guide and Vite plugin pages (the research and the brief said v7); SPA mode and prerendering are unsupported with the plugin.
+- Remote bindings: the live table adds Browser Run, Email, Flagship, Images, Media Transformations, mTLS to the supported list and Containers, Rate Limiting, Version Metadata to the unsupported list; AI with `remote: false` is an **error**.
+- vinext: the Workers docs now call it **beta** and recommend it as the default for Next.js on Workers; the blog's "no build-time static prerender" and `vinext deploy` are outdated (README: static generation/ISR/export work, deploy is `npx @vinext/cloudflare deploy`). README says Cloudflare init installs `cf` + Vite plugin **v2 beta** — Wrangler cannot deploy that.
+- `nodejs_compat` is on by default for compat date ≥ 2026-08-04 (the guide still lists the flag; redundant, ignored).
+- Harrison Milbradt's "prerender that read R2" claim is not on his page; the same lesson is verified on Raul Carini's.
+- The brief's `main` value was written with a full-width `＠`; the real value is `@tanstack/react-start/server-entry`.
+
+**Not covered by the gates.** `scripts/check-pointers` and `scripts/check-doc-urls` only scan `references/products/`; the two new files were checked by hand (every atlas `products/*.md` pointer exists; every external link returned 200 except `cloudflare.com/learning/serverless/what-is-tanstack-start/`, which answers 403 to curl and is not linked).
+
+**Deferred**
+1. Teach `check-pointers`, `check-doc-urls` and `probe-blindness` to scan `references/frameworks/` (today they are blind to it).
+2. `frameworks/react-router.md` — not written: the live guide covers it, but the same plugin-order/prerender/remote-binding traps apply and v8 specifics (SPA/prerender unsupported) were not mapped.
+3. TanStack Start: server-function validator API (`.validator` in Cloudflare's guide vs. newer names) deliberately left out of the file; confirm against TanStack docs before citing.
+4. RSC status in Start 1.0 is "opt-in integration" per the 1.0 post only — no Cloudflare page covers it.
+5. Vite major required by Start 1.0 (7 vs 8) — sources conflict; auxiliary Workers and plugin v2 need Vite ≥ 7, vinext's README asks for `vite ^8.0.0`.
+6. Practitioner lessons (Better Auth ordering, per-request factories, stale chunks) are blog claims, labeled as such; re-verify when the file is next revisited.
+7. `_known-pages.txt` / `update-check` have no entry for `frameworks/` (so a change in the live TanStack guide will not flag these files); consider mapping them in `probe-blindness`.
+
+---
+
 ## 2026-11-05
 
 **Light pass on the 2026-11-02 weekly check, re-detected 2026-11-05: 13 product files curated by three Sonnet agents on disjoint sets, 9 factual errors fixed, no structural drift.**

@@ -32,6 +32,7 @@ deleting content; only by finding genuine redundancy.
 | `durable-objects.md` | 127 | 120 | +4 on 2026-10-31: deferred code updates by default (`code_update_strategy`, `max_delay` 300 s default / 86,400 max, per-deploy flag), offset by removing a gotcha that duplicated Lifecycle. |
 | `browser-run.md` | 151 | 120 | +2 on 2026-10-31: Chrome 152 default and the Quick Actions `Chrome/152.0.0.0` User-Agent (was 119). |
 | `mesh.md` | 173 | 150 | +24 on 2026-10-31: `run-mesh-on-linux` rewritten (RHEL needs CodeReady Builder + EPEL RPM, repo install, dashboard-first node creation), `connect-servers`, `connect-sites` and `troubleshooting` guides folded in, each statement checked live; unverifiable private-range tokens dropped. 51/57 → baseline, no new. |
+| `frameworks/tanstack-start.md` | 178 | 150 | New 2026-11-05 (outside `products/`). Config, bindings, prerender, remote-binding table, limits and timeline all re-fetched live; practitioner lessons labeled and spot-checked against the source posts. |
 | `cache.md` | 133 | 120 | Recorded 2026-10-03 (was 124, undocumented). Purge vs `invalidate_cache` (2026-09-28) and the every-purge-forces-Reserve-miss change; duplicates cut. |
 | `dynamic-workers.md` | 147 | 150 | New-file cap; unchanged length on 2026-10-03. |
 | `logs.md` | 135 | 120 | +14 on 2026-10-03: Logpush usage-based pricing on all plans (2026-09-30, three meters + Workers Logpush unchanged), Transformers GA, `filter_attack_traffic`. 80/80 tokens confirmed. |
