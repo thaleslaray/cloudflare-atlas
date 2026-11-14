@@ -4,11 +4,11 @@
   "Use Agent Memory"
  ],
  "agent-setup": [
-  "Code Mode",
   "agent-setup"
  ],
  "agents": [
   "Cloudflare One",
+  "Worker Loader",
   "long-running",
   "user-123"
  ],
@@ -21,7 +21,6 @@
   "Verified Bot"
  ],
  "ai-gateway": [
-  "dynamic-routing",
   "rate-limiting"
  ],
  "ai-search": [
@@ -79,7 +78,6 @@
  ],
  "browser-run": [
   "browser-rendering",
-  "browser-run",
   "human-in-the-loop"
  ],
  "cache": [
@@ -129,7 +127,8 @@
   "cloudflare-for-saas"
  ],
  "containers": [
-  "Containers Workers"
+  "Containers Workers",
+  "durable-object-container"
  ],
  "d1": [
   "Time Travel",
@@ -203,11 +202,11 @@
  ],
  "learning-paths": [],
  "load-balancing": [
+  "China Network",
   "Health Checks",
   "Least Outstanding Requests",
   "health-check",
   "health-details",
-  "load-balancing",
   "proxy-modes",
   "session-affinity",
   "traffic-steering"
@@ -230,7 +229,6 @@
  "mesh": [
   "Docker Compose",
   "Load Balancing",
-  "Split Tunnels",
   "Traffic Source"
  ],
  "monetization-gateway": [
@@ -481,8 +479,11 @@
   "Customer Content",
   "conversion-options",
   "data-usage",
+  "deepseek-r1-distill-qwen-32b",
+  "gemma-2b-it-lora",
+  "gemma-7b-it-lora",
   "markdown-conversion",
-  "workers-ai",
+  "voice-agent",
   "workers-wrangler"
  ],
  "workers-vpc": [

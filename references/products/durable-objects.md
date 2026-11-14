@@ -90,6 +90,12 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
   so an unrelated request can't permanently cancel it. To end a *finished* alarm, pass
   `ctx.abort("...", { retryAlarm: false })`; `retryAlarm` defaults to `true` and applies to abort
   calls made outside the alarm handler too.
+- **Automatic retries (default, no code change)**: `fetch()`/RPC through a stub are retried when the error's `.retryable` property is `true`
+  (request never reached the DO, or connection dropped). Not retried: errors from your DO code, `.overloaded`, HTTP 5xx responses,
+  `ReadableStream` bodies, RPC args with streams/stubs/functions/`RpcTarget`, promise pipelining. Default 5 attempts, 10 s window,
+  exponential backoff + jitter; retries don't count toward the subrequest limit. Per stub: `getByName(id, { retry: { maxRetries, timeoutMs } })`
+  (0–10, default 4 · 500–60000, default 10000; `maxRetries: 0` opts out). **Idempotency:** after a dropped connection the DO rejects the retry
+  unless the method is marked `retryable(this.prototype.method)` from `cloudflare:durable-objects` — only mark idempotent ones. Don't stack your own retries on top.
 - **Hot-reload breaks alarms locally**: after editing a DO in `wrangler dev`, alarm methods may fail
   silently; restart `wrangler dev` to restore alarm functionality (known issue).
 - **SQLITE_FULL behavior**: when the 10 GB cap is hit, **writes fail** but reads and deletes still

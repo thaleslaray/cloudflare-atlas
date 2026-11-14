@@ -283,7 +283,7 @@ echo
 # The installed copy is a git repo since 2026-10-27 (published to GitHub); its .git is not curation
 # and must not count as divergence in any of the diffs below, nor be promoted or deleted.
 echo "── promoting workbench → installed ──"
-rsync -a "$WORKBENCH/" "$INSTALLED/"
+rsync -a --exclude .git "$WORKBENCH/" "$INSTALLED/"
 if diff -rq -x .git -x __pycache__ -x .DS_Store "$INSTALLED" "$WORKBENCH" >/dev/null; then
   echo "✅ copies identical"
 else
@@ -293,7 +293,7 @@ fi
 echo
 echo "── re-recording the page baseline (previous kept as _known-pages.prev.txt) ──"
 bash "$INSTALLED/scripts/update-check" --init-baseline | sed 's/^/   /'
-rsync -a "$INSTALLED/" "$WORKBENCH/"
+rsync -a --exclude .git "$INSTALLED/" "$WORKBENCH/"
 
 echo
 echo "── verifying the pass actually closed ──"

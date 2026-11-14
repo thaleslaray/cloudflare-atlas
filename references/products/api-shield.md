@@ -42,7 +42,7 @@ There is **no `wrangler.jsonc` binding**. API Shield is zone-level config:
   `is_jwt_valid(http.request.jwt.claims["{config_id}"][0])`; rate-limit on a claim with
   `lookup_json_string(...,"sub")`.
 - **mTLS** — CF-managed CA (all plans) or upload custom CA; rule on `cf.tls_client_auth.cert_verified`.
-- **Vulnerability Scanner** — Enterprise API Shield only; scans your API for known weaknesses.
+- **Vulnerability Scanner** — requires the paid API Shield add-on on an Enterprise plan; scans your API for known weaknesses.
 - **Risk detections** — BOLA (`cf-risk-bola-enumeration` / `-pollution`), Auth Posture
   (`cf-risk-missing-auth` / `-mixed-auth`), Volumetric Abuse, Sequence Mitigation, GraphQL limits.
 - **Workers** — read `request.cf.tlsClientAuth` for app logic. (JWT claims are exposed as WAF
@@ -74,7 +74,7 @@ There is **no `wrangler.jsonc` binding**. API Shield is zone-level config:
 
 **Available without an API Shield subscription** (Free/Pro/Business/Enterprise): only **Endpoint
 Management** + **Schema Validation**. Everything else — **API Discovery, JWT, BOLA, Auth Posture,
-Volumetric Abuse, GraphQL Protection** — requires the **Enterprise API Shield** add-on.
+Volumetric Abuse, GraphQL Protection** — requires the paid **API Shield add-on** on an Enterprise plan.
 **Sequence Mitigation** is **closed beta** (Enterprise, contact team). **Schema Profiles**: API Security
 customers already have them via Schema Learning + Schema Validation; Enterprise **without** API Security
 gets an invite-only closed beta (**Web Assets** page → operation → *Learn profile*). mTLS with a CF-managed CA is

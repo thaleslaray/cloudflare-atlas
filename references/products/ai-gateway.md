@@ -133,6 +133,9 @@ Free to all AI Gateway customers, **no setup** — it reads traffic already flow
 - **Streaming responses are not cached by default**; caching covers text and image responses only.
 - **Cache misses on param drift** — any body difference = different key; use `cf-aig-cache-key` to override.
 - **Unified API needs the provider prefix:** `openai/gpt-4o`, NOT `gpt-4o`.
+- **BYOK key activity (changelog 2026-11-06; usage tracking starts Nov 2026):** gateway → **Provider Keys** groups keys by provider
+  (masked preview, alias, last-used/last-updated dates); **Key security** flags keys with activity older than 90 days — review, then delete
+  after checking dependencies. Not yet on the BYOK page (it lists last used + status). No plan/retention limit stated. → `ai-gateway/configuration/bring-your-own-keys/`
 - **Rate limit is per-gateway, not per-user** — for per-user limits use dynamic routing.
 - **Credential precedence, not a mix:** provider key on the request → BYOK `default` alias → Unified
   Billing. On Unified Billing paths (`env.AI.run()`, `/ai/v1/chat/completions`) only the `default`

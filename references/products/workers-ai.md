@@ -42,7 +42,7 @@ Cloudflare account to run a model, so local development **incurs usage charges**
 endpoints now also reach **supported third-party providers**, not just Cloudflare-hosted models.
 Add a gateway to get observability, logging, caching, security and billing controls over both:
 ```ts
-await env.AI.run('@cf/zai-org/glm-5.2', { messages: [...] }, { gateway: { id: 'default' } });
+await env.AI.run('@cf/zai-org/glm-5.3', { messages: [...] }, { gateway: { id: 'default' } });
 ```
 `id: 'default'` auto-creates a gateway on the first authenticated request. → `products/ai-gateway.md`.
 
@@ -71,7 +71,7 @@ catalog (capabilities, schemas, pricing) lives as JSON under
 `developers.cloudflare.com/workers-ai/models/`. Examples: `@cf/meta/llama-3.1-8b-instruct` (chat),
 `@cf/baai/bge-base-en-v1.5` (embeddings), `@cf/black-forest-labs/flux-1-schnell` (image),
 `@cf/openai/whisper` (STT), `@cf/meta/m2m100-1.2b` (translation). Recent additions:
-`@cf/zai-org/glm-5.2` (agentic-coding text gen — function calling + reasoning, 262K-token context)
+`@cf/zai-org/glm-5.2` (agentic-coding text gen, 262K-token context; **deprecated 2026-11-20 → `glm-5.3`**)
 `@cf/moondream/moondream3.1-9B-A2B` (vision language / image-to-text),
 `@cf/deepseek-ai/deepseek-v4.1-flash-1017` (multimodal MoE, function calling + reasoning, 1,048,576-token context,
 `$0.30`/M input, `$1.20`/M output; paid plan or credits) and `@cf/daily-co/phonellm-mini-alpha-2` (voice-agent text
@@ -91,6 +91,15 @@ off to an LLM. Verify prices on the model pages. Open weights on Hugging Face.
 input) takes `{ model: "clairic", state, fields }` and returns a typed value per named field (`text`, `date`, `number`,
 `list`, `estimate`…): extract, compute, estimate or forecast. `null` = input insufficient; text answers carry source-span
 offsets, estimates a p10–p90 interval. Types constrain form, not correctness. → `workers-ai/concepts/extraction-models/`.
+
+**Deprecations — 2026-11-20 (changelog 2026-11-05; moved from 2026-11-15).** After that date these `@cf/` IDs stop responding: HTTP `410 Gone`,
+error `5028` (model pages show "Planned Deprecation 11/20/2026"). LLM replacements — frontier: `deepseek-ai/deepseek-v4.1-flash-1017`, `zai-org/glm-5.3`;
+smaller: `google/gemma-4-26b-a4b-it`, `qwen/qwen3.8-27b`. **LLMs:** `deepseek-ai/{deepseek-r1-distill-qwen-32b,deepseek-v4-pro-0813,deepseek-v4-flash-0731}`,
+`nvidia/nemotron-3-120b-a12b`, `qwen/{qwq-32b,qwen3-30b-a3b-fp8}`, `moonshotai/{kimi-k2.6,kimi-k2.7-code}`, `zai-org/{glm-5.2,glm-5.3-flash}`,
+`meta-llama/llama-2-7b-chat-hf-lora`, `google/{gemma-2b-it-lora,gemma-7b-it-lora}`, `meta/{llama-3.1-8b-instruct-fp8,llama-3.2-1b-instruct,llama-3.2-3b-instruct}`.
+**Others → replacement:** `myshell-ai/melotts` → `deepgram/aura-2-en`; `stabilityai/stable-diffusion-xl-base-1.0`, `runwayml/stable-diffusion-v1-5-inpainting`,
+`bytedance/stable-diffusion-xl-lightning`, `lykon/dreamshaper-8-lcm` → `black-forest-labs/flux-2-klein-9b`; `openai/whisper-tiny-en` → `deepgram/nova-3`;
+`llava-hf/llava-1.5-7b-hf` → `moondream/moondream3.1-9B-A2B`; `google/embeddinggemma-300m` → `google/embeddinggemma-2` (available soon).
 
 ## `env.AI.toMarkdown` — document → text (the native "read a PDF in a Worker" answer)
 When the need is **extract text/data from a document** (PDF, docx, images…) inside a Worker, this
@@ -143,8 +152,8 @@ const [out] = await env.AI.toMarkdown([
   your real account and **bills usage even locally** (and counts toward limits). `--remote` is not
   required for AI. `env.AI` is undefined → binding missing from `wrangler.jsonc`. Source:
   `.../workers-ai/get-started/workers-wrangler/`.
-- **Model availability**: IDs and the catalog change; a wrong/retired name → internal code `5007`
-  ("No such model ${model} or task", HTTP 400) or `3042` (invalid model name, 404). Verify the exact
+- **Model availability**: IDs and the catalog change; a wrong name → internal code `5007`
+  ("No such model ${model} or task", HTTP 400) or `3042` (invalid model name, 404); a deprecated one → `5028` · 410. Verify the exact
   ID on the models page before quoting.
 - **Streaming output is a stream**, not a string — don't `JSON.stringify` it; iterate chunks.
 - **Embedding shape**: result is `data: number[][]` (array of vectors) even for one text — index `[0]`.
@@ -166,7 +175,8 @@ const [out] = await env.AI.toMarkdown([
   Llama-3.1-8b ≈ 25.6K neurons / M input tokens; embeddings cents-per-M-tokens; images per tile+step.
 - **Some models require a paid billing method** — `@cf/moonshotai/kimi-k2.6`,
   `@cf/moonshotai/kimi-k2.7-code`, `@cf/zai-org/glm-5.2`, `@cf/zai-org/glm-5.3`, `@cf/zai-org/glm-5.3-flash`,
-  `@cf/deepseek-ai/deepseek-v4-flash-0731`, `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, `@cf/deepseek-ai/deepseek-v4-pro-0813`. Reachable with the Workers Paid plan **or** prepaid
+  `@cf/deepseek-ai/deepseek-v4-flash-0731`, `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, `@cf/deepseek-ai/deepseek-v4-pro-0813`
+  (all but `glm-5.3` and `deepseek-v4.1-flash-1017` are deprecated 2026-11-20, see Model catalog). Reachable with the Workers Paid plan **or** prepaid
   AI Gateway credits; on Free they fail with `5035` · 403. `.../platform/pricing/`.
 
 **Rate limits** (per task type, default; some per-model overrides — verify on the limits page):
@@ -174,8 +184,8 @@ text generation **300 req/min**, embeddings/image-classification/object-detectio
 text-to-image / STT / translation / image-to-text **720**, summarization **1500**, text
 classification **2000**.
 - **Frontier models are far tighter — per account, per model: 20 req/min** (every model that
-  requires Workers Paid — the list above, e.g. kimi-k2.6, glm-5.2), rising to **50 req/min** if you pay via prepaid AI Gateway credits with
-  the gateway's Workers AI billing set to *Unified billing*. Don't plan a fan-out on glm-5.2 at the
+  requires Workers Paid — the list above, e.g. glm-5.3), rising to **50 req/min** if you pay via prepaid AI Gateway credits with
+  the gateway's Workers AI billing set to *Unified billing*. Don't plan a fan-out on glm-5.3 at the
   300/min text-gen number. `.../platform/limits/#paid-models`.
 
 ## Going deeper

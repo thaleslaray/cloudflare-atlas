@@ -43,6 +43,9 @@
   (which also makes unresolvable inline `data:` maps fail the upload). Opt out: `upload_source_maps: false` / `--no-upload-source-maps`.
   Vite plugin ≥1.64.0 generates Worker maps by default.
 - **Vite plugin v2 (beta)**, `@cloudflare/vite-plugin@beta` + `cf`): config is `cloudflare.config.ts` (no Wrangler files), deploys with `cf deploy` (Wrangler can't), Vite ≥7, `ssr` environment, output `.cloudflare/output` — `workers/vite-plugin/v2-beta/`.
+- **Vite+** (`viteplus.dev`; Vite + format/lint/typecheck/test via `vp`) works with the Cloudflare Vite plugin; adopting it keeps your framework scripts, deploy command and config format — `workers/vite-plugin/vite-plus/`.
+- **EmDash**: open-source Astro CMS on Workers + D1 (content) + R2 (media), MCP server; `npm create emdash@latest -- my-emdash-site` (Node ≥22.23.4) — `workers/framework-guides/web-apps/emdash/`.
+- **Vercel → Workers** (`workers/static-assets/migration-guides/vercel-to-workers/`): per-framework guides for Astro, Next.js (vinext), Nuxt, React Router/Remix, SvelteKit, TanStack Start, static/SPA; use compat date ≥`2026-08-04`; `/_vercel/image` and `/_vercel/insights` URLs 404 after migrating, ISR/`s-maxage` has no 1:1 equivalent (prerender or framework cache integration).
 - Other bindings/triggers: `routes`, `triggers.crons`, `services` (Worker-to-Worker RPC),
   `durable_objects`, `queues`, `placement: { mode: "smart" }`, `analytics: { binding }` (Analytics SQL:
   `env.X.query({ query, params })`, one `SELECT`, Wrangler ≥4.145.0 — `runtime-apis/bindings/analytics-sql/`;

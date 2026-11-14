@@ -7,6 +7,7 @@
   "skills/list"
  ],
  "agents": [
+  "harnesses/container/",
   "migrate-to-1.0",
   "no_output",
   "tts_error",
@@ -86,6 +87,7 @@
  ],
  "containers": [
   "DO storage",
+  "container-class/",
   "platform-details/limits/"
  ],
  "d1": [
@@ -357,8 +359,12 @@
   "eth_*Filter*",
   "eth_compile*"
  ],
- "workers": [],
- "workers-ai": [],
+ "workers": [
+  "assets.base_path"
+ ],
+ "workers-ai": [
+  "google/embeddinggemma-2"
+ ],
  "workers-vpc": [],
  "workflows": [],
  "zaraz": [

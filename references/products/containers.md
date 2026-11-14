@@ -128,17 +128,19 @@ when the instance sleeps → scale-to-zero). Cost drivers, on top of the $5/mo W
 - **Egress:** **$0.025/GB** NA+EU (1 TB incl.), $0.04–0.05 elsewhere (500 GB incl.).
 - You're **also billed for the underlying Workers + Durable Objects** usage.
 
-**Instance types:** `lite` (1/16 vCPU, 256 MiB, 2 GB) → `standard-4` (4 vCPU, 12 GiB, 20 GB).
-Custom: 1–4 vCPU, ≤12 GiB mem, ≤20 GB disk, ≥3 GiB mem/vCPU — the disk-to-memory ratio cap was
-**removed 2026-09-29** (any custom type may take 20 GB; image size limit = instance disk).
-**Account limits:** 6 TiB concurrent memory · 1,500 concurrent vCPU · 30 TB concurrent disk ·
-50 GB total image storage. Verify on `developers.cloudflare.com/containers/platform/limits/`.
+**Instance types** (vCPU, memory, disk): `lite` 1/16, 256 MiB, 2 GB · `basic` 1/4, 1 GiB, 4 GB · `standard-1` 1/2, 4 GiB, 8 GB ·
+`standard-2` 1, 6 GiB, 12 GB · `standard-3` 2, 8 GiB, 16 GB · `standard-4` 4, 12 GiB, 20 GB (`dev`/`standard` = aliases of `lite`/`standard-1`).
+Custom (`durable_object` policy) minimums: vCPU 1/16 (`0.0625`), 256 MiB, 2 GB (`2000` MB); maximums = account
+limits (4 vCPU, 12 GiB, 20 GB per instance). Legacy `default` policy may differ. Fields: `vcpu`/`memory_mib`/`disk_mb`
+(Wrangler, `default` policy) vs `vcpu`/`memoryMib`/`diskMb` (`ctx.container.start()`, `durable_object`). Image size = instance disk.
+**Account limits (all maximums are defaults, can be raised via account team/Support):** 6 TiB concurrent memory ·
+1,500 concurrent vCPU · 30 TB concurrent disk · 50 GB total image storage. Verify on `developers.cloudflare.com/containers/platform/limits/`.
 
 ## Going deeper
-> **Docs reorganized 2026-08 — old paths are dead:** `pricing/`, `platform-details/limits/` → `platform/`;
-> `container-class/` → `reference/`; `deploy/`, `ssh/`, `local-dev/`, `execute-commands/`, `image-management/`,
-> `outbound-traffic/` → `guides/`; `architecture/`, `placement/` → `concepts/`; `rollouts/`,
-> `scaling-and-routing/`, `workers-connections/`, `environment-variables/` → `configuration/`.
+> **Docs reorganized 2026-08 — old bare paths 404 or redirect:** `pricing/` → `platform/pricing/`; `platform-details/limits/` → `platform/limits/`;
+> `container-class/` → `api/durable-object-container/`; `deploy/`, `ssh/`, `local-dev/`, `execute-commands/`, `image-management/` →
+> `guides/`; `architecture/`, `placement/` → `concepts/`; `outbound-traffic/`, `rollouts/`, `scaling-and-routing/`,
+> `workers-connections/`, `environment-variables/` → `configuration/`.
 
 - Covered by the official `cloudflare` skill (`references/containers/`) — use it for the full
   `Container` class API, routing patterns, WebSocket forwarding, and Workflow/Queue integration.

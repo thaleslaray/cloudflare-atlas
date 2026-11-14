@@ -144,7 +144,8 @@ after. Coding-agent skill for 0.x docs: `sandbox-stable`.
 > Verify on the live pricing pages before quoting (`developers.cloudflare.com/containers/platform/pricing/`).
 - Plan: **Workers Paid**. Drivers: container vCPU, memory, disk, egress; Worker requests; DO usage.
 - Instance types: lite (1/16 vCPU, 256 MiB, 2 GB disk) up to standard-4 (4 vCPU, 12 GiB, 20 GB);
-  custom sizes 1–4 vCPU, min 3 GiB memory per vCPU (`start()` fields `vcpu`/`memoryMib`/`diskMb`).
+  custom (`durable_object` policy) min 1/16 vCPU (`0.0625`), 256 MiB, 2 GB (`2000` MB), max = account limits
+  (`start()` fields `vcpu`/`memoryMib`/`diskMb`); maximums are defaults and can be raised (Sandbox defers to the Containers limits page).
 - Snapshots: max 20 GB, retained 30 days from creation or most recent restore.
 
 ## Going deeper

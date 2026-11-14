@@ -98,13 +98,27 @@
 ## Harnesses & model providers
 **Runtime vs harness:** the runtime (Lifecycle from `agents/lifecycle`, `routeAgentRequest()`, capabilities
 attached with `lifecycle.use()`, observability) answers *where the agent lives and stays durable*; the
-**harness** is the per-turn loop. Per `agents/harnesses/`: **Pi** (the docs' recommended start for a new
-agent), **OpenCode** (experimental, `OpenCodeHarness`, `@opencode/sdk@2`), **Think** (`products/think.md`), or
-your own loop on the runtime. `PiHarness` is from `agents/harness/pi` (singular), a Lifecycle capability;
+**harness** is the per-turn loop. Per `agents/harnesses/` (compare table: runs-in / durability / Computer): **Pi** (the docs' recommended start for a new
+agent), **OpenCode** (experimental, `OpenCodeHarness`, `@opencode/sdk@2`), **Think** (`products/think.md`, Experimental), Flue (external, `flueframework.com`, built on Pi), **Claude Code** / **Codex** / **Exo** / **Nanocode** / **Self-modifying** (below), or
+your own loop on the runtime (`harnesses/build-your-own/`). `PiHarness` is from `agents/harness/pi` (singular), a Lifecycle capability;
 Pi Durable owns loop, transcript and recovery in the DO's SQLite (`pi_` tables); a Lifecycle job alarm restarts an evicted object. Install `agents` + `@earendil-works/pi-durable` + `pi-ai` + `pi-schema` + `chord`:
 optional peers `~1.5.0` (agents ≥0.33.0; one Pi minor per release); after a conversation runs on 1.5, **roll forward,
 never back** to Pi 1.4 (unreadable). 1.5 batches writes (crash loses ≤~1 s of streamed progress); `session.watch()` replaces
 `events()`, `session.continue()` re-runs without a new message, `retry()`/`parked` removed. Experimental. Needs `nodejs_compat`.
+**Container harnesses (Experimental)** — **Claude Code** and **Codex**: the CLI runs in a Cloudflare Container, a DO drives it via
+`ContainerHarness` + `claudeCode()` / `codex()` from `agents/harness/container` (API may change in any release); `ContainerEgress` (Worker
+entrypoint, re-exported from the same path) injects real credentials, so none sit in the container. Needs `nodejs_compat`, a SQLite DO with
+a container on `schedulingPolicy: "durable-object"`, Node 24+, Docker for `cf dev`; no Dockerfile (`cloudflare/debian-trixie`, CLI installed
+on first use, snapshotted). `harnesses/container/` redirects to the Claude Code page. Gotchas: container death = `status: "unanswered"`,
+`reason: "container_lost"` (`onContainerLost: "retry"` reruns); idle 5 min = snapshot + stop, later edits can be lost; no Computer
+integration; CLIs run without permission prompts, so authenticate every route.
+**Self-modifying** (Experimental): `SelfModifyingHarness` is local to `examples/next/harnesses/self-modifying`, uses internal SDK APIs,
+**not an SDK export**; edits its own TypeScript under `/harness` in a Computer Workspace, run per turn in a fresh Dynamic Worker (Worker Loader
+access needed). No authentication; custom tools may rerun on replay.
+**Exo** and **Nanocode** (Pre-1.0, **not Agents SDK**, upstream-maintained, Rust as Wasm in DOs): Exo = Workers + SQLite DOs, Linux tools/Codex in
+Cloudflare Sandboxes (`github.com/exoharness/exo`, `exoharness/cloudflare`; no `@cloudflare/computer`; ambiguous tools fail, not replayed). Nanocode: `nanocode-ts` (GitHub-release tarball pinned by the reference Worker), `App.create()` from `nanocode-ts/cloudflare`
+returns the `AgentSession` DO; no `agents/harness/nanocode` export; same `request_id` + different input = `409`; keep SDK Lifecycle on a
+separate Agent (`AgentSession` owns alarm and WebSocket handlers).
 **Model providers** (`agents/models/`): **`createAI`** replaced `workers-ai-provider` and `ai-gateway-provider`
 (2026-10-21; both frozen and deprecated). `agents/models/ai-sdk` needs `ai@^7` + `@ai-sdk/provider@^4`;
 `agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.5.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs

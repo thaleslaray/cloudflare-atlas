@@ -170,6 +170,7 @@ Practitioner reports (2026, not official — treat as leads, re-check against yo
 ## Going deeper
 - Live guide: `curl -sL -H "Accept: text/markdown" https://developers.cloudflare.com/workers/framework-guides/web-apps/tanstack-start/`
 - Plugin reference: `workers/vite-plugin/reference/{api,vite-environments,static-assets}/` · bindings: `workers/local-development/bindings-per-env/`.
+- Coming from Vercel: `workers/static-assets/migration-guides/vercel-to-workers/tanstack-start/` (swap the Nitro Vite plugin for the Cloudflare plugin; needs `@tanstack/react-start` ≥1.132.0).
 - TanStack side: `tanstack.com/start/latest/docs/framework/react/guide/{hosting,environment-variables}`.
 - Related atlas refs: `products/workers.md`, `products/d1.md`, `products/r2.md`, `products/durable-objects.md`,
   `products/hyperdrive.md`, `products/queues.md`, `products/workflows.md`.

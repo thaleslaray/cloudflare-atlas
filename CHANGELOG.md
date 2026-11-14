@@ -12,6 +12,51 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-11
+
+**Light pass on the 2026-11-09 weekly check: 6 files curated by three Sonnet agents on disjoint sets, no structural drift, no new subtree. Workbench first re-synced from the installed copy (it was missing the 2026-11-05 second pass — `frameworks/`, commit `35c3f73`); zero workbench-only lines, so the rsync was non-destructive.**
+
+**Detected (2026-11-09).** 112/112 products, 0 new subtrees, 16 single-page additions: five under `agents/harnesses/` (codex, container, exo, nanocode, self-modifying), `durable-objects/best-practices/automatic-retries`, `cloudflare-one/.../identity-providers/passkeys`, `workers/vite-plugin/vite-plus`, `workers/framework-guides/web-apps/emdash`, seven `workers/static-assets/migration-guides/vercel-to-workers/*`.
+
+**Already covered by the 2026-11-05 pass (checked, not re-curated):** Pi 1.5, AI Gateway required auth + model aliases (re-verified live, unchanged), Browser Run crawl outcomes/robots, R2 per-region/error-code metrics, private-LB session affinity, Bots Personal Agent controls and Account Abuse Protection.
+
+**Curated**
+- `agents.md` 180→194 — harness list re-mapped to the live compare table: Claude Code / Codex (`ContainerHarness` from `agents/harness/container`, experimental; `ContainerEgress` holds credentials; `container_lost` + `onContainerLost: "retry"`; idle 5 min → snapshot + stop), Exo and Nanocode (pre-1.0, upstream, no Agents SDK required; `nanocode-ts/cloudflare` `AgentSession`, `409` on reused `request_id`), self-modifying (example-local `SelfModifyingHarness`, not an export). `harnesses/container` is a 301 to `claude-code/`, not a separate harness.
+- `durable-objects.md` 127→133 — automatic retries for stub `fetch()`/RPC (default on, 5 attempts / 10 s, exponential backoff; not for app errors, `.overloaded`, 5xx, streams; per-stub `retry: { maxRetries 0–10, timeoutMs 500–60000 }`; dropped-connection retries need `retryable()` from `cloudflare:durable-objects`).
+- `workers.md` 152→155 — Vite+ (`vp`), EmDash (Astro CMS on D1 + R2, `npm create emdash@latest`, Node ≥22.23.4), Vercel→Workers guides (compat date ≥ 2026-08-04; `/_vercel/image` and `/_vercel/insights` 404).
+- `frameworks/tanstack-start.md` 178→179 — pointer to the Vercel→Workers TanStack Start guide (Nitro plugin → Cloudflare Vite plugin, `@tanstack/react-start` ≥1.132.0).
+- `workers-ai.md` 186→196 — **Planned deprecations 2026-11-20** (moved from 11-15): `410 Gone` / `5028`; all 33 IDs and replacements checked against the changelog post, model pages show "Planned Deprecation 11/20/2026".
+- `ai-gateway.md` 168→171 — provider-key activity view and Key security section (keys with no activity in 90 days flagged; tracking starts November 2026).
+
+**Corrections (errors that would have shipped):** the `env.AI.run` gateway example and the frontier rate-limit example used `glm-5.2`/`kimi-k2.6`, both dead on 2026-11-20 — now `glm-5.3`; the "Model availability" gotcha lacked the `5028`/410 deprecated case.
+
+**Coordinator check.** 20+ claims spot-checked against live pages with `curl …/index.md | grep` (DO retry defaults and key ranges, EmDash Node version, Vercel compat date, Codex `ContainerHarness`/`container_lost`/idle five minutes, Nanocode `409`, container 301, full deprecation ID list, Key security 90 days) — all matched.
+
+**Conflict resolved (live page wins).** The 2026-11-09 changelog title says Codex runs "on Cloudflare Workers"; the live Codex page says the CLI runs in a Container driven by a DO. Written per the live page. An Exo-page aside about a "Wasm turn loop" in the SDK Codex example was left out as contradictory.
+
+**Deferred**
+1. Cloudflare One / Access passkeys sign-in (`identity-providers/passkeys`, changelog 2026-11-06) — still no Access file in the catalog; same out-of-scope decision as earlier passes.
+2. Workers AI: no per-model replacement given for `llama-3.2-1b/3b-instruct`; `embeddinggemma-2` is "available soon" (no model page verified); the "73 Cloudflare-hosted models" count and `glm-5.3` context length not re-checked — likely stale after 2026-11-20. Revisit after the deprecation date.
+3. AI Gateway Key security 90-day threshold is changelog-only; re-check when the BYOK page documents it.
+4. Agents: `codex()`/`claudeCode()` options, `harness.submit()/wait()/sessions.fork()`, AI Gateway `baseUrl` wiring for container harnesses, `cf` CLI scaffolding, Nanocode HTTP routes/Code Mode, Exo recovery details — not written. Existing Pi 1.5 / OpenCode / `createAI` text not re-verified this pass.
+5. DO retries: request-identity detail, per-attempt `RpcTarget` disposal, `TypeError`/`RangeError` rules, and the rule that wrappers/bound copies are not marked — not written.
+6. Vercel→Workers: only the index and TanStack Start pages read in detail; per-framework gotchas for astro, nextjs, nuxt, react-router, sveltekit, static-site and the feature→product mapping table (Blob→R2, Edge Config→KV, Cron→Cron Triggers) not captured. EmDash templates/plugins and Vite+ `cf init` flow also left out.
+7. Carried over from 2026-11-05 (second pass), all still open: frameworks/ blind to `check-pointers`/`check-doc-urls`/`probe-blindness`; `frameworks/react-router.md`; TanStack validator API; RSC status; Vite 7 vs 8; practitioner-lesson re-verification; `frameworks/` not mapped in `_known-pages.txt`.
+
+**Post-close verifier findings (same day).** The first `--close` was green, but the phase-1 re-run flagged 8 new NOT FOUND tokens; 5 were in files this pass had not touched — upstream changes after the 2026-11-09 detection:
+- `containers.md` 147→149 — the limits page moved to `containers/platform/limits/` and was rewritten 2026-11-10: six instance types (lite…standard-4; `dev`/`standard` aliases), `durable_object` custom minimums 1/16 vCPU · 256 MiB · 2 GB, maximums = account limits (raisable); the "≥3 GiB mem/vCPU" rule is gone. Path map: `container-class/` → `api/durable-object-container/` (was wrongly `reference/`), `outbound-traffic/` now under `configuration/`.
+- `sandbox.md` 152→153 — same sizing fix (Sandbox limits page defers to Containers).
+- `api-shield.md` — "Enterprise API Shield" no longer on any live page; now "paid API Shield add-on on an Enterprise plan" (`api-shield/plans/`).
+- `workers.md` `assets.base_path` — absent from the live docs pages, still `base_path` in the Wrangler changelog (4.148.0, no rename through 4.160.1). Left as is; accepted into the baseline.
+- `durable-objects.md` — retry token reworded to the page's phrasing (`.retryable` property is `true`).
+- Accepted as expected NOT FOUND: `agents` `harnesses/container/` (written deliberately as a 301), `workers-ai` `google/embeddinggemma-2` ("available soon"). Blindness probe +1 agents (Worker Loader) and +3 workers-ai (deprecation IDs sit in a prose block the gate does not audit) — baselines re-recorded.
+
+**Deferred (addendum)**
+8. Containers: outbound HTTP request body limit (100 MiB default) not added; other 2026-08 "old paths" in the path map checked for redirects only, contents not re-verified.
+9. `assets.base_path` is documented only in the Wrangler changelog, not on a docs page — re-check next pass.
+
+---
+
 ## 2026-11-05 (second pass) — new `references/frameworks/` folder
 
 **First framework references: `tanstack-start.md` (178 lines, over the 150 new-file cap on purpose: every line carries a live-checked fact or a labeled practitioner claim) and `vinext.md` (≈70 lines), wired into `SKILL.md`. No product file touched.**
