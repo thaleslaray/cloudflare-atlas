@@ -9,6 +9,7 @@
 - Distinctive points
 - Lifecycle & hibernation
 - Gotchas
+- Spending limit
 - Pricing & limits
 - Going deeper
 
@@ -60,6 +61,7 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
 ## Lifecycle & hibernation
 - **Hibernation**: DO enters hibernation after **~10 s idle** (no requests, no active alarms). Memory
   is freed; WebSocket attachments preserved via serialization. Next request triggers a cold wake.
+- **Placement** (2026-11-09): a reactivated DO starts on the machine that last ran it when possible, so SQLite data needn't reload (fewer cold starts; no action needed).
 - **Eviction window**: once non-hibernateable work ends, the DO is evicted within **70–140 s**.
 - **Pending I/O prevents eviction.** Always: outbound `fetch()` to external services, TCP sockets, outbound
   WebSockets. **New 2026-10-01** (default from compat date `2026-10-01`; earlier dates opt in with
@@ -107,6 +109,12 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
 - Deleting a class (`deleted_classes` migration or `exports` `state: "deleted"`) **destroys all data**
   irreversibly — test with `--dry-run`.
 
+## Spending limit (2026-11-13) — account mechanics in `billing.md`
+Account-wide, not per namespace/object (`durable-objects/platform/spend-management/`). Counts requests, duration, SQLite rows read/written and KV-storage ops after included usage; **stored data and the Workers Paid fee are excluded**.
+At the limit: new stub requests, SQL reads/writes, SQLite storage growth and `setAlarm()` are rejected (may surface `Exceeded the account's spending cap for Durable Objects.`); objects/data are not deleted.
+**Not blocked:** already-running requests (duration keeps accruing), messages on already-open WebSockets, legacy KV-backed-object storage ops (still counted), storage charges.
+**Pending alarms are held** (no retry budget used); one scheduled **>7 days ago is deleted while held** — re-schedule after resuming. A blocked calling Worker (separate Workers limit) also breaks the app. Resumes in minutes or at next billing period.
+
 ## Pricing & limits
 > ⚠️ Pricing changes — verify on the live page (`developers.cloudflare.com/durable-objects/platform/pricing/`) before quoting.
 
@@ -120,10 +128,10 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
   included then $0.001/M, rows written first 50M/month included then $1.00/M (`setAlarm()` and each
   delete count as a row written). Free: 5 GB total, 5M row-reads/day, 100k row-writes/day.
 
-**Key limits:** storage/DO **10 GB** (Free plan: 1 GB; account total Free 5 GB, Paid unlimited) ·
+**Key limits:** storage/DO **10 GB** (account total Free 5 GB, Paid unlimited; the limits page contradicts itself — its table says 10 GB, its SQLite storage-limit paragraph says "1 GB on the Free plan": assume 1 GB on Free) ·
 objects **unlimited** · DO classes 500 (Free 100) · req
 throughput **~1K req/s per DO** (shard) · alarms **1 per DO** · CPU 30s default (max 5 min) ·
-WebSocket msg 32 MiB · KV pair 2 MB · memory 128 MB/DO · 6 outbound conns/request. Verify on
+WebSocket msg 32 MiB (received) · key+value, string/BLOB/row **8 MB** · memory 128 MB/DO · 6 outbound conns/request. Verify on
 `developers.cloudflare.com/durable-objects/platform/limits/`.
 
 ## Going deeper

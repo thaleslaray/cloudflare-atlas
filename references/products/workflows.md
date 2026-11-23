@@ -40,6 +40,11 @@ On Paid, `schedules`-created instances get ~1h per firing without using a concur
 `exports` Workflow keeps instances running and storing data there; settings stay outside it. Fixed at creation — a mismatch
 stops `wrangler deploy`/`versions upload`; removing it later keeps the old one; no `script_name`; ignored locally.
 
+**Per-Workflow concurrency limit** (2026-11-10, Wrangler **4.127.0+**): `"concurrency": { "limit": 10 }` on a `workflows` binding (or `exports` Workflow) caps that Workflow's running instances.
+Positive integer ≤ account limit; extras are **queued** (`queued` status, not rejected). `waiting`/`paused` instances free their slot (not instantly; short waits keep it);
+`schedules`-created instances aren't held back during their ~1 h budget. Lowering it doesn't stop running instances. **Omit it on a deploy and the limit is removed.**
+Not combinable with `script_name`; not applied in local dev — `workflows/build/concurrency-limits/`.
+
 ## Core API
 ```typescript
 export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
@@ -64,6 +69,10 @@ export class MyWorkflow extends WorkflowEntrypoint<Env, Params> {
 - **Rollback handlers** on `step.do()` enable saga-style compensation; they now receive step context —
   `{ ctx, error, output }` (`output` = the forward step's returned value, `undefined` if it failed);
   `rollbackConfig` sets retries/timeout for the handler itself.
+
+- **Webhook → Workflow** (`workflows/examples/trigger-from-webhook/`): external system → Worker `fetch()` verifies HMAC-SHA256 over the raw body, returns `202` only after writing to a **Queue**;
+  a `queue()` handler calls `createBatch()` (keep `max_batch_size` ≤100) using the sender's event ID as instance ID (idempotent); failures retry then go to a dead-letter queue.
+  Your own backend with an API token can call the REST API directly; Cloudflare products (R2, KV, Workers Builds) use Queues event subscriptions instead.
 
 ## Gotchas
 - **Floating promises:** you MUST `await` every `step.*` call — un-awaited = fire-and-forget, breaks
@@ -93,10 +102,10 @@ starts **no earlier than 2026-08-10** (before that: no extra Workflows charge):
 **Key limits** (Free / Paid): steps/instance **1,024 / 10,000** (→25,000 configurable) · CPU/step
 **10 ms / 30 s** (→5 min) · wall-clock/step **unlimited** · step return **1 MiB** · event payload
 **1 MiB** · state/instance **100 MB / 1 GB** · max sleep **365 days** · concurrent running instances
-**100 / 50,000** · create rate **100/s / 300/s** · retention **3 / 30 days max** · name 64 ch · ID 100 ch.
-**Default retention changed 2026-09-10 (changelog; limits page not yet updated):** Workflows created on
-Paid from that date keep completed/errored state **7 days** by default (max still 30); older Workflows
-keep 30; Free stays 3. Override per instance: `create({ retention: { successRetention, errorRetention } })`.
+**100 / 50,000** · create rate **100/s / 300/s** · retention **3 / 7 default, 30 max** · name 64 ch · ID 100 ch.
+**Retention (limits page updated 2026-11-10):** Paid keeps completed/errored state **7 days by default**, configurable up to 30; Workflows created before the
+2026-09-10 default change keep 30; Free 3. Set `default_retention` on the binding, or per instance `create({ retention: { successRetention, errorRetention } })`.
+Also: queued instances **100,000 / 2,000,000**; creation rate Paid **300/s per account, 100/s per Workflow** (excess → `429`); concurrent instances per Workflow: no limit by default.
 Verify on `developers.cloudflare.com/workflows/reference/limits/`.
 
 ## Going deeper

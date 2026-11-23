@@ -51,6 +51,11 @@ SDKs: `cloudflare` (official), `@cloudflare/stream-react` (player), `tus-js-clie
   (`/<VIDEO_ID>/manifest/video.m3u8`). React: `<Stream>` component.
 - **Access control**: `requireSignedURLs` + short-lived signed tokens, `allowedOrigins` to stop
   hotlinking, geo/IP Access Rules inside tokens.
+- **MP4/M4A downloads** (`stream/viewing-videos/download-videos/`): `POST /stream/<UID>/downloads` (or `/downloads/default`) = MP4,
+  `/downloads/audio` = M4A; poll `GET .../downloads` until `status` is `ready` (`percentComplete` meanwhile); Worker binding
+  `env.STREAM.video(id).downloads.generate()`. Generation is **up to 40% faster since 2026-11-10** (changelog; mostly videos >1 min, no code change).
+  Not supported for **live recordings > 4 hours**. Private videos need a signed token with `downloadable: true`. Billed as delivered minutes
+  (no extra storage). `?filename=` (≤120 chars) renames the file.
 - **Extras**: webhooks on processing, AI-generated or uploaded captions, watermarks, MP4 downloads,
   GraphQL analytics (per-video, per-creator).
 

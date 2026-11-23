@@ -75,9 +75,11 @@ export default {
 - **Free plan:** 100,000 database queries / day (resets 00:00 UTC; cached *and* uncached both count).
 - **Paid plan:** unlimited queries.
 
-**Key limits (Free / Paid):** configs per account **10 / 25** · max origin connections per config
-**~20 / ~100** (soft; tune with `--origin-connection-limit`) · query duration **60s** · cached response
-**50 MB** · init connection timeout **15s** · idle timeout **10 min** · username & DB name **63 bytes**.
+**Key limits (Free / Paid):** configs per account **10 / 100** · max origin connections per config
+**~20 / up to 1,500** (soft; min 5; tune with `--origin-connection-limit`, dashboard, or REST `origin_connection_limit`) ·
+query duration **60s** · cached response **50 MB** · init connection timeout **15s** · idle timeout **10 min** · username & DB name **63 bytes**.
+**Doc-vs-changelog conflict (2026-11-17):** the changelog of 2026-11-11 raised Paid to **100 configs** (was 25) and **1,500 origin connections** (was ~100);
+the live limits page (last updated Jun 9) still lists 25 / ~100 — treat 100 / 1,500 as current, recheck the page. Set the limit below your database's own connection cap.
 *(PlanetScale Postgres/MySQL DBs created via Cloudflare are billed to your Cloudflare account.)*
 
 ## Going deeper

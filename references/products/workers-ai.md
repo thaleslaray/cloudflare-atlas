@@ -64,7 +64,7 @@ await env.AI.run('@cf/zai-org/glm-5.3', { messages: [...] }, { gateway: { id: 'd
   silently ignore it, and the request queues normally.
 
 ## Model catalog
-73 Cloudflare-hosted models (measured 2026-10-31), each addressed by a `@cf/...` ID; they share the
+75 Cloudflare-hosted models (75 model pages in `workers-ai/llms.txt`, 2026-11-17; was 73 before the 2026-11-12 additions), each addressed by a `@cf/...` ID; they share the
 unified `ai/models/` catalog with 199 third-party models — vendor index in `products/ai.md`. Full
 catalog (capabilities, schemas, pricing) lives as JSON under
 `raw/github-repos/cloudflare-docs/src/content/workers-ai-models/` — one file per model — and at
@@ -76,6 +76,16 @@ catalog (capabilities, schemas, pricing) lives as JSON under
 `@cf/deepseek-ai/deepseek-v4.1-flash-1017` (multimodal MoE, function calling + reasoning, 1,048,576-token context,
 `$0.30`/M input, `$1.20`/M output; paid plan or credits) and `@cf/daily-co/phonellm-mini-alpha-2` (voice-agent text
 gen, 262,140 tokens, function calling, `$0.06`/M input, `$0.24`/M output).
+
+**New 2026-11-12.** `@cf/google/embeddinggemma-2` — multimodal embeddings (text incl. code, images, video, audio → one
+**768-dim** space; 8,192-token context shared by all content in one input; `$0.0017`/M input tokens; zero data retention).
+Differs from the `{ text: [...] }` shape above: text via `input`, media via `messages` (array of conversations → one
+embedding each) as **base64 data URIs only** (remote URLs unsupported); response is OpenAI-style `data[i].embedding`.
+`dimensions` 128/256/512/768 (Matryoshka; same size for queries and docs), `encoding_format` `float`|`base64`. Prefix text
+with `task: search result | query: ...` (queries) / `title: ... | text: ...` (docs); no prefixes on media. Image ≈260 tokens,
+video ≈140/sampled frame (1 fps), audio ≈25/s. `@cf/thinkingmachines/inkling-2-small` — MoE 594B total / 18B active, text+image
+in, text out, reasoning (`reasoning_effort` `none`…`max`, default `high`), function calling, **1,048,576**-token context,
+`$0.30`/M input · `$1.00`/M output · `$0.10`/M cached input; Workers Paid or prepaid AI Gateway credits (so 20/50 req/min below).
 
 **Clef — decision models, not chat (2026-10-01; omni 2026-10-09).** `@cf/cloudflare/clef` (27B, 65,536-token
 context, `$0.24`/M input tokens), `clef-flash` (9B, **24,576** tokens since the 2026-10-09 cut to `$0.038`/M — cheaper
@@ -99,7 +109,8 @@ smaller: `google/gemma-4-26b-a4b-it`, `qwen/qwen3.8-27b`. **LLMs:** `deepseek-ai
 `meta-llama/llama-2-7b-chat-hf-lora`, `google/{gemma-2b-it-lora,gemma-7b-it-lora}`, `meta/{llama-3.1-8b-instruct-fp8,llama-3.2-1b-instruct,llama-3.2-3b-instruct}`.
 **Others → replacement:** `myshell-ai/melotts` → `deepgram/aura-2-en`; `stabilityai/stable-diffusion-xl-base-1.0`, `runwayml/stable-diffusion-v1-5-inpainting`,
 `bytedance/stable-diffusion-xl-lightning`, `lykon/dreamshaper-8-lcm` → `black-forest-labs/flux-2-klein-9b`; `openai/whisper-tiny-en` → `deepgram/nova-3`;
-`llava-hf/llava-1.5-7b-hf` → `moondream/moondream3.1-9B-A2B`; `google/embeddinggemma-300m` → `google/embeddinggemma-2` (available soon).
+`llava-hf/llava-1.5-7b-hf` → `moondream/moondream3.1-9B-A2B`; `google/embeddinggemma-300m` → `google/embeddinggemma-2` (the changelog post still says "available soon"; the model page went live 2026-11-12).
+Model pages still show "Planned Deprecation 11/20/2026" (re-read 2026-11-17).
 
 ## `env.AI.toMarkdown` — document → text (the native "read a PDF in a Worker" answer)
 When the need is **extract text/data from a document** (PDF, docx, images…) inside a Worker, this
@@ -175,8 +186,8 @@ const [out] = await env.AI.toMarkdown([
   Llama-3.1-8b ≈ 25.6K neurons / M input tokens; embeddings cents-per-M-tokens; images per tile+step.
 - **Some models require a paid billing method** — `@cf/moonshotai/kimi-k2.6`,
   `@cf/moonshotai/kimi-k2.7-code`, `@cf/zai-org/glm-5.2`, `@cf/zai-org/glm-5.3`, `@cf/zai-org/glm-5.3-flash`,
-  `@cf/deepseek-ai/deepseek-v4-flash-0731`, `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, `@cf/deepseek-ai/deepseek-v4-pro-0813`
-  (all but `glm-5.3` and `deepseek-v4.1-flash-1017` are deprecated 2026-11-20, see Model catalog). Reachable with the Workers Paid plan **or** prepaid
+  `@cf/deepseek-ai/deepseek-v4-flash-0731`, `@cf/deepseek-ai/deepseek-v4.1-flash-1017`, `@cf/deepseek-ai/deepseek-v4-pro-0813`,
+  `@cf/thinkingmachines/inkling-2-small` (all but `glm-5.3`, `deepseek-v4.1-flash-1017` and `inkling-2-small` are deprecated 2026-11-20, see Model catalog). Reachable with the Workers Paid plan **or** prepaid
   AI Gateway credits; on Free they fail with `5035` · 403. `.../platform/pricing/`.
 
 **Rate limits** (per task type, default; some per-model overrides — verify on the limits page):

@@ -12,6 +12,73 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-17
+
+**Refresh pass on the 2026-11-16 weekly check: 21 product files curated by three Sonnet agents on disjoint sets, one product retired, Access passkeys recorded in `SKILL.md`. Copies were in sync before starting (phase 1 copy-sync green).**
+
+**Detected (2026-11-16).** live=111 / known=112. GONE: `multi-cloud-networking`. New subtrees: `ai-search/api/namespaces` (+3), `ai/models/veed` (+2), `billing/manage/spend-management` (+2). 25 single-page additions. 3 new NOT FOUND tokens: `containers` `6 TiB` and `30 TB`, `moq` `github.com/englishm/moq-interop-runner`. API slices 16 days old — not re-sliced.
+
+**Structural**
+- `multi-cloud-networking` is no longer a product (2026-11-12): the slug 301s to `cloudflare-wan/reference/cloud-networking/`. Removed from `_known-products.txt`; `SKILL.md` coverage boundary now 111 live / 17 uncurated, with a routing note.
+- **Access passkeys** (backlog #1 since 2026-11-06) — written into the `SKILL.md` Zero Trust boundary as a "known gap in the sibling skill" note, not as a product file: atlas still delegates Access to the `cloudflare-one` skill, which does not mention passkeys (grep, 2026-11-17). Login method via WebAuthn, `type: "passkeys"` identity provider, `config.login_page_auto_prompt`, per-application Login methods; gotcha: no IdP groups/attributes; deleting a passkey does not end sessions. Remove the note when the sibling skill covers it.
+
+**Curated**
+- `billing.md` 86→107 — new **Spending limits & email alerts** section: Workers and Durable Objects only; "spend policy" in the API; `usage_block` vs `notification` (80% / 100%); account-wide per product; what counts; `cf billing spend-policies` (`--threshold-cents`, `--if-match`; `409`/`412`/`428`); not a hard cap; block expires at renewal.
+- `workers.md` 155→166 — spending-limit behaviour (new invocations rejected, error `1103`, static assets stay up, `run_worker_first` paths can fail), version skew, `assets.base_path` (Wrangler ≥4.148.0, `cf` ≥1.0.0-beta.13; routes/`_headers`/`_redirects` use the full public path), `CLOUDFLARE_API_HEADERS`, Remix 3 guide, user-scoped Workers Builds repo picker.
+- `durable-objects.md` 133→141 — Spending limit section (blocked: new stub requests, SQL, storage growth, `setAlarm()`; not blocked: in-flight requests, open WebSockets, legacy KV-backed ops; pending alarms held, deleted if scheduled >7 days ago), startup placement.
+- `workflows.md` 105→114 — per-Workflow `concurrency.limit` (Wrangler ≥4.127.0; queued, not rejected; not with `script_name`; not in local dev), webhook → Queue → `createBatch()` example.
+- `hyperdrive.md` 87→89 · `d1.md` 102→105 · `cf.md` 73→77 — see Corrections and Conflicts.
+- `containers.md` 149→151 — 100 MiB outbound request body limit (closes addendum #8 of 2026-11-11), egress by region, snapshots free in beta.
+- `moq.md` 118→129 — draft-18 recommended (`moq-rs` branch `draft-18-dev`), management API (`use-the-api`: Account > MoQ > Edit, token expiry ≤1 year, 10 connection tokens per relay, revoke by `jti`), 5 pages.
+- `realtime.md` 143→165 — Whiteboard plugin, `@cloudflare/realtimekit-noise-cancellation`, content hints, auth-token validity (100-day default/max, `not_before`/`expires_on`, revoke ≤60 s), included usage 10,000 participant-minutes / 100 export-minutes.
+- `browser-run.md` 151→160 — Quick Actions under local `wrangler dev` (`json` returns placeholders, `kitesurf` throws → `"remote": true`), Kitesurf open source (Apache 2.0, needs Dynamic Workers).
+- `r2.md` 82→92 — local development (Miniflare buckets, remote bindings, Local Explorer, experimental local S3 endpoint).
+- `rules.md` 122→127 — `md5()`, `sha1()`, `sha512()`. `tunnel.md` 150→152 — URL normalization. `stream.md` 93→98 — MP4/M4A downloads. `flagship.md` 107→112 — Rust SDK `cloudflare-flagship`.
+- `ai-search.md` 160→190 — namespaces (REST, binding, 100-namespace limit, errors `7062`/`7065`/`7066`), Terraform (provider ≥5.29.0, `cloudflare_ai_search_namespace`/`_instance`; changing `id`/`namespace`/`type` replaces the instance and wipes the index), D1 data source beta (one document per row, `token_id` required, 100,000 rows, 64 KiB/row).
+- `waf.md` 149→160 — response firewall (`http_response_firewall_custom`; 3 response custom rules per zone on every plan; one `execute` rule max; no `http.response.body.raw`), AI Security for Apps Terraform (`cloudflare_ai_security`, `cloudflare_ai_security_custom_topics`).
+- `workers-ai.md` 196→207 — `@cf/google/embeddinggemma-2` (768 dims, 8,192 tokens, $0.0017/M) and `@cf/thinkingmachines/inkling-2-small` (1,048,576 context, $0.30/$1.00/$0.10 per M) live. Deprecation date 2026-11-20 re-checked, unchanged.
+- `ai.md` 86→88 — catalog recount (296 model pages: 75 `@cf` + 221 third-party, 32 vendors), new vendors `veed` (lip-sync video) and `xiaomi`. `api-shield.md` 104→108 — Web Assets Operations view.
+
+**Corrections (errors that would have shipped)**
+- `containers`: account limits were 10× too low — memory 6 TiB → **60 TiB**, vCPU 1,500 → **15,000**, disk 30 TB → **300 TB**; egress is $0.05 Oceania/Korea/Taiwan and $0.04 elsewhere, not a range.
+- `r2`: buckets per account 1,000,000 → **default 100,000** ($0.10/month per extra bucket); multipart maximum is 4.995 **TiB**, not GiB; two Portuguese fragments translated.
+- `browser-run`: `keep_alive` maximum is **20 min**, not 10; local dev no longer needs `--remote` for a real browser.
+- `tunnel`: normalization default-on date 2027-01-25 → **2027-02-08**; `cloudflared` ≥2026.11.0 also strips semicolon path parameters.
+- `moq`: draft-18 was "in progress" → recommended; "no FETCH" holds only for draft-14/16; dead `moq-interop-runner` link removed.
+- `durable-objects`: "KV pair 2 MB" → key+value / row **8 MB**; WebSocket 32 MiB is for *received* messages.
+- `workflows`: Paid retention is 7 days default / 30 max (the "limits page not yet updated" paragraph was stale); queued instances 100,000 / 2,000,000; Paid creation rate 300/s per account, 100/s per Workflow.
+- `cf`: Build Output `v0` → `v1`; beta → **1.0 release candidate** (`1.0.0-rc.1`, 2026-11-17); Vite plugin 2.0 / Wrangler ≥4.163.0; two unsupported claims dropped (Astro 6+ not building, `--mode` only on Vite/Astro).
+- `workers`: the 2026-11-17 compat-date defaults were written as future — now live (Python Workers keep the legacy registry; `enable_request_signal` opts in earlier).
+- `workers-ai` / `ai`: hosted-model count 73 → 75; catalog 272 → 296 pages; `embeddinggemma-2` no longer "available soon" (closes part of backlog #2).
+
+**Conflicts**
+- **Hyperdrive — changelog wins, on purpose.** The 2026-11-11 post raises Paid to 100 configs / 1,500 origin connections; the limits page (last updated Jun 9) still says 25 / ~100. Written as 100 / 1,500 with the conflict flagged inside the file. This is the one place this pass departs from "live page wins".
+- **Durable Objects Free storage.** The limits table says 10 GB per object (5 GB account total on Free); the storage-limit paragraph on the same page says "1 GB on the Free plan". Both recorded in the file; the agent's removal of the 1 GB figure was reverted by the coordinator.
+- **D1 virtual tables.** The import-export page still says export is unsupported; the API reference documents `dump_options.compatibility: "sqlite3_cli_only"`; the changelog's `--compatibility` Wrangler flag is on no docs page (labelled changelog-only).
+- **Tunnel.** Two changelog posts disagree on the date; the newer one (2026-11-12) explicitly replaces 2027-01-25.
+
+**Coordinator check.** ~70 claims spot-checked with `curl …/index.md | grep` against the live pages: every Containers/R2/Tunnel/Browser Run correction, response firewall, EmbeddingGemma 2, Inkling 2 Small, D1 data source limits, Terraform resources, spend-policy CLI flags and error codes, DO/Workers spending-limit behaviour, Workflows limits and `4.127.0`, `assets.base_path` versions, model-page recount. All matched except the DO Free-storage removal above.
+
+**Accepted NOT FOUND (14, each sourced live, outside the product's docs corpus).** `cf` ×8 (`1.0.0-rc.1`, `.cloudflare/output/v1/`, `cf deploy ./dist`, `cf deploy --no-provision`, `bulk-edit`, `cf accounts billing get-credits`, `4.163`, `4.160`) and `workers` `4.160` — changelog posts of 2026-11-17 and 2026-11-11; `d1` `dump_options.compatibility`, `sqlite3_cli_only` — API reference; `stream` `40 %` — changelog; `ai` `kling-v4-image`, `xiaomi` — present in `ai/llms.txt`, missed by the verifier. Verify baseline re-recorded. Blindness probe +1 each on `billing` (Workers Paid), `d1` (import-export), `flagship` (App Read), `workflows` (dead-letter) — new facts sitting in prose blocks the gate does not audit; probe baseline re-recorded.
+
+**Deferred**
+1. Workers AI: after 2026-11-20 re-check the deprecated IDs are gone and the 75-model count; per-model replacement for `llama-3.2-1b/3b-instruct` still not given. EmbeddingGemma 2 audio/video input details and Inkling 2 Small parameter schema not written.
+2. AI Gateway Key security 90-day threshold still changelog-only (not re-checked this pass).
+3. Agents: `codex()`/`claudeCode()` options, `harness.submit()/wait()/sessions.fork()`, AI Gateway `baseUrl` wiring, Nanocode HTTP routes/Code Mode, Exo recovery — not written; `agents.md` untouched this pass.
+4. DO retries: request-identity detail, per-attempt `RpcTarget` disposal, `TypeError`/`RangeError` rules — not written.
+5. Vercel→Workers per-framework gotchas and the feature→product mapping table; EmDash templates; Vite+ `cf init` flow.
+6. `frameworks/` still blind to `check-pointers`/`check-doc-urls`/`probe-blindness` and unmapped in `_known-pages.txt`; `frameworks/react-router.md`; TanStack validator API; RSC status; Vite 7 vs 8.
+7. Hyperdrive: re-read the limits page next pass and drop the conflict note once it shows 100 / 1,500.
+8. Durable Objects: Free per-object storage (1 GB vs 10 GB) — re-check when the page is made consistent.
+9. `cf` 1.0 RC extras: `--temporary-account`, `cf auth scopes/whoami`, keyring, `cf deploy` option table, `CLOUDFLARE_COMPLIANCE_REGION`, `experimental.streamingTailConsumers` move.
+10. Seen, not curated: WAF payload logging for custom rules (2026-11-12, Enterprise); Workers Rate Limiting weighted requests (2026-11-04); Artifacts local dev (2026-11-16); Workers Paid subrequests "10,000 (up to 10M)"; new `ai/models` per-model pricing/specs (kept out so `ai.md` stays a vendor table).
+11. AI Search: namespace error codes beyond `7062`/`7065`/`7066`, D1 per-row and sync error codes, reserved `meta_*` names. Realtime: Whiteboard troubleshooting table, `NoiseCancellationStatus`. R2: local S3 supported-operations table. MoQ: draft-18 demo namespaces (none listed).
+12. Rules: plan availability of `md5()`/`sha1()`/`sha512()` is not documented — re-check.
+13. Access passkeys note lives in `SKILL.md`, unaudited by any gate — re-verify against the live page each pass until the `cloudflare-one` skill covers it.
+14. **Tooling gap found at close.** `scripts/refresh --close` cannot finish a pass that retires a product: the page-baseline guard refuses the 6 → 0 collapse of `multi-cloud-networking` and `update-check --init-baseline` does not forward `--force`. Closed by hand with `pagediff.py --baseline … --init --force` on the installed copy, rsync back, then a green phase-1 re-run (111/111, no new subtrees, no verify regression, copies match). Fix: let `--close` accept and forward `--force`.
+
+---
+
 ## 2026-11-11
 
 **Light pass on the 2026-11-09 weekly check: 6 files curated by three Sonnet agents on disjoint sets, no structural drift, no new subtree. Workbench first re-synced from the installed copy (it was missing the 2026-11-05 second pass — `frameworks/`, commit `35c3f73`); zero workbench-only lines, so the rsync was non-destructive.**

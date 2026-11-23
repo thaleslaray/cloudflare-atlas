@@ -44,6 +44,7 @@
   Vite plugin ≥1.64.0 generates Worker maps by default.
 - **Vite plugin v2 (beta)**, `@cloudflare/vite-plugin@beta` + `cf`): config is `cloudflare.config.ts` (no Wrangler files), deploys with `cf deploy` (Wrangler can't), Vite ≥7, `ssr` environment, output `.cloudflare/output` — `workers/vite-plugin/v2-beta/`.
 - **Vite+** (`viteplus.dev`; Vite + format/lint/typecheck/test via `vp`) works with the Cloudflare Vite plugin; adopting it keeps your framework scripts, deploy command and config format — `workers/vite-plugin/vite-plus/`.
+- **Remix 3** (`workers/framework-guides/web-apps/remix/`): `cf init` + Vite+ + third-party Pitlane Remix Vite plugin + Cloudflare Vite plugin, deployed with `cf deploy` (Node ≥24). Remix v2 → React Router guide.
 - **EmDash**: open-source Astro CMS on Workers + D1 (content) + R2 (media), MCP server; `npm create emdash@latest -- my-emdash-site` (Node ≥22.23.4) — `workers/framework-guides/web-apps/emdash/`.
 - **Vercel → Workers** (`workers/static-assets/migration-guides/vercel-to-workers/`): per-framework guides for Astro, Next.js (vinext), Nuxt, React Router/Remix, SvelteKit, TanStack Start, static/SPA; use compat date ≥`2026-08-04`; `/_vercel/image` and `/_vercel/insights` URLs 404 after migrating, ISR/`s-maxage` has no 1:1 equivalent (prerender or framework cache integration).
 - Other bindings/triggers: `routes`, `triggers.crons`, `services` (Worker-to-Worker RPC),
@@ -71,6 +72,11 @@
 - `fetch()` subrequests support **`cf.vary`** — key the edge cache by request headers (e.g. `Accept`,
   `Accept-Language`); takes precedence over Cache Rules Vary for that subrequest. Cross-zone subrequests arrive with
   `CF-Connecting-IP` = `2a06:98c0:3600::103`; BYOIP destinations follow this too and keep the `CF-Worker` header and the cf.worker.upstream_zone field (2026-10-30).
+- **Spending limit** (2026-11-13; account mechanics in `billing.md`): one account-wide Workers limit on requests + CPU charges after included usage (excludes the Paid fee and other products). At the limit Cloudflare rejects **new invocations** —
+  HTTP (visitors get error `1103`, which has other causes too), Cron Triggers, Queue consumers, Email Workers, calls from other Workers/DOs; rejected requests aren't billed. Static assets served without running the Worker stay up (`run_worker_first` paths can fail).
+  A test Worker can trip the limit for production; not an exact cap. Block ends in minutes after raising/removing the limit, or at the next billing period — `workers/platform/spend-management/`.
+- **Version skew** (`workers/versions-and-deployments/version-skew/`): HTML from one version, assets from another (deployment propagation takes up to a few seconds per location; gradual-deployment splits; open pages after a deploy/rollback).
+  Each asset request uses the selected version's manifest, also via `env.ASSETS.fetch()`; a missing asset reaches your `fetch()` handler (or `404` with no script). Mitigate: version affinity, version overrides, or keep content-hashed files from earlier releases in the new version.
 - Dev loop: `wrangler dev` (local) · `wrangler dev --remote` (real resources) · `wrangler tail` (logs)
   · `wrangler deploy [--env staging] [--dry-run]` · auth profiles for multiple accounts (verify live).
 
@@ -83,7 +89,7 @@
   only if you bind a separate resource. Limits: crons, routes, Queue consumers, service bindings → prod only.
 - Previews per Worker: **100** (Free) / **500** (Paid); **100** deployments per Preview; oldest auto-deleted. No separate pricing
   documented (`workers/previews/`). Git-connected CI builds create one per branch — `workers/ci-cd/builds/build-branches/`.
-- `Workers Builds`: pin npm/Yarn/pnpm/Bun via the exact-version `packageManager` field in `package.json` (`engines.npm` is ignored; `build-image/`); builds + logs kept **90 days** (`limits-and-pricing/`). Images reject the compromised eMudhra CAs (2026-10-23): `BUN_VERSION` must be ≥1.4.4; custom `SSL_CERT_FILE`/`PIP_CERT` must not trust them (build-image page, "Trusted certificates").
+- `Workers Builds`: pin npm/Yarn/pnpm/Bun via the exact-version `packageManager` field in `package.json` (`engines.npm` is ignored; `build-image/`); builds + logs kept **90 days**; the GitHub repo picker lists only accounts/repos **you** can access on GitHub (2026-11-10; one-time app authorization per person, separate from installing the app) (`limits-and-pricing/`). Images reject the compromised eMudhra CAs (2026-10-23): `BUN_VERSION` must be ≥1.4.4; custom `SSL_CERT_FILE`/`PIP_CERT` must not trust them (build-image page, "Trusted certificates").
 
 ## Putting a Worker behind Access (sign-in) — 2026-08-14
 Require sign-in before a request reaches your Worker, without writing auth code. Needs **Zero Trust
@@ -106,6 +112,11 @@ app (`POST /accounts/{account_id}/access/apps`):
 - With account-level Access on, exempt one Worker with a `worker` destination + a policy of
   `decision: "bypass"` and `include: [{ "everyone": {} }]`.
 
+- **Assets under a URL prefix** (2026-11-11; `workers/static-assets/routing/advanced/serving-a-subdirectory/`): `assets.base_path` set to `/blog` (Wrangler ≥4.148.0; `worker.assets.basePath` in `cloudflare.config.ts`, `cf` ≥1.0.0-beta.13)
+  keeps files at the asset-dir root. `/blog/` → `index.html`; outside `/blog` runs your Worker. `routes` must include the prefix; `_headers`, `_redirects`, `run_worker_first` use the **full public path**;
+  `env.ASSETS.fetch()` needs `/blog` in the pathname; Vite plugin builds also set Vite's `base` option to `/blog/`.
+- **Custom API headers**: `CLOUDFLARE_API_HEADERS='{"X-Name":"value"}'` adds headers to Cloudflare API calls from a recent Wrangler (4.160.0 or later) and `cf` (not local emulation/OAuth) — details in `cf.md`.
+
 ## Gotchas
 - **CPU time, not wall time, is what's limited & billed** — `await`ing on a slow subrequest is free;
   burning CPU isn't. "Too much CPU time used" → offload to waitUntil/DO/Workers AI.
@@ -114,15 +125,15 @@ app (`POST /accounts/{account_id}/access/apps`):
 - **Bodies are streams, read once** — "Body has already been used" → `response.clone()` first. Stream
   large bodies (`TransformStream`); buffering >128 MB triggers Error 1102 `exceeded resource limits`.
 - **Node built-ins**: default-on for compat date **≥ 2026-08-04** (older: add `nodejs_compat`).
-- **Defaults flip at compat date ≥ 2026-11-17** (changelog 2026-11-02; older dates unchanged): new module registry (JS only; `import.meta`,
+- **Defaults flipped at compat date ≥ 2026-11-17** (live from 2026-11-17; older dates unchanged): new module registry (JS only — Python keeps the legacy one; `import.meta.url/main/resolve()`,
   `require()` of ESM without top-level `await`, rejects invalid import attributes; keep old via `legacy_module_registry`, try early via
-  `new_module_registry`) and `request.signal` client-disconnect events (opt out `disable_request_signal`; does not enable `request_signal_passthrough`, pass the signal to `fetch()` yourself).
+  `new_module_registry`) and `request.signal` client-disconnect events (earlier dates opt in `enable_request_signal`; opt out `disable_request_signal`; does not enable `request_signal_passthrough`, pass the signal to `fetch()` yourself).
 - **Frameworks**: use Workers-native ones (Hono, itty-router); Express-style Node middleware won't run. DO calls: prefer **RPC** (`stub.method()`); legacy `stub.fetch()` still works.
 - **MongoDB**: Hyperdrive supports only PostgreSQL/MySQL; connect directly (~300 ms per request) or hold the connection in a Durable Object — `workers/databases/third-party-integrations/mongodb/`.
 - **Static Assets bypass auth middleware** (measured 3× 2026-08-27): `run_worker_first` defaults to
   **false**, so a request matching a file in `public/` is served without invoking the Worker. Fix:
   `assets.run_worker_first: ["/admin", "/admin/*", "/api/*"]` — list extensionless canonical paths too
-  (`html_handling` maps extensionless paths to their .html file); `assets.base_path` serves assets from a URL prefix; internal `env.ASSETS.fetch()` with `.html` gets a 307.
+  (`html_handling` maps extensionless paths to their .html file); internal `env.ASSETS.fetch()` with `.html` gets a 307.
   Vitest calls the handler directly and won't catch it — prove with `wrangler dev` + curl (expect 302/401).
 
 ## Pricing & limits

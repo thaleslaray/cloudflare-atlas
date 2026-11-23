@@ -68,7 +68,8 @@
   "Apple Pay",
   "Instant Bank Payments",
   "Load Balancing",
-  "Manage Account"
+  "Manage Account",
+  "Workers Paid"
  ],
  "bots": [
   "Business Insights",
@@ -90,9 +91,7 @@
   "cache-reserve",
   "query-string"
  ],
- "cf": [
-  "Build Output"
- ],
+ "cf": [],
  "china-network": [
   "Argo Smart Routing",
   "Bot Management",
@@ -133,7 +132,8 @@
  "d1": [
   "Time Travel",
   "Workers Binding",
-  "Workers Paid"
+  "Workers Paid",
+  "import-export"
  ],
  "ddos-protection": [
   "Essentially Off",
@@ -165,7 +165,9 @@
   "email-authentication",
   "magic-link"
  ],
- "flagship": [],
+ "flagship": [
+  "App Read"
+ ],
  "fundamentals": [
   "Account Roles",
   "Audit Logs",
@@ -492,7 +494,8 @@
   "workers-vpc"
  ],
  "workflows": [
-  "Workers Standard"
+  "Workers Standard",
+  "dead-letter"
  ],
  "zaraz": [
   "Single Page Application",

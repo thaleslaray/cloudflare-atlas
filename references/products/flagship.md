@@ -47,7 +47,12 @@
 2. **OpenFeature SDK** (`@cloudflare/flagship`) — for Node.js, browser, or OpenFeature vendor-neutrality.
    TypeScript: `@cloudflare/flagship` + `@openfeature/server-sdk` (server) or `@openfeature/web-sdk` (browser).
    Python: `cloudflare-flagship` (server, HTTP). Go: `github.com/cloudflare/flagship/sdks/go` (server, HTTP).
-   Rust: `cargo add cloudflare-flagship` (Rust ≥1.88, Tokio; HTTP or `.local_evaluation(true)` with a Read token; no Workers binding — `flagship/sdk/rust/`).
+   Rust (official, 2026-11-10): `cargo add cloudflare-flagship` (Rust ≥1.88, Tokio; **no Workers binding**) — `FlagshipServerProvider` via
+   `FlagshipClientOptions::builder().app_id().account_id().auth_token()` (token: Evaluate / App Evaluate). Default = HTTP evaluation;
+   `.local_evaluation(true)` downloads definitions (token: **Read / App Read**; `account_id` required; refresh 30 s default; not in analytics;
+   call `initialize_provider()` first, `shutdown_provider()` after; failed refresh keeps last definitions, status `STALE`). Optional
+   `cache_ttl` response cache (off by default; can't combine with local evaluation). Rust OpenFeature methods return `Result` (no default
+   passed to providers). Also `FlagshipClient` without OpenFeature, structured context, logging/telemetry hooks (`flagship/sdk/rust/`).
    Inside a Worker you can pass the binding into the SDK
    (`new FlagshipServerProvider({ binding: env.FLAGS })`) to keep OpenFeature API + binding speed.
 3. **Evaluation API** (when you can't use the binding): The `GET` endpoint

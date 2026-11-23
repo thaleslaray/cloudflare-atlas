@@ -33,6 +33,10 @@ There is **no `wrangler.jsonc` binding**. API Shield is zone-level config:
 ## Key features & access patterns
 - **Endpoint Management + API Discovery** — inventory endpoints; ML discovers "shadow" APIs from
   traffic (needs 500+ reqs/10d, 2xx from edge). Path-normalized (`/profile/238` → `/profile/{var1}`).
+  UI is **Web Assets → Operations**. Per `full`-state operation: request count, latency (avg origin response ms), error
+  rate (4xx/5xx), response size, labels, auth status, sequences; detailed metrics for 24 h or 7 d; deleting a full
+  operation drops its history. Changelog 2026-11-11 (not on the docs page): metric views (traffic, errors, latency,
+  response size, security) with server-side sorting to prioritize operations in large inventories.
 - **Schema Validation 2.0** — upload OpenAPI v3.0; auto-adds endpoints; validates body/params.
   (Classic Schema Validation is **deprecated** — migrate.)
 - **Schema Learning** — runs **weekly** on prior-7-day `2xx` traffic (fields need 1,000 qualifying reqs,

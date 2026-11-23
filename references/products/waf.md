@@ -30,6 +30,7 @@
 | **Custom rules** | `http_request_firewall_custom` | Your block/challenge/skip/log logic |
 | **Rate limiting rules** | `http_ratelimit` | Count requests per characteristic, throttle |
 | **Managed Rules** | `http_request_firewall_managed` | Deploy Cloudflare-maintained rulesets via `execute` |
+| **Response custom rules** (Response firewall) | `http_response_firewall_custom` | `block` / `log` / `execute` on **responses** |
 
 Managed ruleset IDs: Cloudflare Managed `efb7b8c949ac4650a09736fc376e9aee` (OWASP+CVEs) ·
 OWASP Core Ruleset `4814384a9e5d4991b9815dcfc25d2f1f` · Exposed Credentials Check
@@ -87,6 +88,16 @@ Each phase is a separate ruleset (entrypoint) per zone — you cannot mix phases
   client IP against the threat-intel DB (rolling 7-day window; IPs age out silently) and populates
   `cf.intel.ip.*` — `datasets` (`ddos`/`waf`), `attacker_names`, `attacker_countries`,
   `target_industries`, `target_countries` — via `any(cf.intel.ip.…[*] == …)`.
+- **Response firewall** (new page 2026-11-12, `waf/response-firewall/`): default protections are on for everyone, every
+  plan; you add **response custom rules**. **3 per zone on every plan** (disabled rules count); at most **one `execute`**
+  rule (runs the defaults alongside yours, leaving 2 slots for `block`/`log`). Fields: all request fields of custom rules
+  (same entitlements) plus `http.response.code`, `http.response.content_type.media_type`, `http.response.headers`
+  (`.names`/`.values`), `http.response.set_cookies` (each header/cookie field has a `raw.` variant).
+  **`http.response.body.raw` is not supported.** e.g. `starts_with(http.request.uri.path, "/api/") and http.response.code eq 500`.
+- **AI Security for Apps via Terraform (2026-11-12, provider ≥ 5.29.0):** `cloudflare_ai_security` (`zone_id`, `enabled`) turns it on;
+  `cloudflare_ai_security_custom_topics` (`topics = [{label, topic}]`) **manages the whole topic list — it overwrites topics
+  added in the dashboard**; block rules live in the normal `http_request_firewall_custom` `cloudflare_ruleset` (one
+  entry-point ruleset per zone — add to the existing resource). Still scans only endpoints labeled `cf-llm`.
 - **Execution order** (terminating action stops all later rules): IP Access rules → Firewall Rules
   (deprecated) → **custom rules → rate limiting → managed rules**.
 - **`skip`** action bypasses later evaluation: `ruleset: 'current'` skips the rest of *this*

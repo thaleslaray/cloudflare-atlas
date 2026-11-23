@@ -72,6 +72,11 @@ All of these take **precedence over Page Rules**.
   - **`coalesce(a, b, …)`** — first non-nil argument (≥2, same type); fallback for missing values.
   - **`hash_in_range(min, max, seed…)`** — all HTTP products, all plans. Range `[min, max)`, literal
     bounds, seeds must be fields; e.g. ~10% sample: `hash_in_range(0, 100, cf.random_seed) < 10`.
+  - **Hash functions** (changelog + `rules-language/functions/`, 2026-11-12): `md5()` (16 bytes), `sha1()` (20),
+    `sha512()` (64) join `sha256()`; each takes a String or Bytes and returns **raw bytes** — wrap in `encode_base64()`
+    for a string. The docs page states **no** plan gate or phase restriction for the three new ones, whereas `sha256()` is an
+    **Enterprise add-on** (needs an entitlement) usable **only in Transform Rules rewrite expressions** — don't assume the new
+    three share that, and test where you use them.
   - **`cf.appsec.request.failed_detections`** (2026-10-09) also works in zone Request Header Transform Rules (→ `waf.md`).
 
 ## Gotchas

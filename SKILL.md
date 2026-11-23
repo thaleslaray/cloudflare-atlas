@@ -214,9 +214,9 @@ Pick a product, then read `references/products/<slug>.md` for depth. If nothing 
 ### Other
 - **Use cases** — Discover what's possible with Cloudflare. → products/use-cases.md
 
-## Coverage boundary — the 18 live products this skill does NOT curate
+## Coverage boundary — the 17 live products this skill does NOT curate
 
-The catalog above is 96 files against **112 live products** (`scripts/update-check`, 2026-10-27). The other 18 have no reference file here,
+The catalog above is 96 files against **111 live products** (`scripts/update-check`, 2026-11-16). The other 17 have no reference file here,
 and until 2026-09-04 the skill never said so: a question about Access hit silence, and silence is
 where pre-trained guessing fills in. Say "atlas does not cover this" and route, rather than answering
 from memory.
@@ -230,6 +230,23 @@ product file would be:
 | Access (apps, policies, service tokens, mTLS, SaaS SSO), Gateway, WARP/device posture, tunnels-as-ZT | the **`cloudflare-one`** skill |
 | Migrating onto Cloudflare One from another SASE/ZTNA vendor | the **`cloudflare-one-migrations`** skill |
 
+**Known gap in the sibling skill — Access passkeys (verified live 2026-11-17).** The `cloudflare-one`
+skill does not mention them yet, so the facts live here until it does:
+- Passkeys are an Access **login method** (WebAuthn; the authenticator must support discoverable
+  credentials and user verification). Users sign in without a password, OTP or typing an email.
+- Enable: Zero Trust > Integrations > Identity providers > **Passkeys**, or `POST
+  /accounts/{account_id}/access/identity_providers` with `type: "passkeys"`; optional
+  `config.login_page_auto_prompt`. Then allow it in each application's **Login methods** (and on
+  the App Launcher's Authentication tab).
+- **Gotcha:** passkey sign-in does not retrieve group memberships or custom attributes from another
+  identity provider — policies that depend on IdP groups will not match. It also grants nothing by
+  itself; the user must still match an Access policy.
+- Enrollment needs another login method first; if passkeys are the app's only method, Access emails
+  a verification code. Users add/rename/delete their own; an admin deletes one under Team &
+  Resources > Users > User identity (or the API). Deleting a passkey does **not** end active
+  sessions — revoke those separately.
+- Source: `developers.cloudflare.com/cloudflare-one/integrations/identity-providers/passkeys/`.
+
 `cloudflare-one` alone is 732 doc pages — larger than any product file in this catalog and larger
 than most of them combined. Duplicating it here would create the second, staler source of truth this
 skill exists to prevent.
@@ -237,8 +254,12 @@ skill exists to prevent.
 **Network / connectivity products with no atlas file and no sibling skill** — answer ONLY from live
 docs (`developers.cloudflare.com/<slug>/llms.txt`), never from memory:
 `1.1.1.1` · `byoip` · `cloudflare-network-firewall` · `cloudflare-wan` · `data-localization` ·
-`firewall` · `magic-transit` · `multi-cloud-networking` · `network-error-logging` · `network-flow` ·
+`firewall` · `magic-transit` · `network-error-logging` · `network-flow` ·
 `network-interconnect` · `radar` · `security` · `warp-client`
+
+`multi-cloud-networking` stopped being a product on 2026-11-12: the slug now 301s to
+`cloudflare-wan/reference/cloud-networking/` (IPsec or Cloud Interconnect on-ramps, per-provider
+guides). Route cloud on-ramp questions to the `cloudflare-wan` live docs.
 
 **Not products** (Cloudflare doc-site infrastructure, nothing to curate): `docs-for-agents` ·
 `migration-guides` · `style-guide`

@@ -34,7 +34,22 @@
   virtual backgrounds, transcription. Docs (restructured 2026-10-19): **`humans/`** = SDKs for people
   (`sdk-selection/`, prebuilt **UI Kit**, **Core SDK** + ~630-page API reference, not mirrored here);
   **`agents/`** = Agent Participant; also `collaboration/` (key-value store, broadcast),
-  `custom-plugins/` (Whiteboard), `platform/` (pricing, limits, retention, allowlist).
+  `custom-plugins/`, `platform/` (pricing, limits, retention, allowlist).
+- **Whiteboard plugin** (Cloudflare-hosted, nothing to deploy): load an `iframe` from
+  `https://whiteboard-v2.plugins.realtime.cloudflare.com/#authToken=<auth_token>` and register it with the
+  Core SDK plugins API (same plugin `id` on every platform; UI Kit shows it in the plugins panel). Token goes
+  **after `#`, never `?authToken=`** (plugin rejects it); set `allow="clipboard-read; clipboard-write"` before
+  first load. One board per meeting, kept indefinitely, **no API to clear it**; every participant with it open can
+  edit (presets don't control that); no images/frames/embeds/import; limited concurrent participants per board.
+  Docs: `realtimekit/custom-plugins/whiteboard/`.
+- **Noise cancellation** (web only — React/Angular/JS, no mobile): `npm i @cloudflare/realtimekit-noise-cancellation`,
+  then `await RealtimeKitNoiseCancellation.init({ meeting })` after the meeting instance exists; runs on the
+  participant's device. `autoManage` defaults `true` (starts when the mic is available, disposes on leave); with
+  `false` call `enable()` / `disable()` / `dispose()` yourself. Never unmutes the mic. `humans/core/noise-cancellation/`.
+- **Content hints** (web SDKs, not mobile): set `MediaStreamTrack.contentHint` on `meeting.self` tracks from the
+  `audioUpdate` / `videoUpdate` / `screenShareUpdate` events — audio `speech` | `music` | `speech-recognition`,
+  video `motion` | `detail` | `text`, `""` clears it. Re-apply when a track is replaced.
+  Docs: `realtimekit/best-practices/content-hints/`.
 - **Agent Participant**: a server-side agent that joins a meeting over a WebSocket — no client SDK,
   any backend (Worker, Durable Object, own server). Add a participant with an agent **preset**, then
   open the `agent-ws/v1` endpoint on `api.realtime.cloudflare.com` (`?subscriptions=transcript,participant,broadcast`)
@@ -121,8 +136,15 @@ curl https://rtc.live.cloudflare.com/v1/turn/keys/$KEY_ID/credentials/generate-i
 - **RealtimeKit: per participant-minute** (the live pricing page no longer mentions Beta/free): A/V
   participant **$0.002/min**, audio-only **$0.0005/min** (set by the preset's `Meeting Type`),
   recording/RTMP/HLS export **$0.010/min** (audio-only export **$0.003/min**), raw-RTP→R2
-  **$0.0005/min**, real-time transcription via Workers AI model pricing. Agent Participants bill as
+  **$0.0005/min**; included per month on all accounts: **10,000** participant-min, **100** export-min (per type); transcription/summarization via Workers AI pricing. Agent Participants bill as
   participants.
+
+**RealtimeKit auth tokens** (JWT, scoped to one participant + meeting): default valid from issue for **100 days**.
+Pass `not_before` / `expires_on` (RFC 3339, optional) in `token` when adding a participant (or in the refresh body);
+`expires_on` must be in the future, window ≤ **100 days**. `DELETE .../participants/{id}/token` revokes one token
+(up to **60 s** to take effect everywhere — delete the participant to block immediately); refreshing doesn't invalidate
+older tokens. Rejected tokens (`participant_token_expired`, `…_not_yet_valid`, `…_revoked`, `…_invalid`) aren't billed.
+A removed participant's token still opens the Whiteboard until it expires. Docs: `realtimekit/concepts/participant/`.
 
 **RealtimeKit limits** (`.../realtimekit/platform/limits/`): all APIs 3,500 req/5 min (shared with the
 Cloudflare API limit), Recording APIs 1,000 req/50 s; per-participant SDK ops — KV writes and

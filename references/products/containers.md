@@ -125,7 +125,7 @@ when the instance sleeps → scale-to-zero). Cost drivers, on top of the $5/mo W
 - **Memory:** 25 GiB-hours/mo included, then **$0.0000025 / GiB-s** (billed on *provisioned* memory).
 - **CPU:** 375 vCPU-min/mo included, then **$0.000020 / vCPU-s** (billed on *active* usage).
 - **Disk:** 200 GB-hours/mo included, then **$0.00000007 / GB-s** (provisioned).
-- **Egress:** **$0.025/GB** NA+EU (1 TB incl.), $0.04–0.05 elsewhere (500 GB incl.).
+- **Egress:** **$0.025/GB** NA+EU (1 TB incl.), $0.05 Oceania/Korea/Taiwan, $0.04 everywhere else (500 GB incl. each).
 - You're **also billed for the underlying Workers + Durable Objects** usage.
 
 **Instance types** (vCPU, memory, disk): `lite` 1/16, 256 MiB, 2 GB · `basic` 1/4, 1 GiB, 4 GB · `standard-1` 1/2, 4 GiB, 8 GB ·
@@ -133,8 +133,10 @@ when the instance sleeps → scale-to-zero). Cost drivers, on top of the $5/mo W
 Custom (`durable_object` policy) minimums: vCPU 1/16 (`0.0625`), 256 MiB, 2 GB (`2000` MB); maximums = account
 limits (4 vCPU, 12 GiB, 20 GB per instance). Legacy `default` policy may differ. Fields: `vcpu`/`memory_mib`/`disk_mb`
 (Wrangler, `default` policy) vs `vcpu`/`memoryMib`/`diskMb` (`ctx.container.start()`, `durable_object`). Image size = instance disk.
-**Account limits (all maximums are defaults, can be raised via account team/Support):** 6 TiB concurrent memory ·
-1,500 concurrent vCPU · 30 TB concurrent disk · 50 GB total image storage. Verify on `developers.cloudflare.com/containers/platform/limits/`.
+**Account limits (all maximums are defaults, can be raised via account team/Support):** 60 TiB concurrent memory ·
+15,000 concurrent vCPU · 300 TB concurrent disk · 50 GB total image storage. **Outbound HTTP request body** (container → external
+service via an outbound handler): **100 MiB per request** by default (streaming/chunked/multipart don't bypass it; raise via Support).
+Snapshots are **free during the public beta** (pricing at GA). Verify on `developers.cloudflare.com/containers/platform/limits/`.
 
 ## Going deeper
 > **Docs reorganized 2026-08 — old bare paths 404 or redirect:** `pricing/` → `platform/pricing/`; `platform-details/limits/` → `platform/limits/`;

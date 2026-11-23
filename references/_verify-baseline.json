@@ -13,7 +13,10 @@
   "tts_error",
   "turnmetrics"
  ],
- "ai": [],
+ "ai": [
+  "kling-v4-image",
+  "xiaomi"
+ ],
  "ai-crawl-control": [
   "paid-plan",
   "pricing=zone-default | in-band | bypass",
@@ -59,9 +62,7 @@
  "basin-catalog": [],
  "basin-pipelines": [],
  "basin-sql": [],
- "billing": [
-  "Billing API"
- ],
+ "billing": [],
  "bots": [],
  "browser-run": [],
  "cache": [
@@ -72,7 +73,16 @@
   "pages/workers/runtime-apis/cache/",
   "per-data-center"
  ],
- "cf": [],
+ "cf": [
+  ".cloudflare/output/v1/",
+  "1.0.0-rc.1",
+  "4.160",
+  "4.163",
+  "bulk-edit",
+  "cf accounts billing get-credits",
+  "cf deploy --no-provision",
+  "cf deploy ./dist"
+ ],
  "china-network": [
   "GET /client/v4/ips?networks=jdcloud",
   "GET https://api.cloudflare.com/client/v4/ips?networks=jdcloud",
@@ -92,6 +102,8 @@
  ],
  "d1": [
   "3.50",
+  "dump_options.compatibility",
+  "sqlite3_cli_only",
   "supabase2d1",
   "wrangler d1 create my-db",
   "wrangler d1 migrations apply my-db --remote"
@@ -276,6 +288,7 @@
   "a.b.example.com"
  ],
  "stream": [
+  "40 %",
   "recording.mode: \"automatic\""
  ],
  "support": [
@@ -360,11 +373,9 @@
   "eth_compile*"
  ],
  "workers": [
-  "assets.base_path"
+  "4.160"
  ],
- "workers-ai": [
-  "google/embeddinggemma-2"
- ],
+ "workers-ai": [],
  "workers-vpc": [],
  "workflows": [],
  "zaraz": [

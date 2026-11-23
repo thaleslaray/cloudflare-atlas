@@ -57,7 +57,6 @@ mesh
 migration-guides
 monetization-gateway
 moq
-multi-cloud-networking
 network
 network-error-logging
 network-flow

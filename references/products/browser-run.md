@@ -95,6 +95,10 @@ Workers, built for AI agents rather than for full web-app fidelity.
   (`list_webmcp_tools`, `execute_webmcp_tool`); CDP clients: the `WebMCP` domain. Docs: `features/webmcp/`.
 - **Choose deliberately:** Kitesurf is not Chromium. For agent scraping/screenshots it is the cheaper,
   more scalable default; for pixel-faithful rendering of heavy web apps, stay on Chromium.
+- **Open source (2026-11-12):** Kitesurf is on GitHub (Apache 2.0; "still experimental and under heavy development"
+  per the post) — run locally with Wrangler (`pnpm run dev`) or deploy your own instance. It has **no built-in auth**
+  (protect with Cloudflare Access or similar) and needs **Dynamic Workers → Workers Paid plan**. Via the binding:
+  `quickAction("screenshot", { url, browser: "kitesurf" })` (any other engine name fails validation).
 - Docs: `developers.cloudflare.com/browser-run/kitesurf/`.
 
 ## Concepts
@@ -102,7 +106,7 @@ Workers, built for AI agents rather than for full web-app fidelity.
   and Sessions both draw from it).
 - **Concurrent browsers** — only Browser Sessions count; billed as monthly avg of daily peaks.
 - **Idle timeout** — a session closes after **60s of inactivity** by default; extend with
-  `keep_alive` (ms, up to 10 min): `puppeteer.launch(env.MYBROWSER, { keep_alive: 600000 })`. This
+  `keep_alive` (ms, **up to 20 min**): `puppeteer.launch(env.MYBROWSER, { keep_alive: 1200000 })`. This
   is an *inactivity* timeout, not a max lifetime — keep sending commands to stay alive longer.
 - **Reuse sessions** — `browser.disconnect()` (not `.close()`) keeps the browser warm to reconnect
   next request (skips cold start); or persist inside a Durable Object for stateful routing.
@@ -124,7 +128,12 @@ Workers, built for AI agents rather than for full web-app fidelity.
   mean you forgot to close them. Sessions also close on Browser Run platform releases.
 - **Chrome 152** (2026-10-30) is the default. Quick Actions' default User-Agent now says `Chrome/152.0.0.0` (was 119) — don't
   allowlist on it (changes with Chrome); override via `userAgent`. `/links` returns absolute URLs.
-- Local dev: `wrangler dev --remote` (or `remote: true` binding) to hit a real headless browser.
+- **Local dev (2026-11-13):** under `npx wrangler dev`, Puppeteer, Playwright, CDP and `.quickAction()` run
+  against **Chrome on your machine** (before, `.quickAction()` failed locally with `The RPC receiver does not
+  implement the method "quickAction"`). Two exceptions: `json` returns **placeholder data** shaped like your
+  `response_format.json_schema` (Workers AI isn't local; `const`/`enum`/`default` values are used, else empty
+  values) and `browser: "kitesurf"` **throws**. For real `json` results or Kitesurf set `"remote": true` on the
+  binding. `X_BROWSER_HEADFUL` env var opens a visible local Chrome (experimental).
 
 ## Pricing & limits
 > ⚠️ Pricing/limits change — verify live (`developers.cloudflare.com/browser-run/pricing/` &
@@ -139,7 +148,7 @@ Workers, built for AI agents rather than for full web-app fidelity.
 
 **Key limits (limits page, updated 2026-09-26):** new instances **Free** 1/20s · **Paid** 3/s
 (default, raisable). Concurrent browsers/account **Free** 3 · **Paid** default 200 (request more).
-Quick Actions requests **Free** 1/10s · **Paid** 30/s. Browser idle timeout 60s (→10 min via
+Quick Actions requests **Free** 1/10s · **Paid** 30/s. Browser idle timeout 60s (→20 min via
 `keep_alive`). `/crawl` on Free:
 5 jobs/day, 100 pages/crawl. Verify on the limits page.
 

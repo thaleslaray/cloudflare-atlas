@@ -119,11 +119,13 @@ gRPC works over private subnet routing only — **not** supported on published/p
   `GET /teamnet/routes` are filtered to what the caller can read. GA 2026-10-22:
   `Cloudflare Tunnel - Granular Connector cloudflared Read And Monitor` = the Read role (selected tunnels, IP/hostname routes, connector host
   details) **plus remote log streaming**; plain Read does not grant log streaming.
-- **URL normalization (`cloudflared` ≥ `2026.10.0`)**: normalizes the path before ingress matching (removes `.`/`..`
-  dot segments, backslashes → `/`, merges repeated slashes) to harden rules that require Access validation; the path
-  sent to the origin is unchanged. **Off by default now** — enable with `--disable-path-normalization=false` before
-  `run` or `TUNNEL_DISABLE_PATH_NORMALIZATION=false` + restart each replica. Releases from **2027-01-25** turn it on
-  by default — test path-based routing first.
+- **URL normalization (`cloudflared` ≥ `2026.10.0`)** (`tunnel/reference/origin-parameters/`): normalizes the path before ingress
+  matching to harden rules that require Access validation — removes `.`/`..` dot segments (RFC 3986), backslashes → `/`, merges
+  repeated slashes; **≥ `2026.11.0` also removes semicolon-delimited path parameters** for matching. The path sent to the origin is
+  unchanged; configs without Access-validated rules are unaffected. **Off by default** in `2026.10.0` and `2026.11.0` — enable with
+  `--disable-path-normalization=false` before `run` or `TUNNEL_DISABLE_PATH_NORMALIZATION=false` + restart each replica. New releases
+  turn it on by default from **2027-02-08** (moved from 2027-01-25 by the 2026-11-12 post; the earlier 2026-10-22 post still says 01-25 —
+  newer wins, and the docs page defers to the changelog) — test path-based routing first, incl. rules matching paths with semicolons.
 - **HA via replicas, not a single process** — run 2–4 replicas (same tunnel UUID, unique connector IDs); traffic routes to the geographically closest.
   Replicas do **no** steering and a Load Balancer sees one UUID as one endpoint — for steering/affinity
   give each host its **own tunnel**; TCP monitors don't work on tunnel endpoints (monitor an `http_status:200` route).

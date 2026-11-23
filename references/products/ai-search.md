@@ -17,7 +17,8 @@
 ## When to use
 - You need **RAG over a corpus** (docs, support KB, policies, product content) and don't want to own
   embeddings/vector DB/chunking glue. AI Search is the zero-ops path.
-- Data lives in **R2**, a **website** (crawl), or you **upload** files (built-in storage / Items API).
+- Data lives in **R2**, a **website** (crawl), a **D1 database** (beta, rows of a SQL query), or you
+  **upload** files (built-in storage / Items API).
   R2 objects **without a filename extension** index only with an explicit supported `Content-Type`
   (2026-09-11); missing, malformed or `application/octet-stream` is skipped.
 - Want a ready answer → `chatCompletions()`. Want raw chunks for your own UI/LLM → `search()`.
@@ -79,6 +80,34 @@ Key `ai_search_options.retrieval`: `retrieval_type` (`vector`|`keyword`|`hybrid`
 `match_threshold` (0–1, default 0.4), `max_num_results` (1–50, default 10), `filters`, `context_expansion`
 (0–3, default 0), `fusion_method` (`rrf`|`max`), `keyword_match_mode` (`and`|`or`, default `and`),
 `boost_by` (max 3 fields). Stream with `{ stream: true }` on `chatCompletions()`.
+
+## Namespaces (2026-11-13 doc subtree `api/namespaces/`)
+Every instance belongs to a **namespace** (logical grouping; instance name unique *within* it). A `default`
+namespace exists on every account; its description can't be changed, its public endpoint can; it can't be deleted.
+- **REST** `/accounts/{id}/ai-search/namespaces[/{name}]` (token needs **AI Search:Edit** + **AI Search:Run**):
+  `POST` create · `GET` list (`per_page` default 20, max 100; `search`) · `GET` one · `PUT` update (`description`
+  ≤256 chars, `public_endpoint_params`) · `DELETE` (only if empty: error `7066`; `default`: `7065`) ·
+  `PATCH .../namespaces/<ns>/instances/<name>` with `{ "new_namespace": ... }` moves an instance.
+  `name` = 1–28 lowercase letters/digits/hyphens, start+end alphanumeric, **not renameable**. 100 namespaces max (`7062`).
+- Binding needs `@cloudflare/workers-types` ≥ `4.20260304.0` and `wrangler` ≥ `4.68.1`. `get()` is synchronous
+  (no network call; resolved on first `search()`). `ai_search` (single instance) has no namespace-level calls (list, create, delete).
+- **Terraform** (provider ≥ **v5.29.0** for namespaces on instances): resources `cloudflare_ai_search_namespace`
+  (changing `name`/`account_id` replaces it) and `cloudflare_ai_search_instance` (`id` = instance name, `namespace`,
+  `type` `r2`|`web-crawler`, `source`); data sources `cloudflare_ai_search_namespace(s)` / `cloudflare_ai_search_instance(s)`.
+  **Changing `id`, `account_id`, `namespace` or `type` replaces the instance and wipes its index** (check `must be replaced`).
+  Import ids: `<account_id>/<namespace>/<id>` (instance), `<account_id>/<name>` (namespace). Models, `chunk_size`, `token_id` are computed.
+
+## D1 data source (beta, 2026-11-12) — `configuration/data-source/d1/`
+Runs **your read-only query** and indexes **each row as one Markdown document**. Create with `type: "d1"`,
+`source: <D1 database id>`, `source_params.d1: { query, template }`; `token_id` of a **service API token** is **always
+required** (its AI Search Index Engine permission includes D1 Read). Validated at create (bad query → no instance).
+- Query: one `SELECT`/`WITH`; **no** `;` `--` `/*`, bound params, `ORDER BY`/`LIMIT`, write keywords, `sqlite_`/`_cf_`/`pragma_`
+  names — rejected even inside string literals (so `replace()` fails). Must return unique non-null `id` (all text or all
+  integers) and 1–100,000 rows. Columns: `title`, `content`, `meta_<name>` (≤5, becomes custom metadata; number|text)
+  and others as labeled fields. `template` (example value `"labelled"`; dashboard offers Labelled, Content only, Key-value, JSON).
+- Sync reads the full result ≥2× with your token (counts toward D1 **rows read**); rows no longer returned are deleted,
+  but a failed/empty query keeps items. `source` can't change later; a `source_params` object on update replaces
+  `include_items`/`exclude_items` (resend them). Limits: query 10,000 chars · `id` 512 bytes · rendered doc 64 KiB/row · metadata value 500 chars.
 
 ## Per-tenant isolation
 - **Instance per tenant** (strongest isolation): namespace binding + `env.TENANTS.create({ id: \`tenant-${id}\` })`,
@@ -143,8 +172,9 @@ Everything here is **opt-in**; previous behaviour stays the default.
   logs); **generation, query rewriting and external providers** still bill via your account/gateway.
   Storage, vector indexing and crawl (`Browser Run`) usage are included.
 
-**Limits (Free / Paid):** instances **100 / 5,000 default** · namespaces **100** · files per instance **100K / 1M
-(500K hybrid)** · pages crawled/day **500 / unlimited** · instances per cross-instance search **10** ·
+**Limits (Free / Paid):** instances **100 / 5,000 default** (counted across all namespaces; namespaces carry no charge) ·
+namespaces **100** · files per instance **100K / 1M (500K hybrid)** · pages per `discover` crawl **100,000** ·
+pages crawled/day **500 / unlimited** · instances per cross-instance search **10** ·
 custom metadata fields **5** · metadata per vector **10 KiB** · file sizes as in Gotchas. Verify live.
 
 ## Going deeper
