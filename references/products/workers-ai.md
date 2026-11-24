@@ -64,7 +64,7 @@ await env.AI.run('@cf/zai-org/glm-5.3', { messages: [...] }, { gateway: { id: 'd
   silently ignore it, and the request queues normally.
 
 ## Model catalog
-75 Cloudflare-hosted models (75 model pages in `workers-ai/llms.txt`, 2026-11-17; was 73 before the 2026-11-12 additions), each addressed by a `@cf/...` ID; they share the
+76 `@cf/` model pages in `workers-ai/llms.txt` (2026-11-23; was 75 on 11-17, 73 before the 11-12 additions; the 24 deprecated IDs below still have pages), each addressed by a `@cf/...` ID; they share the
 unified `ai/models/` catalog with 199 third-party models — vendor index in `products/ai.md`. Full
 catalog (capabilities, schemas, pricing) lives as JSON under
 `raw/github-repos/cloudflare-docs/src/content/workers-ai-models/` — one file per model — and at
@@ -97,20 +97,20 @@ one of your `criteria`), `score` (ordered rubric). Same System One API as `types
 model. Input: `{ model: "clef", state, questions }`. Use for routing/triage/policy scoring on the hot path, then hand
 off to an LLM. Verify prices on the model pages. Open weights on Hugging Face.
 
-**Clairic — extraction, not decision (preview, 2026-10-19).** `@cf/cloudflare/clairic` (65,536 tokens, vision, `$0.10`/M
-input) takes `{ model: "clairic", state, fields }` and returns a typed value per named field (`text`, `date`, `number`,
+**Clairic — extraction, not decision (preview, 2026-10-19).** `@cf/cloudflare/clairic` (65,536 tokens, vision, promo `$0.10`/M
+input until 2026-12-01, then `$0.24`) takes `{ model: "clairic", state, fields }` and returns a typed value per named field (`text`, `date`, `number`,
 `list`, `estimate`…): extract, compute, estimate or forecast. `null` = input insufficient; text answers carry source-span
-offsets, estimates a p10–p90 interval. Types constrain form, not correctness. → `workers-ai/concepts/extraction-models/`.
+offsets, estimates a p10–p90 interval. Types constrain form, not correctness. **`@cf/cloudflare/clairic-flash`** (new; "early research preview", same
+65,536 tokens, vision, ZDR, `$0.10`/M input, no promo noted; `{ model: "clairic-flash", … }`; pages don't state how it differs from `clairic`). → `workers-ai/concepts/extraction-models/`.
 
-**Deprecations — 2026-11-20 (changelog 2026-11-05; moved from 2026-11-15).** After that date these `@cf/` IDs stop responding: HTTP `410 Gone`,
-error `5028` (model pages show "Planned Deprecation 11/20/2026"). LLM replacements — frontier: `deepseek-ai/deepseek-v4.1-flash-1017`, `zai-org/glm-5.3`;
+**Deprecated 2026-11-20 (changelog 2026-11-05; moved from 2026-11-15).** The changelog says these `@cf/` IDs stop responding with HTTP `410 Gone`,
+error `5028` ("model was deprecated on `${date}`", errors page). As of 2026-11-23 the model pages are still published, each marked "Deprecated 11/20/2026" (the old "Planned" wording is gone); not call-tested, so treat `410` as documented, not observed. Suggested LLM replacements are generic, not per model (none for `llama-3.2-1b/3b-instruct`) — frontier: `deepseek-ai/deepseek-v4.1-flash-1017`, `zai-org/glm-5.3`;
 smaller: `google/gemma-4-26b-a4b-it`, `qwen/qwen3.8-27b`. **LLMs:** `deepseek-ai/{deepseek-r1-distill-qwen-32b,deepseek-v4-pro-0813,deepseek-v4-flash-0731}`,
 `nvidia/nemotron-3-120b-a12b`, `qwen/{qwq-32b,qwen3-30b-a3b-fp8}`, `moonshotai/{kimi-k2.6,kimi-k2.7-code}`, `zai-org/{glm-5.2,glm-5.3-flash}`,
 `meta-llama/llama-2-7b-chat-hf-lora`, `google/{gemma-2b-it-lora,gemma-7b-it-lora}`, `meta/{llama-3.1-8b-instruct-fp8,llama-3.2-1b-instruct,llama-3.2-3b-instruct}`.
 **Others → replacement:** `myshell-ai/melotts` → `deepgram/aura-2-en`; `stabilityai/stable-diffusion-xl-base-1.0`, `runwayml/stable-diffusion-v1-5-inpainting`,
 `bytedance/stable-diffusion-xl-lightning`, `lykon/dreamshaper-8-lcm` → `black-forest-labs/flux-2-klein-9b`; `openai/whisper-tiny-en` → `deepgram/nova-3`;
 `llava-hf/llava-1.5-7b-hf` → `moondream/moondream3.1-9B-A2B`; `google/embeddinggemma-300m` → `google/embeddinggemma-2` (the changelog post still says "available soon"; the model page went live 2026-11-12).
-Model pages still show "Planned Deprecation 11/20/2026" (re-read 2026-11-17).
 
 ## `env.AI.toMarkdown` — document → text (the native "read a PDF in a Worker" answer)
 When the need is **extract text/data from a document** (PDF, docx, images…) inside a Worker, this

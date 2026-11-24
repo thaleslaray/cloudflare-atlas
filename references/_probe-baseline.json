@@ -150,7 +150,9 @@
   "manage-dns-records",
   "proxy-status"
  ],
- "durable-objects": [],
+ "durable-objects": [
+  "architecture-examples"
+ ],
  "dynamic-workers": [
   "Dynamic Workers Starter",
   "Workers Paid",
@@ -186,7 +188,9 @@
   "zone-lockdown"
  ],
  "hyperdrive": [
-  "node-postgres"
+  "Startup Program",
+  "node-postgres",
+  "workers-vpc"
  ],
  "images": [
   "Hosted Images",
@@ -472,6 +476,7 @@
  "workers": [
   "Maximum Upload Size",
   "Static Assets",
+  "Use Worker Previews",
   "Zero Trust",
   "durable-objects",
   "self-hosted",
@@ -490,8 +495,8 @@
  ],
  "workers-vpc": [
   "Apply Zero Trust",
-  "Standard Workers",
-  "workers-vpc"
+  "Certificates Write",
+  "Standard Workers"
  ],
  "workflows": [
   "Workers Standard",

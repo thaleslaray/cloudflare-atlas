@@ -59,8 +59,15 @@ Create a service: `npx wrangler vpc service create <name> --type http --tunnel-i
 - **Private database** = TCP VPC Service + **Hyperdrive** (pooling/caching) — see Hyperdrive's
   "connect to a private database using Workers VPC" guide. Hyperdrive locates the TCP service via `app_protocol`.
 - **Local dev** needs remote bindings: set `"remote": true` or run `wrangler dev --remote` (no local VPC).
-- TLS to origin: trusts public CAs + Cloudflare Origin CA only; tune with `--cert-verification-mode`
-  (`verify_full` default · `verify_ca` · `disabled`).
+- TLS to origin: trusts public CAs + Cloudflare Origin CA by default; `--cert-verification-mode` (`verify_full` default · `verify_ca` · `disabled`).
+- **Custom CA + mTLS client cert (2026-11-18)**: upload, then attach to the service's `tls_settings` (`certificate_authority`, `client_certificate`, `cert_verification_mode`):
+  `npx wrangler cert upload certificate-authority --ca-cert ./ca.pem --name private-ca` · `npx wrangler cert upload mtls-certificate --cert ./client.pem --key ./client-key.pem --name private-client` →
+  `wrangler vpc service create … --certificate-authority <CA_ID> --client-certificate <CERT_ID> --cert-verification-mode verify_full`. CA, client cert, or both. API upload: `POST /accounts/{id}/mtls_certificates`
+  (`ca: true` for CA; `ca: false` + `private_key` for client cert; token needs `Account: SSL and Certificates Write`). Needs Wrangler **4.164.0+**, API, or Terraform provider **5.29.0+**; **no dashboard support yet**.
+  Applies to `https` for `http` services and to the TLS connection of `tcp` services (Postgres/RDS CA bundle). Rules: `cert_verification_mode` is **required** with either cert; custom CA can't combine with
+  `disabled`; client cert works without a CA. Mismatch fails (`CERTIFICATE_VERIFY_FAILED` in the `fetch()` error) — no fallback. **Updating a service replaces its whole config**: repeat every TLS setting
+  you keep or they are cleared (back to default verification). Rotate = upload new cert, update service with new ID (seconds). Removing a reference / deleting the service doesn't delete the cert (`wrangler cert delete`).
+  → `workers-vpc/configuration/vpc-services/#custom-ca-and-client-certificates`
 
 ## Gotchas
 - **First you need a Tunnel.** Workers VPC rides on a Cloudflare Tunnel (`cloudflared`) / Mesh / WAN

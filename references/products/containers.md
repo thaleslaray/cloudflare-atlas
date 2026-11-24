@@ -101,6 +101,10 @@ export default {
   `--containers-rollout=none`; cut over Worker and image together: `--containers-rollout=immediate`. Inspect with `wrangler containers list` / `images list`.
 
 ## Gotchas
+- **Inbound TCP / bidirectional gRPC (public beta, 2026-11-19):** Spectrum (Worker origin) → Worker `connect()` → Durable Object `connect()` → `this.ctx.container.getTcpPort(port).connect(...)`;
+  each hop pipes raw bytes with `allowHalfOpen: true` (preserves TCP half-closes). Worker/DO forward encrypted bytes; **the container terminates TLS** and speaks HTTP/2 (ALPN `h2`) — Worker doesn't parse gRPC.
+  The docs example keeps the cert/key in Secrets Store, reads them in the DO and passes them via `container.start({ env })`; rotated secrets need a container restart. Setup, plans, limits: `spectrum.md`
+  / `workers.md`. → `containers/examples/bidirectional-grpc/`
 - **WebSockets:** `fetch()` is the only method that proxies WebSockets; `containerFetch()` does **not**
   support them (to target another port and keep WebSockets, use `fetch(switchPort(request, port))`).
 - **Ports not ready:** `start()` returns when the process starts, not when ports listen → "connection

@@ -138,7 +138,7 @@ integration first — and can adopt v7 later without changing any Cloudflare Age
   across a sub-agent boundary. Legacy `chat(msg, cb, { tools })` is **ignored** (warns): tools belong to
   the child. `CodemodeRuntime` must be exported from the Worker entry (it lives in a DO facet).
 - **The blog is stale in places:** Think has no sandbox tools export — Tier 4 Sandbox is wired separately
-  (`products/sandbox.md`). Blog model ids trail the docs (`@cf/moonshotai/kimi-k2.6`); old API-reference paths
+  (`products/sandbox.md`). Blog model ids trail the docs (e.g. `kimi-k2.6`, now deprecated 2026-11-20; use a live ID from `products/workers-ai.md`); old API-reference paths
   moved under `agents/harnesses/think/` and `agents/runtime/`.
 
 ## Pricing & limits

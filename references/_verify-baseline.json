@@ -7,16 +7,16 @@
   "skills/list"
  ],
  "agents": [
+  "HookTask",
+  "RunEndTask",
+  "delivered|duplicate|invalid|closed|not_found",
   "harnesses/container/",
   "migrate-to-1.0",
   "no_output",
   "tts_error",
   "turnmetrics"
  ],
- "ai": [
-  "kling-v4-image",
-  "xiaomi"
- ],
+ "ai": [],
  "ai-crawl-control": [
   "paid-plan",
   "pricing=zone-default | in-band | bypass",
@@ -26,6 +26,7 @@
  "ai-gateway": [],
  "ai-search": [
   "RAG over a corpus",
+  "indexing_options.file_summary: true",
   "pages/ai-search/agent-sdks/",
   "pages/ai-search/concepts/how-ai-search-works/",
   "pages/ai-search/configuration/retrieval/"
@@ -64,7 +65,10 @@
  "basin-sql": [],
  "billing": [],
  "bots": [],
- "browser-run": [],
+ "browser-run": [
+  "1200000 ms",
+  "all-or-nothing"
+ ],
  "cache": [
   "2 TB",
   "Cache-Control: private|no-store|no-cache|max-age=0",
@@ -74,14 +78,11 @@
   "per-data-center"
  ],
  "cf": [
-  ".cloudflare/output/v1/",
   "1.0.0-rc.1",
   "4.160",
-  "4.163",
   "bulk-edit",
   "cf accounts billing get-credits",
-  "cf deploy --no-provision",
-  "cf deploy ./dist"
+  "cf deploy --no-provision"
  ],
  "china-network": [
   "GET /client/v4/ips?networks=jdcloud",
@@ -124,7 +125,6 @@
  ],
  "dynamic-workers": [
   "2026-03-24-dynamic-workers-open-beta",
-  "Cloudflare Container",
   "WorkerCode.env",
   "pages/dynamic-workers/"
  ],
@@ -151,15 +151,18 @@
  ],
  "hyperdrive": [
   ".host/.user/.password/.database/.port",
+  "4.164",
   "63 bytes",
   "INSERT/UPDATE/DELETE",
   "max_age=60s",
   "pages/hyperdrive/examples/",
-  "stale_while_revalidate=15s"
+  "stale_while_revalidate=15s",
+  "wrangler cert upload certificate-authority|mtls-certificate"
  ],
  "images": [
   "Paid only",
-  "TransformOptions",
+  "events.imagesHostedRequests",
+  "events.imagesTransformations",
   "high|medium-high|medium-low|low"
  ],
  "k2": [],
@@ -321,7 +324,9 @@
   "tf-migrate migrate --source-version v4 --target-version v5",
   "workers_*"
  ],
- "think": [],
+ "think": [
+  "kimi-k2.6"
+ ],
  "time-services": [
   "Config.Time"
  ],
@@ -375,8 +380,13 @@
  "workers": [
   "4.160"
  ],
- "workers-ai": [],
- "workers-vpc": [],
+ "workers-ai": [
+  "llama-3.2-1b/3b-instruct"
+ ],
+ "workers-vpc": [
+  ". CA, client cert, or both. API upload:",
+  "4.164"
+ ],
  "workflows": [],
  "zaraz": [
   "request.cf?.region"

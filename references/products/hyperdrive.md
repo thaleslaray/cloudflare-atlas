@@ -67,6 +67,10 @@ export default {
   waiting for response headers** per invocation (a 7th is *queued*, not rejected).
 - **60s query cap**: statements >60s are terminated; responses >50 MB are returned but not cached.
 - Self-signed DB cert → set `sslmode=require` (PG) / `sslMode=REQUIRED` (MySQL); upload CA if needed.
+- **Private DB with a private CA / client cert (mTLS), 2026-11-18**: go through **Workers VPC** (no Access/Tunnel-WebSocket workaround). Upload with `wrangler cert upload certificate-authority|mtls-certificate`,
+  attach to the TCP VPC Service (`--certificate-authority`, `--client-certificate`, `--cert-verification-mode verify_full`), then `wrangler hyperdrive create <name> --service-id <VPC_SERVICE_ID> --database … --user … --password … --scheme postgresql`.
+  PostgreSQL / Amazon RDS (RDS CA bundle); client keys RSA or EC P-256; CA, cert or both. Wrangler **4.164.0+** / API / Terraform 5.29.0+, no dashboard yet. Details/rotation: `workers-vpc.md`,
+  `hyperdrive/configuration/connect-to-private-database-vpc/`.
 
 ## Pricing & limits
 > ⚠️ Verify live before quoting: `developers.cloudflare.com/hyperdrive/platform/pricing/` and `/limits/`.
@@ -79,8 +83,8 @@ export default {
 **~20 / up to 1,500** (soft; min 5; tune with `--origin-connection-limit`, dashboard, or REST `origin_connection_limit`) ·
 query duration **60s** · cached response **50 MB** · init connection timeout **15s** · idle timeout **10 min** · username & DB name **63 bytes**.
 **Doc-vs-changelog conflict (2026-11-17):** the changelog of 2026-11-11 raised Paid to **100 configs** (was 25) and **1,500 origin connections** (was ~100);
-the live limits page (last updated Jun 9) still lists 25 / ~100 — treat 100 / 1,500 as current, recheck the page. Set the limit below your database's own connection cap.
-*(PlanetScale Postgres/MySQL DBs created via Cloudflare are billed to your Cloudflare account.)*
+the live limits page (re-fetched 2026-11-23, `dateModified` 2026-06-09) still lists 25 / ~100 — unresolved conflict, treat 100 / 1,500 as the likely current value, recheck the page. Set the limit below your database's own connection cap.
+*(PlanetScale Postgres/MySQL DBs created via Cloudflare are billed to your Cloudflare account; Startup Program customers can create them too, with per-tier credit caps — 2026-11-18.)*
 
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/hyperdrive/`) — use it for full API/patterns

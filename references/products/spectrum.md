@@ -7,6 +7,7 @@
 ## Contents
 - When to use (and when not)
 - Protocols & plans
+- Worker origin (TCP, public beta)
 - Config (API — no Worker binding)
 - Key concepts
 - Gotchas
@@ -30,8 +31,18 @@
 | Business | paid add-on | 1 app | 1 app | 1 app | No |
 | Enterprise | included | yes | yes | yes | **all ports, add-on** |
 
-Pro/Business get *named* protocols on fixed ports only. **Arbitrary TCP/UDP and port ranges are
+Pro/Business get *named* protocols on fixed ports only (plus the one Worker-origin TCP app below). **Arbitrary TCP/UDP and port ranges are
 Enterprise-only.** Minecraft = Java Edition only (Bedrock unsupported).
+
+## Worker origin (TCP, public beta — 2026-11-19)
+Spectrum can send each TCP connection to a Worker's `connect()` handler (`workers.md`) — MQTT/game/custom-binary servers in Containers, gRPC, TCP ingest to storage/queues.
+- **Plans:** Pro and Business zones (no Spectrum Enterprise): **one Worker-origin app per zone, one TCP port**, on top of the plan's named apps; Enterprise zones need Spectrum Enterprise
+  (separate from the zone's Enterprise plan). Free zones unsupported. Workers usage is billed separately from Spectrum.
+- **API:** `POST /zones/{zone_id}/spectrum/apps` with `"protocol": "tcp/50051"`, `"traffic_type": "worker"`, `"origin_worker_id": "<32-char Worker tag>"` (the tag, **not** the name:
+  `cf workers scripts search --name <NAME>`, or List Workers `tag`). Dashboard: "Workers (tcp)" type (Pro/Business) or TCP + Origin type Worker (Enterprise). The Worker must be deployed first.
+- **Constraints:** single port (no ranges); no `origin_direct`/`origin_dns`/`origin_port`/`virtual_network_id`, Proxy Protocol or Argo. **Omit `tls`** without Spectrum Enterprise (passthrough);
+  with it `tls` is `off` or `flexible` (needs an advanced/custom certificate). `startTls()` unsupported — terminate TLS in the backend behind the Worker.
+- Test: `nc <host> <port>` against the echo handler. → `spectrum/how-to/route-tcp-traffic-to-a-worker/`, `spectrum/reference/configuration-options/#worker-origin`
 
 ## Config (API — no Worker binding)
 Spectrum has **no `wrangler.jsonc` binding** — it's a zone-level proxy configured via dashboard or

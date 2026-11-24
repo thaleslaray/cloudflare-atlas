@@ -54,7 +54,8 @@ Cloudflare does not recommend it. Read it back inside the DO via `ctx.id.jurisdi
   cannot be deployed (`durable-objects/api/webgpu/`). Production GPU inference → Workers AI.
 - **WebSocket Hibernation**: idle connections stay open at **zero compute / zero cost**; memory is
   cleared on hibernate. Use `ws.serializeAttachment()` / `setWebSocketAutoResponse()`. Message size
-  limit raised from 1 MiB to **32 MiB** (2025-10-25).
+  limit raised from 1 MiB to **32 MiB** (2025-10-25). Runtime updates (2026-11-19: restarting machines now leave the storage quorum early) reset SQLite-backed DOs less often, but
+  `Internal error in Durable Object storage caused object to be reset` / WebSocket disconnects can still happen — clients must reconnect (`best-practices/websockets/`).
 - **Instance per name**: `idFromName()` = deterministic coordination; `newUniqueId()` = sharding.
 - **Migrations** create/rename/transfer/delete classes; auto-applied on deploy, no rollback.
 
@@ -137,5 +138,8 @@ WebSocket msg 32 MiB (received) · key+value, string/BLOB/row **8 MB** · memory
 ## Going deeper
 - Covered by the official `cloudflare` skill (`references/durable-objects/`) — use it for full
   API, patterns (sharding, locks, real-time, sessions), configuration, and gotchas.
+- **Architecture** (`durable-objects/best-practices/architecture-guidance/`, `.../architecture-examples/`): pick one DO per atom of coordination (room/session/doc/account) named
+  via `getByName()`; keep control plane (account-config DO) off the request path — publish config via KV/R2 and let Workers + per-resource DOs serve traffic; send analytics to Pipelines/R2,
+  not one global DO; avoid waking many DOs to list/aggregate; load-test per-object capacity (shared isolates) before sharding. Examples: fan-out hub, fan-in buffer, session, per-user.
 - Storage deep-dive: that skill's `references/do-storage/`. Agents on DOs → `cloudflare:agents-sdk`.
 - "DO concepts / lifecycle" → the live blog (blog.cloudflare.com), search "Durable Objects".

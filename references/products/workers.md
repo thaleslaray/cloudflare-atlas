@@ -61,7 +61,13 @@
     },
   };
   ```
-- Other handlers: `scheduled(event, env, ctx)` (cron), `queue(batch, env, ctx)`, `tail(events, ...)`, `connect(socket, env, ctx)` (raw TCP forwarded from another Worker's service binding via `env.X.connect(addr)`; not reachable from the public Internet — `runtime-apis/handlers/connect/`).
+- Other handlers: `scheduled(event, env, ctx)` (cron), `queue(batch, env, ctx)`, `tail(events, ...)`, `connect(socket, env, ctx)`.
+- **Inbound TCP — `connect()` handler (public beta, 2026-11-19)**: receives a `Socket` (`readable`/`writable`/`opened`/`closed`); the connection closes
+  when the returned promise settles (await your pipes). No compat flag. A **Spectrum app with a Worker origin** delivers public TCP to it (an HTTP `CONNECT`
+  to the Worker URL does not); a service binding can also call `env.X.connect(addr)` (receiver: `connect()` export or a `WorkerEntrypoint` method).
+  `socket.opened` gives `remoteAddress` (client IP:port; `undefined` if unavailable) and `localAddress` (Spectrum edge port). `socket.startTls()` on an inbound
+  Spectrum socket is unsupported (STARTTLS protocols: proxy to a backend that upgrades). Proxy pattern: outbound `connect()` with `allowHalfOpen: true`, `pipeTo` both ways.
+  Spectrum setup/plans: `spectrum.md`; gRPC to a Container: `containers.md`. → `workers/runtime-apis/handlers/connect/`
 - `ctx.waitUntil(p)` — background work after the response (counts against CPU) ·
   `ctx.passThroughOnException()` — fall back to origin on error.
 - Web-standard APIs: `fetch`, `Request`/`Response`, `URL`, `Headers`, Streams, `crypto.subtle` — post-quantum
@@ -75,6 +81,7 @@
 - **Spending limit** (2026-11-13; account mechanics in `billing.md`): one account-wide Workers limit on requests + CPU charges after included usage (excludes the Paid fee and other products). At the limit Cloudflare rejects **new invocations** —
   HTTP (visitors get error `1103`, which has other causes too), Cron Triggers, Queue consumers, Email Workers, calls from other Workers/DOs; rejected requests aren't billed. Static assets served without running the Worker stay up (`run_worker_first` paths can fail).
   A test Worker can trip the limit for production; not an exact cap. Block ends in minutes after raising/removing the limit, or at the next billing period — `workers/platform/spend-management/`.
+- **Version retention** (`workers/versions-and-deployments/#version-retention`, 2026-11-19): versions are kept **30 days**, then deleted unless among the **100 most recent** or currently deployed (any traffic share, incl. both sides of a gradual deployment). Deleted versions vanish from dashboard/API and their **Version URLs** (incl. `--preview-alias`) stop working; rollback still works to the 100 most recent. Pages preview deployments follow the same 30-day rule. Use Worker Previews (not Version URLs) for branches/PRs.
 - **Version skew** (`workers/versions-and-deployments/version-skew/`): HTML from one version, assets from another (deployment propagation takes up to a few seconds per location; gradual-deployment splits; open pages after a deploy/rollback).
   Each asset request uses the selected version's manifest, also via `env.ASSETS.fetch()`; a missing asset reaches your `fetch()` handler (or `404` with no script). Mitigate: version affinity, version overrides, or keep content-hashed files from earlier releases in the new version.
 - Dev loop: `wrangler dev` (local) · `wrangler dev --remote` (real resources) · `wrangler tail` (logs)

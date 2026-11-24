@@ -18,8 +18,9 @@
 ## Name: Browser Run vs Browser Rendering
 **Same product.** "Browser Run" is the current name; "Browser Rendering" is the old name (and what
 the *official `cloudflare` skill's* `references/browser-rendering/` covers). The rename is cosmetic
-but the legacy name persists in: the REST path (`/browser-rendering/...`; newer pages also show
-`/browser-run/...`), the API token permission (`Browser Rendering - Edit`). Treat docs/skill content
+but the legacy name persists in: the REST path (`/browser-rendering/...`; the live Quick Actions pages now
+show `/browser-run/...`) and the SDK namespace (`client.browserRendering`). The API token permission is now
+`Browser Run - Edit`. Treat docs/skill content
 labeled "browser-rendering" as authoritative for this product.
 
 ## When to use
@@ -33,13 +34,15 @@ labeled "browser-rendering" as authoritative for this product.
 
 ## Two integration models
 1. **Quick Actions** — stateless, single-shot HTTP/binding calls. No script to deploy. Endpoints:
-   `screenshot`, `pdf`, `content` (HTML), `markdown`, `snapshot`, `accessibilityTree` (a11y tree),
-   `links`, `scrape` (HTML elements), `json` (AI structured extraction via prompt),
+   `screenshot`, `pdf`, `content` (HTML), `markdown`, `accessibilityTree` (a11y tree),
+   `links`, `scrape` (HTML elements), `json` (AI structured extraction via prompt; uses Workers AI),
+   `snapshot` (several of these formats in ONE call, 2026-11-19 — see below),
    `crawl` (async multi-page; per-URL `outcome` e.g. `robots_disallowed`/`timeout`/`page_error`, job-level `robots[]` state
    for ≤50 origins — `browser-run/quick-actions/crawl-endpoint/`). Billed for **browser hours only**. Cloudflare manages session lifecycle.
 2. **Browser Sessions** — full scripted browser control via **Puppeteer**, **Playwright**, **CDP**
-   (WebSocket, drive from anywhere — local/CI/external), or **Stagehand** (AI finds elements by
-   intent, not selectors). Billed for **browser hours + concurrent browsers**.
+   (WebSocket, drive from anywhere — local/CI/external), **Stagehand** (AI finds elements by
+   intent, not selectors), or **Custom scripts** (`/script`, 2026-11-20 — submit code over HTTP, below).
+   Billed for **browser hours + concurrent browsers**.
 
 ## Binding & config (`wrangler.jsonc`)
 ```jsonc
@@ -51,7 +54,7 @@ labeled "browser-rendering" as authoritative for this product.
 - **Quick Actions via binding:** `env.MYBROWSER.quickAction("screenshot", { url })` →
   requires `compatibility_date` ≥ `2026-03-24`.
 - **Quick Actions via REST:** `POST .../accounts/<id>/browser-rendering/screenshot` with a
-  `Browser Rendering - Edit` API token. No Worker needed.
+  `Browser Run - Edit` API token. No Worker needed.
 - **Browser Sessions:** `npm i -D @cloudflare/puppeteer`, then
   `const browser = await puppeteer.launch(env.MYBROWSER)`.
 
@@ -72,6 +75,31 @@ await browser.close(); // ALWAYS — wrap in try/finally
 - Playwright: Cloudflare ships its own fork; same API, connects to the binding.
 - Pairs with: **KV/R2** (cache screenshots/PDFs), **Durable Objects** (persist a long-lived
   browser, route users to a specific instance), **Queues** (async jobs), **Agents/Workers AI**.
+
+### `/snapshot` — many formats, one request (2026-11-19)
+`POST .../browser-run/snapshot` (or `env.BROWSER.quickAction("snapshot", {...})`), body needs `url` **or** `html`. `formats`
+(default `["content","screenshot"]`; also `markdown`, `accessibilityTree`, `pdf`, `links`, `scrape`, `json`) must name **≥2 distinct
+formats** (else use the single endpoint). Each format fills `result.<name>` and reuses that endpoint's options (`pdfOptions`,
+`screenshotOptions`, `elements` — **required** for `scrape`, `prompt` — **required** for `json`, plus `response_format`/`custom_ai`).
+Gotchas: **all-or-nothing** (one failed format fails the request); formats are captured in a fixed order, not array order, and a live
+page can change between captures; `json` incurs **Workers AI** usage and one `actionTimeout` (default 60 s, max 120 s) covers
+navigation + captures + retries + the AI call. Billing is Quick Actions browser hours.
+
+### `/script` — run your own code in one HTTP call (2026-11-20)
+Docs list it under **Custom scripts** (`browser-run/script/`), **not** Quick Actions: it is a Browser Session, so billed browser
+hours **+ concurrent browsers**, and it does **not** close the session afterwards (you pay until `keep_alive` idle timeout).
+- `POST .../browser-run/script` body `{ code, library?, timeout? }` — `code` = a JS **function expression**; `library` `"playwright"` |
+  `"puppeteer"` | omitted = **CDP** (`async ({ send, on, off }) => …`; Playwright/Puppeteer get `{ page, browser, … }`). Runs in an
+  isolated Worker — no deploy. Query: `keep_alive` 10000–1200000 ms (default 60000), `lab`, `recording`, `browser=kitesurf`.
+- Response carries `cf-browser-session-id` + `cf-browser-target-id`; continue with `POST .../script/<sessionId>` (body adds
+  `targetId`; no query params, session keeps its launch options). Binding: `env.BROWSER.script(code, { library, timeout, keepAlive, sessionId, targetId })`
+  returns a `Response`; **not supported in local `wrangler dev`** (use `--remote` or `"remote": true`).
+- **Close it yourself**: `browser.close()` in the last script or `DELETE .../devtools/browser/<sessionId>`; disconnecting does not close.
+- Limits: body **10 MiB**; `timeout` default **60 s**, max **120 s** (excludes acquisition); same rate/concurrency limits as
+  `POST /devtools/browser`. Errors: `408` timeout, `422` compile/runtime error, `410` session closed, `404` bad session/`targetId`.
+  `timeout` below the library's 30 s default → `408`; above it → library error `422`. Kitesurf: CDP only, `library`/`keep_alive`/
+  `recording`/`lab` → `400`, no reusable session. Concurrent runs on one page interfere — create a separate target per run.
+- A returned JSON value → `{ success: true, result }`; non-2xx `Response` is rewritten to the error format.
 
 ## Kitesurf — the agent-first browser (beta, 2026-08-06)
 A **second browser engine** on the same Browser Run endpoints — stateless, running entirely on

@@ -71,6 +71,10 @@ Uploads use the REST API
   `filter.metadata` (two operators in one condition give a bounded range, e.g. `priority: {gte: 2, lte: 5}`),
   `.signedUrl()` signs a private image server-side, and `.createDirectUpload()` mints the Direct Creator
   Upload link. Worth knowing: the token-based REST flow above is no longer the only route.
+- **Gaussian sharpening (2026-11-19)** — `sharpen=(mode=gaussian,amount=1,sigma=1.5,threshold=0)`; in `cf.image` pass
+  `sharpen: { mode, amount, sigma, threshold }`. `amount` 0–10, `sigma` >0 to 5, `threshold` (optional) 0–255; scalar `sharpen=5` stays box-filter.
+- **Delivery analytics (2026-11-20)** — dashboard Hosted images → Analytics (30 days); SQL API datasets `events.imagesHostedRequests`
+  (hosted) and `events.imagesTransformations`.
 
 ## Gotchas
 - **`fit=cover`/`crop` need both `width` AND `height`** — otherwise the crop is undefined.
@@ -100,7 +104,7 @@ Uploads use the REST API
 **Key limits** — Remote (BYO): file **100 MB**, area **100 MP** (~10,000×10,000), dimension **12,000 px**
 (AVIF **1,200 px**). Hosted upload: file **10 MB**, metadata 1,024 bytes. Binding `.input()`: **20 MB**.
 Animated GIF/WebP: 100 MP to deliver, but >50 MP delivered untransformed. `dpr` ≤ 2, `quality` 1-100 (or `high|medium-high|medium-low|low`, default 85),
-`blur` 0-250, `sharpen` 0-10. Inputs: PNG/JPEG/GIF/WebP/SVG/HEIC (AVIF input = Enterprise).
+`blur` 0-250, `sharpen` 0-10. Inputs: PNG/JPEG/GIF/WebP/SVG/HEIC/TIFF (first page only, since 2026-11-17; AVIF input = Enterprise).
 Verify on `developers.cloudflare.com/images/optimization/features/`.
 
 ## Going deeper

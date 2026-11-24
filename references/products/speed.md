@@ -30,7 +30,7 @@ Two data sources feed performance metrics and recommendations:
     Two completed network tests can be **compared** side-by-side as histograms.
 - **Real User Monitoring (RUM)** — lightweight JS beacon captures real visitor metrics (no cookies/
   `localStorage`). Only RUM yields **INP** (and historically FID). Free plans: RUM on by default
-  with **EU traffic excluded**; can opt out. Other plans enable as needed.
+  with **EEA/UK/CH traffic excluded** (32 ISO country codes listed on the RUM beacon page); can opt out. Other plans enable as needed.
 - **Recommendations** tab maps audit findings to Cloudflare features + shows estimated savings.
 - **Trend / History report** per tested URL tracks metrics over time.
 
@@ -93,7 +93,7 @@ schedules do not have to be driven from the dashboard. The URL is a **path param
   **never reaches origin** (cache-only) — these are safety guards against unsafe prefetch (e.g. a
   prefetched sign-out URL mutating state). Needs Chromium ≥121; breaks under CSP `strict-dynamic`/
   `nonce-*`; not compatible with `pages.dev`.
-- **RUM excludes EU traffic by default** on Free — your RUM sample may under-represent EU users.
+- **RUM excludes EEA/UK/CH traffic by default** on Free (other plans can opt into the same exclusion) — your RUM sample may under-represent those users.
 - **Observatory test IPs/UAs**: tests come from specific ASNs (15169/132892 for IPv6, 396982 for
   IPv4) with a `CloudflareObservatory` user-agent — allowlist them if you gate by UA/IP.
 - **Auto Minify no longer exists** — deprecated 2024-08-05; the only remaining doc is

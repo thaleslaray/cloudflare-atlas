@@ -89,6 +89,9 @@ builder) — both auto-configure the namespace + routing.
 
 ## Gotchas
 - **`env.DISPATCHER.get()` always wrap in try/catch** — `"Worker not found"` → return 404; rethrow others.
+- **Dispatch namespaces can't be renamed** (2026-11-20): `PUT`/`PATCH` that change `name`, `wrangler dispatch-namespace rename`
+  and a Terraform `name` change all fail (`400`, code `100413`). To get a new name: create a new namespace, deploy user Workers
+  to it, repoint the dispatch Worker's namespace binding + redeploy, verify, then delete old Workers and the old namespace.
 - **`keep_bindings`** when updating a user Worker, or you'll drop existing bindings.
 - **Untrusted by default**: no `request.cf`, `caches.default` disabled. Enable **trusted mode** only if you
   control *all* code in the namespace (it exposes sensitive `cf` fields like `cacheKey`).

@@ -12,6 +12,63 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-23
+
+**Refresh pass on the 2026-11-23 weekly check: 15 product files curated by three Sonnet agents on disjoint sets. Copies were in sync before starting (`diff -rq -x .git` clean; installed at `184c4f5`).**
+
+**Detected (2026-11-23).** live=111 / known=111, no structural drift. No new subtrees; one gone (`d1/reference/community-projects`, community list — no impact). 27 single-page additions. 7 new NOT FOUND tokens: `agents` `~1.5.0`, `@earendil-works/pi-ai@~1.5.0`, `0.33`, `WorkerJavaScriptBackend`; `think` `@cf/moonshotai/kimi-k2.6`; `workers-ai` `Planned Deprecation`; `speed` `EU traffic excluded`. API slices 23 days old — not re-sliced.
+
+**Curated**
+- `agents.md` 194→197 — Pi 1.6 (`~1.6.0` peers, agents ≥0.34.0; never roll back to 1.5 — its tool calls and model requests are blocked); tools that wait (`{ sleep: { signals, until } }`, `harness.signal()` → `delivered|duplicate|invalid|closed|not_found`, `notify` on `submit()`/`continue()`, `beforeTool` approval parking, `onAbort: "keep"`, `harness.root()` before `harness.pi()`); `RunEndTask` → `HookTask` (changelog-only).
+- `workers.md` 166→173 — **inbound TCP `connect(socket, env, ctx)` public beta (2026-11-19)**: reached via a Spectrum Worker-origin app or a service binding; HTTP `CONNECT` does not invoke it; no `startTls()` on inbound Spectrum sockets. Version retention: 30 days, then deleted unless among the 100 most recent or deployed; Version URLs / preview aliases die with the version.
+- `spectrum.md` 98→109 — Worker origin: `traffic_type: "worker"` + `origin_worker_id` (32-char tag, not the name); Pro/Business get one Worker-origin TCP app per zone on one port, Enterprise needs Spectrum Enterprise, Free unsupported; no `origin_dns`/`origin_port`/Proxy Protocol/Argo.
+- `containers.md` 151→155 — inbound TCP/gRPC path (Spectrum → Worker `connect()` → DO `connect()` → `ctx.container.getTcpPort(port).connect()`, `allowHalfOpen: true`; container terminates TLS, ALPN `h2`).
+- `durable-objects.md` 141→145 — runtime-update reliability (resets rarer, still possible — clients must reconnect); architecture-guidance pointer + 3 rules.
+- `workers-vpc.md` 94→101 · `hyperdrive.md` 89→93 — custom CA + mTLS client certificates (2026-11-18): `wrangler cert upload certificate-authority|mtls-certificate`, `tls_settings`, `cert_verification_mode` required, no fallback, update replaces the whole config; Wrangler ≥4.164.0 / Terraform ≥5.29.0 (changelog), no dashboard. Hyperdrive: PostgreSQL / RDS, RSA or EC P-256 keys; PlanetScale for Startup Program customers.
+- `browser-run.md` 160→188 — `/snapshot` (`formats` ≥2 distinct, `scrape` needs `elements`, `json` needs `prompt` and uses Workers AI, one failed format fails the call, one `actionTimeout` ≤120 s) and `/script` (a Browser Session, not a Quick Action: 10 MiB body, `timeout` ≤120 s, `keep_alive` 10000–1200000 ms, not in local `wrangler dev`, does not close the session).
+- `cloudflare-for-platforms.md` 130→133 — dispatch namespaces can't be renamed (`400`, code `100413`); migration = new namespace + redeploy + repoint binding.
+- `ai-search.md` 190→196 — file summaries (`indexing_options.file_summary: true`, off by default, docs with ≥3 chunks, billed as Workers AI via the instance's AI Gateway, toggling forces a full reindex, `indexing_options` replaced whole on update).
+- `images.md` 110→114 — Gaussian `sharpen=(mode=gaussian,amount,sigma,threshold)`; TIFF input (first page); delivery analytics datasets `imagesHostedRequests` / `imagesTransformations` (changelog).
+- `workers-ai.md` 207 — deprecations now past tense ("Deprecated 11/20/2026" on model pages); `@cf/cloudflare/clairic-flash` added (preview, 65,536 context, $0.10/M input); `@cf` page count 75 → 76.
+- `think.md` 178 — stale-blog gotcha now says `kimi-k2.6` is deprecated.
+
+**Corrections (errors that would have shipped)**
+- `agents`: Pi peer `~1.5.0` / agents ≥0.33 → **`~1.6.0` / ≥0.34.0**; `WorkerJavaScriptBackend` → **`CodemodeBackend`** (`@cloudflare/computer/backends/codemode`, `{ loader: env.LOADER }`); Pi 1.5 migration notes no longer on the live page, dropped.
+- `workers`: `connect()` handler "not reachable from the public Internet" — **wrong since 2026-11-19**.
+- `spectrum`: "arbitrary TCP is Enterprise-only" — Pro/Business now get one Worker-origin TCP app.
+- `workers-vpc`: "public CAs + Origin CA only" — custom CA and mTLS now supported.
+- `browser-run`: token permission `Browser Rendering - Edit` → **`Browser Run - Edit`** (SDK namespace stays `client.browserRendering`).
+- `speed`: RUM on Free excludes **EEA/UK/CH** traffic (32 country codes), not "EU".
+- `workers-ai`: `clairic` $0.10/M input is a **promo until 2026-12-01**, then $0.24.
+
+**Conflicts**
+- **Workers AI deprecations.** The changelog says deprecated models return `410` / `5028` from 2026-11-20, but all 24 model pages and their `llms.txt` entries are still published (marked "Deprecated"). Not call-tested.
+- **Hyperdrive limits** — unchanged from last pass: limits page (dateModified 2026-06-09) still 25 configs / ~100 connections; changelog 2026-11-11 says 100 / 1,500. Conflict note kept.
+- **Web Analytics** get-started still says "excluding visitor data in the EU" while Speed RUM pages say EEA/UK/CH — different product, not touched.
+
+**Coordinator check.** ~30 claims spot-checked with `curl …/index.md | grep`: Pi `~1.6.0` / `0.34.0` / `harness.signal` / `sleep`, `CodemodeBackend`, clairic promo, clairic-flash context; `/snapshot` "at least two distinct formats", 120 s, `Browser Run - Edit`; RUM EEA/UK/CH; `file_summary`, "three chunks"; `mode=gaussian`, `sigma`; `connect(socket, env, ctx)`, `startTls`, `origin_worker_id`, `traffic_type`, "Pro and Business"; version retention "30 days" / "100 most recent"; `cert_verification_mode`; Wrangler 4.164.0 / Terraform 5.29.0 in the changelog post; image datasets in the changelog post; `HookTask`/`RunEndTask` in the Pi 1.6 changelog post. All matched. `workers-vpc` upload commands rewritten to the docs' literal form.
+
+**Accepted NOT FOUND (each sourced live).** `agents` `delivered|duplicate|invalid|closed|not_found` (each word on the Pi page; pipe form is ours), `RunEndTask`, `HookTask` (changelog 2026-11-20); `ai-search` `indexing_options.file_summary: true` (page has `file_summary` under `indexing_options`); `browser-run` `all-or-nothing` (paraphrase of "If any requested format fails, the whole request fails"), `1200000 ms` (page: `1200000`); `hyperdrive` `wrangler cert upload certificate-authority|mtls-certificate` (shorthand of two commands on the VPC page), `4.164` (changelog); `workers-vpc` `4.164` (changelog); `images` `events.imagesHostedRequests`, `events.imagesTransformations` (changelog); `think` `kimi-k2.6` (Workers AI model page, outside Think corpus); `workers-ai` `llama-3.2-1b/3b-instruct` (shorthand of two model IDs). Verify and probe baselines re-recorded.
+
+**Deferred**
+1. Workers AI: deprecated models still published — call-test or re-check next pass whether pages/`llms.txt` entries are removed; paid-model list (~line 187) still names deprecated IDs; per-model replacement for `llama-3.2-1b/3b-instruct` still not given; `clairic` vs `clairic-flash` difference not documented; EmbeddingGemma 2 audio/video and Inkling 2 Small schema not written. `@cf` count (76) includes deprecated pages.
+2. AI Gateway Key security 90-day threshold still changelog-only.
+3. Agents: `codex()`/`claudeCode()` options, `harness.submit()/wait()` details, AI Gateway `baseUrl` wiring, Nanocode HTTP routes/Code Mode, Exo recovery — not written.
+4. DO retries: request-identity detail, per-attempt `RpcTarget` disposal, `TypeError`/`RangeError` rules — not written.
+5. Vercel→Workers per-framework gotchas and feature→product table; EmDash templates; Vite+ `cf init` flow.
+6. `frameworks/` still blind to `check-pointers`/`check-doc-urls`/`probe-blindness` and unmapped in `_known-pages.txt`; `frameworks/react-router.md`; TanStack validator API; RSC status; Vite 7 vs 8.
+7. Hyperdrive: limits page still 25 / ~100 — drop the conflict note once it shows 100 / 1,500.
+8. Durable Objects: Free per-object storage (1 GB vs 10 GB) — re-check when the page is consistent.
+9. `cf` 1.0 RC extras: `--temporary-account`, `cf auth scopes/whoami`, keyring, `cf deploy` option table, `CLOUDFLARE_COMPLIANCE_REGION`, `experimental.streamingTailConsumers` move. Inbound TCP local dev: `triggers.connect({ protocol: "tcp", port })` appears in the gRPC example's `cloudflare.config.ts`; no `wrangler.jsonc` equivalent found — not written.
+10. Seen, not curated: WAF payload logging for custom rules (Enterprise); Workers Rate Limiting weighted requests; Artifacts local dev; Workers Paid subrequests "10,000 (up to 10M)"; per-model `ai/models` pricing; this week: Cloud Connector GA (Rules), Access SAML IdP cert auto-retrieval, Agent Lee attachments, R2 ops-per-second view, Stream LL-HLS B-frame detection, Radar ASN types / CVE pages, DNS Foundation DNS boolean removed, 19 new `ai/models` pages (vendor table not re-counted).
+11. AI Search: namespace error codes beyond `7062`/`7065`/`7066`, D1 per-row/sync error codes, reserved `meta_*` names. Realtime: Whiteboard troubleshooting, `NoiseCancellationStatus`. R2: local S3 operations table. MoQ: draft-18 demo namespaces.
+12. Rules: plan availability of `md5()`/`sha1()`/`sha512()` not documented — re-check.
+13. Access passkeys note in `SKILL.md`, unaudited by any gate — re-verify each pass until `cloudflare-one` covers it.
+14. Tooling: `scripts/refresh --close` still cannot forward `--force` to the page-baseline guard (not needed this pass — no product retired).
+15. Browser Run limits/pricing pages don't mention `/script` or `/snapshot` yet (limits dateModified 2026-10-14) — re-check for per-endpoint limits. Inbound TCP public beta: no connection caps, timeouts or pricing published — re-check.
+
+---
+
 ## 2026-11-17
 
 **Refresh pass on the 2026-11-16 weekly check: 21 product files curated by three Sonnet agents on disjoint sets, one product retired, Access passkeys recorded in `SKILL.md`. Copies were in sync before starting (phase 1 copy-sync green).**

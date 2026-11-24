@@ -102,9 +102,12 @@ attached with `lifecycle.use()`, observability) answers *where the agent lives a
 agent), **OpenCode** (experimental, `OpenCodeHarness`, `@opencode/sdk@2`), **Think** (`products/think.md`, Experimental), Flue (external, `flueframework.com`, built on Pi), **Claude Code** / **Codex** / **Exo** / **Nanocode** / **Self-modifying** (below), or
 your own loop on the runtime (`harnesses/build-your-own/`). `PiHarness` is from `agents/harness/pi` (singular), a Lifecycle capability;
 Pi Durable owns loop, transcript and recovery in the DO's SQLite (`pi_` tables); a Lifecycle job alarm restarts an evicted object. Install `agents` + `@earendil-works/pi-durable` + `pi-ai` + `pi-schema` + `chord`:
-optional peers `~1.5.0` (agents ≥0.33.0; one Pi minor per release); after a conversation runs on 1.5, **roll forward,
-never back** to Pi 1.4 (unreadable). 1.5 batches writes (crash loses ≤~1 s of streamed progress); `session.watch()` replaces
-`events()`, `session.continue()` re-runs without a new message, `retry()`/`parked` removed. Experimental. Needs `nodejs_compat`.
+optional peers `~1.6.0` (agents ≥0.34.0; one Pi minor per release); after a conversation runs on 1.6, **roll forward,
+never back** to Pi 1.5 (its tool calls/model requests are blocked). `session.watch()`, `session.continue()` re-runs without a new message.
+**Tools that wait** (0.34.0): a tool returns `{ sleep: { signals, until } }` instead of a result and Pi re-runs it on a signal or deadline,
+holding no invocation so the DO can hibernate; deliver with `harness.signal()` (not `pi.signal()`), results `delivered|duplicate|invalid|closed|not_found`.
+`submit()`/`continue()` take `notify` (park on a subagent's `SubmissionSettled`) and `onAbort: "keep"`; a `beforeTool` hook can park for approval; `init` seeds a session
+(`harness.root()`, `sessions.create()/fork()`); call `harness.root()` before `harness.pi()`. Pi Durable direct: `RunEndTask` → `HookTask`. Experimental. Needs `nodejs_compat`.
 **Container harnesses (Experimental)** — **Claude Code** and **Codex**: the CLI runs in a Cloudflare Container, a DO drives it via
 `ContainerHarness` + `claudeCode()` / `codex()` from `agents/harness/container` (API may change in any release); `ContainerEgress` (Worker
 entrypoint, re-exported from the same path) injects real credentials, so none sit in the container. Needs `nodejs_compat`, a SQLite DO with
@@ -121,7 +124,7 @@ returns the `AgentSession` DO; no `agents/harness/nanocode` export; same `reques
 separate Agent (`AgentSession` owns alarm and WebSocket handlers).
 **Model providers** (`agents/models/`): **`createAI`** replaced `workers-ai-provider` and `ai-gateway-provider`
 (2026-10-21; both frozen and deprecated). `agents/models/ai-sdk` needs `ai@^7` + `@ai-sdk/provider@^4`;
-`agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.5.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs
+`agents/models/pi-ai` needs `@earendil-works/pi-ai@~1.6.0`. `createAI({ binding: env.AI })`: a `@cf/` id runs
 via Workers AI; catalog models and `dynamic/<route>` go through AI Gateway; a vendor model object (e.g.
 `@ai-sdk/anthropic`) is wrapped as `ai(model)`; `fallback` lists, **no provider keys in the Worker**
 (**Unified Billing** or BYOK). Any other string throws `TypeError`. AI Search → `ai-search-provider`.
@@ -153,8 +156,8 @@ once with `wrapAISDK()` (AI SDK v6 and v7; the v7 form also carries the agent id
 ## File system — `@cloudflare/computer` (`agents/tools/filesystem/`)
 `new Workspace({ storage: this.ctx.storage })` in a Durable Object: a persistent SQLite-backed working
 directory (`workspace.fs`) with tools `read`, `write`, `edit`, `grep`, `ls`, and `exec` once a backend is added
-(`createAITools()`, `createPiTools()`; Think includes them). `WorkerJavaScriptBackend` runs ES modules in a
-Dynamic Worker (`LOADER` binding): no shell or native binaries; the container backend is experimental.
+(`createAITools()`, `createPiTools()`; Think includes them). `CodemodeBackend` (`@cloudflare/computer/backends/codemode`, `{ loader: env.LOADER }`) runs ES modules in a
+Dynamic Worker: no shell or native binaries; the container backend is experimental.
 `onInterrupt: "replay"` resumes runs after a restart (experimental). All users of one instance share its
 workspace; for Linux use Sandbox. `@cloudflare/shell` is deprecated (see `products/think.md`).
 

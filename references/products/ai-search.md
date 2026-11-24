@@ -158,6 +158,12 @@ Everything here is **opt-in**; previous behaviour stays the default.
   `NotFoundError`, or a plain try/catch) if the code path can run more than once.
 - **`upload()` only queues the file.** Indexing runs in the background; poll `items.get(id).info()` while
   `status` is `queued`/`running` before the first query, or it searches an empty index.
+- **File summaries (2026-11-17, off by default):** `indexing_options.file_summary: true` — an LLM writes summary + keywords (into item
+  `context` metadata; your existing `context` is kept) and topics (into chunk headers) for text docs yielding ≥3 chunks. **Billed as
+  Workers AI usage via the instance's AI Gateway (`default` if unset), not in the ingestion allotment**; each new/modified file once.
+  Toggling triggers a full reindex, and `indexing_options` is replaced whole on update — omit `file_summary` and it turns off + reindexes.
+  Best effort (one attempt per file version); `context` adds up to 1,000 chars per retrieved doc to generation tokens.
+  → `ai-search/configuration/data-source/#file-summaries`
 - **Empty results?** Drop filters, lower `match_threshold` to ~0.1, confirm indexing finished.
 
 ## Pricing & limits
