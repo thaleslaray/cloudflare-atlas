@@ -3,7 +3,8 @@
 > **Cloudflare CAN send email.** Email Service is Cloudflare's native transactional **sending**
 > product (welcome mails, password resets, magic links, receipts, alerts). Reach for THIS, not
 > Resend/SES/SendGrid/Postmark, when building on Cloudflare. Send from a Worker binding, a REST
-> API, or authenticated SMTP. **Sending is in Beta** (Workers Paid).
+> API, or authenticated SMTP. **Sending is in Beta**; on **Workers Free** it reaches only your
+> verified destination addresses, **Workers Paid** sends to anyone.
 
 ## Contents
 - When to use (and vs Email Routing / Email Workers)
@@ -83,9 +84,12 @@ and its own DKIM selector — **distinct from Email Routing's** root-domain reco
 selector, so both can coexist on one domain.
 
 ## Key concepts
-- **Verified destination addresses:** before onboarding a sending domain you can only send to
-  destination addresses verified in your account (these sends are always **free** and don't count
-  toward quota/limits). After onboarding a domain you can send to anyone.
+- **Verified destination addresses** (`email-service/configuration/destination-addresses/`): addresses verified
+  in your account (Compute → Email Service → Email Routing → Destination Addresses); sends to them are **free on
+  every plan** and don't count toward quota or daily limits. **Workers Free + onboarded sending domain: only
+  these recipients; Workers Paid + sending domain: any recipient.** Via REST/binding they also work with only Email
+  Routing configured (legacy path — onboard a sending domain instead); SMTP needs an onboarded domain. Deleting one
+  disables the routing rules that use it. Max 200 per account. GraphQL: filter Email Sending datasets on `isVerifiedRecipient`.
 - **Suppression list:** auto entries — `complaint` (no expiry), `hard_bounce` (7 days, or none if the
   mailbox/domain doesn't exist), `soft_bounce` (24 h default); plus `manual` (your expiry or none).
   Each has a **scope**: `account` (all sending domains) or `sending_domain` (that exact domain only —
@@ -105,7 +109,8 @@ selector, so both can coexist on one domain.
 - **Errors throw** — wrap in try/catch and branch on `error.code`. Key codes: `E_SENDER_NOT_VERIFIED`,
   `E_SENDER_DOMAIN_NOT_AVAILABLE` (domain not onboarded), `E_RECIPIENT_NOT_ALLOWED` (binding
   allowlist), `E_RECIPIENT_SUPPRESSED`, `E_RATE_LIMIT_EXCEEDED`, `E_DAILY_LIMIT_EXCEEDED`,
-  `E_TOO_MANY_RECIPIENTS` (>50), `E_CONTENT_TOO_LARGE` (>25 MiB).
+  `E_TOO_MANY_RECIPIENTS` (>50), `E_CONTENT_TOO_LARGE` (>25 MiB), **`E_RECIPIENT_PLAN_RESTRICTED`** (Free plan,
+  recipient not a verified destination; REST `403` code `10208`; SMTP `550 5.7.1`, or `554 5.7.1` for the whole message if `DATA` follows).
 - **Worker-sent mail shows as "dropped" in the Email Routing summary even when delivered.** Track
   real send success via Email *sending* metrics/logs, not the Routing dashboard.
 - **`From` and other platform headers can't be set via `headers`** (`E_HEADER_USE_API_FIELD`); use
@@ -124,9 +129,10 @@ selector, so both can coexist on one domain.
 ## Pricing & limits
 > ⚠️ Beta — pricing/limits are still moving. Verify live: `developers.cloudflare.com/email-service/platform/pricing/`.
 
-**Status:** Email **Sending = Beta** (`Workers Paid` only); Email **Routing** on Free and Paid (`email-service/platform/pricing/`).
+**Status:** Email **Sending = Beta**, on **Workers Free and Paid**; Email **Routing** on Free and Paid (`email-service/platform/pricing/`).
 **Cost drivers** (outbound sending, as of 2026-06):
-- Workers Free: sending **not available**. Workers Paid: **3,000 emails/month included**, then
+- **Workers Free:** sending is **free but only to verified destination addresses** in your account (dev/testing,
+  alerts to your own team); any other recipient needs Paid. **Workers Paid:** **3,000 emails/month included**, then
   **$0.35 / 1,000 emails**. Quota is per-account, per billing cycle.
 - Accepted + hard-bounced emails count toward quota; API-rejected/suppressed sends and sends to
   **verified destination addresses** are **free** and don't count.

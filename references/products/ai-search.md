@@ -138,6 +138,18 @@ Everything here is **opt-in**; previous behaviour stays the default.
   from sitemaps **and** links found while crawling. This is the answer when a site has no complete
   `sitemap.xml` (see the crawl gotcha below).
 
+## Search for Agents (beta, all plans; 2026-11-25) — `how-to/search-for-agents/`
+Zone toggle (dashboard → domain **Overview** → **Quick Actions** → **Search for Agents**; domain must be onboarded) that creates an
+instance `search-for-agents-<ZONE_ID>` in the `default` namespace (data source `https://<YOUR_DOMAIN>`, **Discover** crawl, hybrid
+search) and serves `https://example.com/.well-known/search` — returns **Markdown chunks with sources and scores, not a generated answer**.
+- Query: `GET ...?q=` or HTTP `QUERY` (plain-text body, or JSON `{"q": "..."}`). Cloudflare adds `agent:instructions`/`agent:endpoint`/
+  `agent:method`/`agent:documentation` `<meta>` tags to HTML `<head>`; with **Markdown for Agents** on, `Accept: text/markdown` gets the
+  same info as `agent:` YAML front matter.
+- Defaults: crawl 100,000 pages · depth 5 hops · cache age 24 h · subdomains off · sync 24 h · `@cf/qwen/qwen3-embedding-0.6b` · chunk
+  1,024 tokens / 10% overlap · RRF · 10 chunks · match threshold `0.4` · rewriting/rerank off · similarity cache on (`close_enough`, 48 h).
+- Only index what you want public; the endpoint is still subject to AI Crawl Control and WAF. Usage bills at standard AI Search
+  pricing/limits. It is a normal instance too (binding, public REST/MCP endpoints, embeds); those endpoints are separate from `/.well-known/search`.
+
 ## Gotchas
 - **Not real-time.** R2/website sources sync on a schedule, **every 24 h by default** (was 6 h; changed
   2026-11-02). `sync_interval` (seconds): `900, 1800, 3600, 7200, 14400, 21600, 43200, 86400`. Trigger now:

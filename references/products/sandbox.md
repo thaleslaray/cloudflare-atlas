@@ -131,8 +131,9 @@ after. Coding-agent skill for 0.x docs: `sandbox-stable`.
   HTTP-transport call is a subrequest (Free 50 / Paid 1,000); `SANDBOX_TRANSPORT` `rpc` multiplexes them.
 
 ## Gotchas
-- `cloudflare/debian-trixie` lacks Python, Git, `curl`, `jq` (the 0.x image had them) — your image
-  provides every tool. `python3 -m http.server` exits on startup after deploy (hostname lookup).
+- `cloudflare/debian-trixie` is a bare base (its default command exits at once → `sleep infinity`): add tools in your own
+  image — docs examples `apt-get install git`, `FROM python:3.13-slim` for pandas, `node:24-trixie-slim`. A preview server
+  as the *main process* takes the instance and its files with it when it crashes — use `sandbox/commands/run-a-server-in-the-background/`.
 - `monitor()` keeps the DO in memory, and misses the stop after the DO leaves memory. After a snapshot
   restore PIDs are reused — a saved PID may name another process.
 - The package writes nothing to DO storage: preview tokens, process records, snapshot IDs — you store them.

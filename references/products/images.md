@@ -9,6 +9,7 @@
 - Two modes (transformations vs storage)
 - Binding & config
 - Key API / access patterns
+- Polish (origin images)
 - Gotchas
 - Pricing & limits
 - Going deeper
@@ -24,8 +25,9 @@
 
 ## Two modes
 1. **Transformations (bring your own storage)** — optimize remote images on any origin (R2, S3, your
-   web server). Available on **Free and Paid**. Billed only on *Images Transformed*. URL form on a
-   zone: `https://<zone>/cdn-cgi/image/<options>/<source-url>`, or in a Worker via the binding.
+   web server). Available on **Free and Paid**. Billed only on *Images Transformed*. URL form:
+   `https://<ZONE>/cdn-cgi/image/<OPTIONS>/<SOURCE-IMAGE>` (must be **enabled per zone or Worker**, see
+   below), `fetch()` with `cf.image`, or the Worker binding.
 2. **Storage (host in Images)** — upload originals to Images; it handles storage + optimization +
    delivery. **Paid only**. Served from `https://imagedelivery.net/<account_hash>/<image_id>/<variant>`
    (or a custom domain). Billed on *Images Stored* + *Images Delivered*.
@@ -47,6 +49,17 @@ return out.response();
 `format`); use `wrangler dev --remote` for the full/high-fidelity API. Local dev incurs no usage charges.
 Uploads use the REST API
 (`/accounts/{id}/images/v1`) — wrangler has no Images commands.
+
+**URL interface (`images/optimization/transformations/url/`)** — off until enabled. *Zone:* `cf zones settings edit transformations
+--zone example.com --body '{"value":"on"}'` (dashboard Images → Transformations; REST `PATCH /zones/{zone_id}/settings/transformations`).
+*Worker-scoped (2026-11-25, serves `<worker>.<subdomain>.workers.dev/cdn-cgi/image/...` and local dev):*
+```jsonc
+{ "images": { "url_transformations": { "enabled": true, "allowed_origins": ["images.example.com"] } } }
+```
+(`cloudflare.config.ts`: `images.urlTransformations.{enabled, allowedOrigins}`; REST `PUT /accounts/{account_id}/settings/transformations/workers/{script_name}`.)
+Worker settings override the zone's on custom domains routed to that Worker; named Wrangler environments **don't inherit** them; Version URLs use the
+deployed settings (`wrangler versions upload` doesn't update them). Default source = same zone; widen via the allowlist (`transformations/sources/`).
+Worker route must match `/cdn-cgi/image/*` (`example.com/*` does, `example.com/foo/*` doesn't).
 
 ## Key API / access patterns
 - **Workers binding** — `env.IMAGES.input().transform().output()`; `.draw()` overlays a second input
@@ -76,6 +89,15 @@ Uploads use the REST API
 - **Delivery analytics (2026-11-20)** — dashboard Hosted images → Analytics (30 days); SQL API datasets `events.imagesHostedRequests`
   (hosted) and `events.imagesTransformations`.
 
+## Polish (origin images, no URL changes) — `images/polish/`
+- **Pro/Business/Enterprise only** (Free: No). Optimizes JPEG, PNG and eligible GIF from your origin in cache, same URLs; strips metadata.
+  Settings `polish` (`off` default | `lossless` | `lossy`), `avif`, `webp` (`on`/`off`): `cf zones settings edit polish --zone example.com --body '{"value":"lossy"}'`
+  (dashboard Speed → Settings → Image Optimization; REST Edit zone setting). Per-hostname → a Configuration Rule. Changes don't touch already-cached images (purge).
+- **AVIF (added 2026-11-24)**: converts JPEG and PNG, never GIF/animated/WebP; WebP converts PNG and GIF, JPEG only in Lossy mode. Served only if the `Accept`
+  header lists the format and the result is smaller/good enough; AVIF wins over WebP when both are accepted. Lossless never changes pixels (no JPEG→WebP).
+- **Skips** Images-processed URLs and any origin `Vary` other than `Accept-Encoding` (`vary_header_present`). Debug with the `Cf-Polished` header
+  (`input_too_large` = >20 MB or ≥4,000 px, `avif_bigger`, `webp_bigger`, `avif_overloaded`, `format_not_supported`, …) → `images/polish/troubleshooting-polish/`, `no-avif/`, `no-webp/`.
+
 ## Gotchas
 - **`fit=cover`/`crop` need both `width` AND `height`** — otherwise the crop is undefined.
 - **Cache your transforms** — binding responses are *not* automatically cached; enable Workers Cache
@@ -84,8 +106,16 @@ Uploads use the REST API
   edge-cached automatically; binding output is not.
 - **AVIF is slow to encode** — first request may lag; very large images fall back to WebP/JPEG. AVIF
   output dimension is capped at **1,200 px** (other formats 12,000 px).
-- **EXIF metadata** is kept only for JPEG (`metadata=copyright` default | `keep` | `none`); for every other
-  output format all metadata is always discarded.
+- **Metadata** (`metadata=copyright` default | `keep` | `none`; URL, `cf.image` and preset variants — **the binding doesn't expose it**).
+  Since 2026-11-23 EXIF/XMP survive more than JPEG→JPEG: write support JPEG (C2PA, EXIF, XMP, IPTC-IIM) · PNG, WebP (C2PA, EXIF, XMP) ·
+  AVIF (C2PA, EXIF) · GIF (C2PA, XMP); HEIC/TIFF are input-only. `copyright` keeps C2PA + the EXIF copyright tag (so PNG/WebP/AVIF output may now
+  carry it); `keep` also keeps supported EXIF (not orientation) + XMP, and IPTC-IIM for JPEG sources (mapped to XMP on PNG/WebP/GIF output only
+  if the source has no XMP; AVIF output doesn't keep the mapped fields); `none` drops all. EXIF and XMP are each capped at **64 KB** after filtering
+  (over = dropped entirely). Unchanged source files keep everything. Polish on = metadata may already be gone.
+- **Content Credentials** (`images/optimization/preserve-content-credentials/`) are off by default: dropped from re-encoded output. Turn on
+  per zone (`cf zones transformations-c2pa edit --zone example.com --value on`; REST `PATCH /zones/$ZONE_ID/settings/transformations_c2pa`) and,
+  for hosted images, per account (dashboard Hosted Images → Delivery; `PATCH /accounts/$ACCOUNT_ID/images/v1/config` `preserve_content_credentials: true`).
+  Images appends signed optimization actions only if the source already has credentials; it never creates them.
 - **`9422`** on Free plan = you passed 5,000 unique transformations; cached ones still serve. Use the
   `onerror=redirect` param to fall back to the original.
 - Never ship the API token to clients — use Direct Creator Upload.
@@ -95,7 +125,7 @@ Uploads use the REST API
 
 **Cost drivers** (as of 2026-06):
 - *Images Transformed* (BYO storage / binding): first **5,000 unique/month free**, then **$0.50 / 1,000**.
-  A "unique transformation" = one image + one set of params per calendar month; `format=auto` counts once.
+  A "unique transformation" = one image + one set of params per calendar month; `format` and `quality` are excluded from uniqueness, so `format=auto` counts once.
 - *Images Stored* (hosted): **$5 / 100,000 images / month**.
 - *Images Delivered* (hosted): **$1 / 100,000 delivered / month**.
 - **Free plan:** transformations only (no storage), **5,000 unique/month**, no overage charge (errors instead).
@@ -111,4 +141,5 @@ Verify on `developers.cloudflare.com/images/optimization/features/`.
 - Covered by the official `cloudflare` skill (`references/images/`) — use it for full API, the
   complete `TransformOptions` set, variant presets, watermarking and caching patterns.
 - Exact REST API (`/images/v1`, `/images/v2/direct_upload`, variants): `references/api/images.md` — exact endpoints sliced from the OpenAPI spec (verify shapes live).
-- Transform options reference → `developers.cloudflare.com/images/optimization/features/`.
+- Transform options reference → `developers.cloudflare.com/images/optimization/features/`. Remote-image pages: `images/optimization/transformations/`
+  (`url`, `sources`, `flows`, `transform-via-workers`, `control-origin-access`, `rewrite-rules`; `overview` is gone). Polish: `images/polish/configure-polish/`.

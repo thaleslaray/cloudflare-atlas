@@ -37,6 +37,7 @@
   cancellations** apply at end of the billing period — no refund for remaining time.
 - **Failed payment:** 5-day grace period, up to 5 automatic retries; while unpaid you cannot buy or
   modify subscriptions. Unresolved → account downgraded to Free (sites stay up; paid features lost).
+- **Activate from the CLI/MCP** (changelog 2026-11-25): Workers Paid, R2 and Zero Trust subscriptions can be created from `cf` (`1.0.0-rc.5`+, re-run `cf auth login`) or Cloudflare MCP servers; needs a verified email and a billing profile with a payment method → `cf.md`.
 
 ## Spending limits & email alerts (Workers, Durable Objects) — changelog 2026-11-13
 Only **Workers** and **Durable Objects** today ("more products coming soon"). API name: **spend policy**.

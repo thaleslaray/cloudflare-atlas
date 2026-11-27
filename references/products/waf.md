@@ -27,7 +27,7 @@
 ## Rule types
 | Type | Phase | What it does |
 |------|-------|--------------|
-| **Custom rules** | `http_request_firewall_custom` | Your block/challenge/skip/log logic |
+| **Custom rules** | `http_request_firewall_custom` | Your block/challenge/skip logic (`log` action: **Enterprise only**) |
 | **Rate limiting rules** | `http_ratelimit` | Count requests per characteristic, throttle |
 | **Managed Rules** | `http_request_firewall_managed` | Deploy Cloudflare-maintained rulesets via `execute` |
 | **Response custom rules** (Response firewall) | `http_response_firewall_custom` | `block` / `log` / `execute` on **responses** |
@@ -98,6 +98,10 @@ Each phase is a separate ruleset (entrypoint) per zone — you cannot mix phases
   `cloudflare_ai_security_custom_topics` (`topics = [{label, topic}]`) **manages the whole topic list — it overwrites topics
   added in the dashboard**; block rules live in the normal `http_request_firewall_custom` `cloudflare_ruleset` (one
   entry-point ruleset per zone — add to the existing resource). Still scans only endpoints labeled `cf-llm`.
+- **AI Security for Apps prompt logging (2026-11-24):** `waf/detections/ai-security-for-apps/get-started/#7-optional-log-prompts-for-matching-rules` — set up **payload logging**
+  (`waf/payload-logging/configure-api/`, account or zone public key; Enterprise only; encrypted, Super Administrator) and add a custom rule using any field with the **`cf.llm.prompt`** prefix
+  (`.pii_detected`, `.injection_score`, `.token_count`, …). A match stores the extracted prompt, or the **full request body** if none was extracted. This replaces the old *AI Security Log Mode Ruleset*
+  procedure (changelog); `.../ai-security-for-apps/log-mode-vs-production-mode` no longer exists (use the *Log* action, Enterprise only, to validate without mitigating). Detection handles only `application/json`.
 - **Execution order** (terminating action stops all later rules): IP Access rules → Firewall Rules
   (deprecated) → **custom rules → rate limiting → managed rules**.
 - **`skip`** action bypasses later evaluation: `ruleset: 'current'` skips the rest of *this*

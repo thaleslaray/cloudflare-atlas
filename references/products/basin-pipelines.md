@@ -53,7 +53,12 @@
 
 ## Gotchas
 - **Pipeline SQL cannot be modified after creation** — delete and recreate the pipeline to change it.
-  **Sinks cannot be modified after creation** either.
+  **Sinks:** only the credentials (and, via API, the rolling policy) can change after creation; anything else → delete and recreate.
+- **Rotating sink credentials** (`sinks/manage-sinks/#update-sink-credentials`, 2026-11-25): for an expired/revoked token. Dashboard: Sinks → sink → **Destination** →
+  **Update credentials**. API: `PATCH /accounts/$ACCOUNT_ID/pipelines/v1/sinks/$SINK_ID` with `config.credentials` (`access_key_id`, `secret_access_key`; a Basin Catalog sink
+  sends `token` instead). Pipelines keep the **earlier** credentials until updated: dashboard **Update pipeline** (shown only when a stream/sink changed) or
+  `POST .../pipelines/v1/pipelines/$PIPELINE_ID/update_tables`; the pipeline's `outdated` field says whether it needs it. Updating a **failed** pipeline retries it
+  (`failure_reason` holds the cause). Token needs **Basin Pipelines Edit**.
 - **Sinks cannot be created for existing Iceberg tables** — the sink creates its table.
 - **Sink egress is measured on uncompressed data.** Compressed Parquet/Iceberg output is billed on
   the pre-compression volume.

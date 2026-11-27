@@ -89,6 +89,16 @@ builder) — both auto-configure the namespace + routing.
 
 ## Gotchas
 - **`env.DISPATCHER.get()` always wrap in try/catch** — `"Worker not found"` → return 404; rethrow others.
+- **Namespace names follow Worker naming rules** (2026-11-25, new namespaces only): lowercase letters, numbers, `_`, `-`; start with a
+  letter, number or `_`; ≤256 chars. Otherwise create fails with `400`/`100120` (API `POST`, `wrangler dispatch-namespace create`,
+  Terraform `cloudflare_workers_for_platforms_dispatch_namespace`); existing namespaces unaffected.
+- **Per-namespace access** (`workers/authorization/workers-for-platforms/`, 2026-11-23): four **Workers Namespace** roles — Metadata
+  Read-Only, Content Read-Only (+code, secret names), Editor (create/update/deploy/delete Workers, incl. secrets; can't touch the
+  namespace itself), Admin (+view/update/delete the namespace) — for a member, User Group or API token, scoped to **Individual
+  Namespaces** / **Specified Namespaces** and applying to every current and future Worker there. Token resource key:
+  `com.cloudflare.edge.worker.namespace.<NAMESPACE_ID>` (ID without dashes). Not per user Worker; no logs/metrics/traces; creating/
+  listing namespaces needs account-level Workers access; dispatch + outbound Workers use plain Workers roles; `wrangler login` OAuth
+  doesn't support them (use an account-owned token).
 - **Dispatch namespaces can't be renamed** (2026-11-20): `PUT`/`PATCH` that change `name`, `wrangler dispatch-namespace rename`
   and a Terraform `name` change all fail (`400`, code `100413`). To get a new name: create a new namespace, deploy user Workers
   to it, repoint the dispatch Worker's namespace binding + redeploy, verify, then delete old Workers and the old namespace.

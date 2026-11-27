@@ -12,6 +12,78 @@ One entry per pass. Newest first.
 
 ---
 
+## 2026-11-27
+
+**Refresh pass on the 2026-11-26 weekly check: 18 product files curated by three Sonnet agents on disjoint sets (~720 k tokens). Copies were in sync before starting (`diff -rq -x .git` clean; installed at `bb1cea2`).**
+
+**Detected (2026-11-26).** live=111 / known=111, no structural drift. No new multi-page subtree; 8 gone (`agents/concepts/conversation-state-and-memory` → split into `concepts/context` + `concepts/sessions`; six Images Polish/transformations paths reorganized; `waf/detections/ai-security-for-apps/log-mode-vs-production-mode`). 21 single-page additions. 5 new NOT FOUND tokens: `agents` + `think` `agents/experimental/memory/session`; `think` `parent_id`, `load_context`; `sandbox` `python3 -m http.server`. API slices 26 days old.
+
+**Curated**
+- `agents.md` 197→206 — memory section rewritten around the new split: **Session = transcript** (`Sessions` from `agents/sessions`, experimental capability installed via `Lifecycle.install(this).use(...)`; message tree `parentId`/`getBranches()`; `history()`, `getRecentHistory(maxBytes)`, `search()`; format follows the harness; compaction is an overlay — originals stay stored and searchable; `deleteMessages()`/`clearMessages()`), **Context = everything else** (system prompt, tools, skill catalog, memory, environment, retrieved material; prompt-cache ordering). `maxPersistedMessages` / `pruneMessages()`.
+- `think.md` 178→189 — `configureContext()` blocks (`label`, `description`, `maxTokens`, `provider`, `whenChanged`), model tools `set_context` / `search_context`, `AgentSearchProvider` from `agents/context`, `appendToBlock()` / `refreshSystemPrompt()`, prompt frozen after turn 1 and refreshed after compaction; session settings `hydrationByteBudget` (32 MiB), `mediaEviction`, `truncationStep`; `fetchTools`; exports `/react`, `/tools/fetch`.
+- `sandbox.md` 153→154 — preview/server gotcha rebuilt from the live pages (`sleep infinity` on `cloudflare/debian-trixie`, tools added in your own image, a main-process server takes the instance with it).
+- `images.md` 114→145 — Polish section (Pro/Business/Enterprise; `polish`, `avif`, `webp`; AVIF from JPEG/PNG; `Cf-Polished`); URL interface is opt-in per zone or per Worker (`images.url_transformations.{enabled, allowed_origins}`); Content Credentials (off by default; zone `transformations_c2pa`, account `preserve_content_credentials`); metadata write matrix by format.
+- `email-service.md` 148→154 — sending on Workers Free: verified destination addresses only (200 per account), `E_RECIPIENT_PLAN_RESTRICTED`, REST `403`/`10208`, SMTP `550 5.7.1`/`554 5.7.1`.
+- `rules.md` 127→133 — `hmac_md5|sha1|sha256|sha512`, `sign_sigv4_hmac_sha256`, `format_date`, S3/GCS signing example.
+- `cache.md` 133→137 — range requests vs `Accept-Encoding` (206 for cached gzip/`br`, 200 for `zstd`/`deflate`).
+- `d1.md` 105→109 — Insights index recommendations (`ai_enabled`, input sent to Workers AI, 7-day expiry, only a single valid `CREATE INDEX` is checked).
+- `waf.md` 160→164 — AI Security prompt logging through payload logging (any field with the `cf.llm.prompt` prefix; Enterprise).
+- `cloudflare-for-platforms.md` 133→143 — namespace naming rules (`400`/`100120`, ≤256 chars), four Workers Namespace roles (`workers/authorization/workers-for-platforms/`).
+- `workers.md` 173→178 — CPU/heap profiling for Previews (dashboard *Flamegraph* 1000–50000 ms, CLI, API).
+- `ai-search.md` 196→208 — Search for Agents (`/.well-known/search`, `GET` and `QUERY`, discovery meta tags).
+- `browser-run.md` 188→190 — `X-Browser-Ms-Used` on `/script` (cumulative); Kitesurf runs follow Kitesurf pricing.
+- `cf.md` 77→84 · `billing.md` 107→108 — subscription activation from `cf` / MCP (changelog), `cf feedback`.
+- `basin-pipelines.md` 98→103 — sink credential rotation (`PATCH …/pipelines/v1/sinks/$SINK_ID`, `config.credentials`).
+- `k2.md` 90→95 — metrics datasets (changelog-only). `dns.md` 134 — `foundation_dns` line rewritten.
+- **Second sweep, same day (one more Sonnet agent, ~264 k tokens): whole-file re-verification of `agents.md`** 206→207, ~125 claims outside the session/context sections checked, 11 fixed (below). `hyperdrive.md` 93→92 — conflict note removed: the limits page now shows **100 configs / up to 1,500 connections** on Paid. `SKILL.md` Access passkeys note compared line by line with the live passkeys page: all correct, date bumped to 2026-11-27.
+
+**Corrections (errors that would have shipped)**
+- `agents` / `think`: import path `agents/experimental/memory/session` → **`agents/sessions`**; `withContext()` / `withCachedPrompt()` / `load_context` / `parent_id` are gone → `configureContext()`, `set_context`, `search_context`, `parentId`.
+- `agents`: "DO-SQLite by default (or Postgres)" — Postgres is on no live page; "don't mix the two `Session` import paths" — Think and `AIChatAgent` both use `Sessions` from `agents/sessions`; "`this.messages` accumulates forever" → `maxPersistedMessages`.
+- `think`: `maxRecoveryWork` default 1,000 → **10,000**; `useAgentChat` comes from **`@cloudflare/think/react`**, not `@cloudflare/ai-chat/react`; `WorkerJavaScriptBackend` → **`CodemodeBackend`** (`codemode:tools`, Think ≥0.24 needs `@cloudflare/computer` 0.10); `Workspace` is not a `@cloudflare/think` export.
+- `email-service`: "sending is Workers Paid only" — **wrong since 2026-11-24**.
+- `rules`: `sha256()` "Enterprise add-on" → **Pro, Business, Enterprise**.
+- `waf`: *Log* listed as a custom-rule action for every plan → **Enterprise only**.
+- `images`: "EXIF survives only for JPEG" → write support per format (JPEG, PNG/WebP, AVIF, GIF); `/cdn-cgi/image/` implied on by default → opt-in.
+- `basin-pipelines`: "sinks cannot be modified after creation" → credentials (and, via API, the rolling policy) can.
+- `dns`: `foundation_dns` "deprecated alias, still accepted" → **removed; a `PATCH` that includes it is rejected**.
+- `sandbox`: "base image lacks Python, Git, `curl`, `jq` (the 0.x image had them)" — unverifiable, dropped.
+- `agents`: Pi peer range `~1.6.0` → **`~1.6.1`** (Pi page and `agents/models/pi-ai` changed between the close and the phase-1 re-run on 2026-11-27; caught by re-running phase 1 after `--close`).
+- `agents` (second sweep): MCP client connections "do not survive hibernation" → **persisted in SQL and restored**; `addMcpServer()` is deduplicated by name. Gotcha "call `conn.accept()` in `onConnect()`" → connections are accepted by default. `getSchedules()` → **`listSchedules()`** (old one deprecated). Pi tool park is `{ kind: "sleep", signals, until }` / `{ kind: "wait", on, policy }`; `{ sleep: … }` is the `beforeTool` form. Portals: date "2026-08-07" → **GA 2026-09-24**; "sessions die after 24 h" → only legacy 2025-client sessions (2026-07-28 requests are stateless); the ~2-hour tool sync is for DCR servers and routes through Gateway when server-level Gateway routing is on; `search_and_execute` adds `portal_query_tools` and `portal_execute`. OAuth provider skill `migrate-to-1.0` → `migrate-to-1.x`. "Never mutate `this.state`" (on no live page) reworded to what the state page says.
+
+**Conflicts**
+- `harnesses/think/configuration` lists peer `ai` as v7 only; `harnesses/think` (Install) says `ai@^6` or `ai@^7`. Kept v6-or-v7.
+- `harnesses/think/recovery` snippets use `maxAttempts: 6`; the defaults table says 10 / 10,000. Used the table.
+- `sha512()` states no plan while `md5()` / `sha1()` / `sha256()` now state Pro+. Written as unstated.
+- Hyperdrive limits conflict **resolved** (page caught up). Workers AI deprecated-model pages: not re-checked this pass (carried).
+- OpenCode harness: changelog 2026-10-12 says experimental, the docs page does not label it. Kept as changelog-only.
+
+**Coordinator check.** ~110 claims spot-checked with `curl …/index.md | grep`: `agents/sessions`, `Lifecycle.install`, `getBranches`, `getRecentHistory`, `createCompactFunction`, `compactAfter`, `parentId`; `configureContext`, `set_context`, `search_context`, `whenChanged`, `AgentSearchProvider`, `appendToBlock`, `refreshSystemPrompt`; `hydrationByteBudget`, `mediaEviction`, `truncationStep`, "32 MiB"; `maxRecoveryWork` "10,000"; `CodemodeBackend`, `codemode:tools`, `createToolBindings`, `forAISDKTools`; `@cloudflare/think/react`, `ai@^6`/`ai@^7`; `getAgentByName`; `maxPersistedMessages`, `pruneMessages`; `sleep infinity`; Email Free / `E_RECIPIENT_PLAN_RESTRICTED` / `10208` / 200; `sign_sigv4_hmac_sha256`, `format_date`, `http.request.timestamp.sec`; `url_transformations`, `allowed_origins`, "64 KB", `preserve_content_credentials`; `cf.llm.prompt` payload logging; range-request `zstd`/206; `ai_enabled`, "7 days"; "256 characters or fewer", `100120`; `/.well-known/search`, `QUERY`; sink `PATCH` + `config.credentials`; profile duration "1000 to 50000"; `X-Browser-Ms-Used`; `1.0.0-rc.5` and the four `k2*AdaptiveGroups` datasets in the changelog. All matched. Absence confirmed for `Postgres`, `load_context`, `withContext`, `parent_id`, `idFromName` on the pages that used to carry them.
+
+**Accepted NOT FOUND (each sourced live).** `basin-pipelines` `PATCH /accounts/$ACCOUNT_ID/pipelines/v1/sinks/$SINK_ID`, `config.credentials` (curl example on `sinks/manage-sinks`); `billing` + `cf` `1.0.0-rc.5` (changelog 2026-11-25); `cloudflare-for-platforms` `≤256 chars` ("Be 256 characters or fewer" on `how-workers-for-platforms-works`), `cloudflare_workers_for_platforms_dispatch_namespace` (changelog); `images` `PATCH /zones/$ZONE_ID/settings/transformations_c2pa`, `PATCH /accounts/$ACCOUNT_ID/images/v1/config`, `preserve_content_credentials: true` (curl examples on `preserve-content-credentials`); `k2` four `k2*AdaptiveGroups` (changelog-only — no K2 docs page mentions metrics); `sandbox` `apt-get install git` (shorthand of the Dockerfile on `run-tests-from-a-git-repository`); `workers` `50000 ms` (page: "1000 to 50000 milliseconds"). `agents` `migrate-to-1.x` (changelog 2026-10-01, in the Agents changelog RSS). Probe: `cache` "Origin Range Requests", `workers` "Content Read" newly stranded, accepted. Verify and probe baselines re-recorded.
+
+**Deferred**
+1. Workers AI: deprecated models still published — call-test or re-check whether pages/`llms.txt` entries are removed; paid-model list still names deprecated IDs; per-model replacement for `llama-3.2-1b/3b-instruct`; `clairic` vs `clairic-flash`; EmbeddingGemma 2 audio/video and Inkling 2 Small schema; 4 new `ai/models` pages this week (bria `rmbg-3.0`, pruna `z-image-turbo`, recraft `vectorize`, topaz `proteus-4`) not written; Think examples now use `@cf/deepseek-ai/deepseek-v4.1-flash-1017`.
+2. AI Gateway Key security 90-day threshold still changelog-only.
+3. Agents: `codex()`/`claudeCode()` options, `harness.submit()/wait()` details, AI Gateway `baseUrl` wiring, Nanocode HTTP routes/Code Mode, Exo recovery — not written. `agents.md` claims left unproven after the full sweep: "no separate Agents SKU" (`agents/platform/pricing/` is 404), "no ai-react subpath", "Think-only" list, SQL-injection and `@callable` gotcha wording.
+4. DO retries: request-identity detail, per-attempt `RpcTarget` disposal, `TypeError`/`RangeError` rules. Preview profiling for Durable Objects not added to `durable-objects.md`.
+5. Vercel→Workers per-framework gotchas and feature→product table; EmDash templates; Vite+ `cf init` flow.
+6. `frameworks/` still blind to `check-pointers`/`check-doc-urls`/`probe-blindness` and unmapped in `_known-pages.txt`; `frameworks/react-router.md`; TanStack validator API; RSC status; Vite 7 vs 8.
+7. (closed 2026-11-27) Hyperdrive limits page now shows 100 / 1,500.
+8. Durable Objects: Free per-object storage (1 GB vs 10 GB) — re-check when the page is consistent.
+9. `cf` 1.0 RC extras: `--temporary-account`, `cf auth scopes/whoami`, keyring, `cf deploy` option table, `CLOUDFLARE_COMPLIANCE_REGION`, `experimental.streamingTailConsumers` move. Inbound TCP local dev `triggers.connect(...)`. Subscription activation from `cf`/MCP is changelog-only — re-check for a docs page.
+10. Seen, not curated: WAF payload logging for custom rules beyond the AI Security case; Workers Rate Limiting weighted requests; Artifacts local dev; Workers Paid subrequests "10,000 (up to 10M)"; per-model `ai/models` pricing; Cloud Connector GA, Access SAML IdP cert auto-retrieval, Agent Lee attachments, R2 ops-per-second view, Stream LL-HLS B-frame detection, Radar ASN types / CVE pages; Images delivery analytics beyond the dataset names; **Rules posts of 2026-11-27**: IP/ASN lists in response-side rule filters, five multipart-inspection fields (Enterprise), parsed response cookies (`http.response.set_cookies`, `raw.` variant).
+11. AI Search: namespace error codes beyond `7062`/`7065`/`7066`, D1 per-row/sync error codes, reserved `meta_*` names. Realtime: Whiteboard troubleshooting, `NoiseCancellationStatus`. R2: local S3 operations table. MoQ: draft-18 demo namespaces.
+12. Rules: `sha512()` plan availability still unstated on the functions page — re-check. `ruleset-engine.md` not read for hash-function plan claims.
+13. Access passkeys note in `SKILL.md`, unaudited by any gate — re-verify against "Set up two-factor authentication without a password" (Fundamentals, 2026-11-24) until `cloudflare-one` covers it. Note itself re-verified 2026-11-27; the Fundamentals 2FA post not read.
+14. Tooling: `scripts/refresh --close` still cannot forward `--force` to the page-baseline guard; `verify-products --installed` prints "(workbench)" in its header.
+15. Browser Run: limits/pricing pages still publish no per-endpoint limits for `/script` or `/snapshot` (checked 2026-11-27). Inbound TCP public beta: no caps, timeouts or pricing published.
+16. **Cloudflare WAN / One Appliance has no product file**: DNAT translations (`remote_subnets` with `local_alias_prefix` / `remote_prefix`, same-size IPv4 prefixes, Appliance OS ≥2026.11.2, `PATCH` replaces all translations) and prioritized traffic on congested circuits (`provisioned_upload_kbps`, changelog-only) fetched but not written. Decide: new `cloudflare-wan.md` or leave to `cloudflare-one`.
+17. Images: `polish/no-avif` and `no-webp` pages only linked; "AVIF output capped at 1,200 px" and other pre-existing limits not re-verified.
+18. API slices 27 days old — not re-sliced this pass; due before 2026-11-30.
+
+---
+
 ## 2026-11-23
 
 **Refresh pass on the 2026-11-23 weekly check: 15 product files curated by three Sonnet agents on disjoint sets. Copies were in sync before starting (`diff -rq -x .git` clean; installed at `184c4f5`).**

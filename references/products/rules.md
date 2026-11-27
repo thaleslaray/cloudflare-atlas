@@ -72,11 +72,17 @@ All of these take **precedence over Page Rules**.
   - **`coalesce(a, b, …)`** — first non-nil argument (≥2, same type); fallback for missing values.
   - **`hash_in_range(min, max, seed…)`** — all HTTP products, all plans. Range `[min, max)`, literal
     bounds, seeds must be fields; e.g. ~10% sample: `hash_in_range(0, 100, cf.random_seed) < 10`.
-  - **Hash functions** (changelog + `rules-language/functions/`, 2026-11-12): `md5()` (16 bytes), `sha1()` (20),
-    `sha512()` (64) join `sha256()`; each takes a String or Bytes and returns **raw bytes** — wrap in `encode_base64()`
-    for a string. The docs page states **no** plan gate or phase restriction for the three new ones, whereas `sha256()` is an
-    **Enterprise add-on** (needs an entitlement) usable **only in Transform Rules rewrite expressions** — don't assume the new
-    three share that, and test where you use them.
+  - **Hash functions** (`rules-language/functions/`; live page checked 2026-11-27): `md5()` (16 bytes), `sha1()` (20), `sha256()` (32), `sha512()` (64); each
+    takes a String or Bytes **field or function result (no literals)** and returns **raw bytes** — wrap in `encode_base64()`/`encode_hex()` for text. Plan: `md5()`, `sha1()`
+    and `sha256()` **Pro, Business, Enterprise**; the `sha512()` entry states **no plan** (unverified). `sha256()` is **only usable in Transform Rules rewrite expressions** (not
+    stated for the others; test where you use them). (`sha256()` was once described here as an Enterprise add-on — the live page now says Pro+.)
+  - **HMAC + SigV4 + dates (2026-11-27)**: `hmac_md5()` / `hmac_sha1()` / `hmac_sha256()` / `hmac_sha512()` (`input, key` → raw digest; key used as supplied, no Base64 decoding;
+    **Pro, Business, Enterprise**; each ≤5× per request/response header rewrite expression). `sign_sigv4_hmac_sha256(input, secret, timestamp, region, service, prefix, terminator)` derives the
+    key and returns 64 lowercase hex chars (**don't wrap in `encode_hex()`**; Pro+, once per expression; **you build the canonical request and string-to-sign**). `format_date(timestamp, format)` →
+    UTC text (`%Y %m %d %H %M %S %%`; only field arg `http.request.timestamp.sec`; ≤4× per expression; **all plans**; rewrite expressions only, not filters). Worked example, S3 + GCS without a Worker:
+    `rules/transform/examples/sign-private-storage-requests/` — Cloud Connector routes to the bucket + Request Header Transform sets date, payload-hash and `Authorization` headers. Caveats from
+    that page: the filter must exclude visitor `Authorization`/`x-amz-*`/`x-goog-*` headers and `http.request.headers.truncated`; sign the literal bucket hostname (Transform runs before Cloud Connector sets `Host`);
+    GET/HEAD without body, one object path only; bypass cache while testing; secrets in expressions are readable by anyone with config access.
   - **`cf.appsec.request.failed_detections`** (2026-10-09) also works in zone Request Header Transform Rules (→ `waf.md`).
 
 ## Gotchas

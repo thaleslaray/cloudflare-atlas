@@ -96,6 +96,11 @@
   only if you bind a separate resource. Limits: crons, routes, Queue consumers, service bindings → prod only.
 - Previews per Worker: **100** (Free) / **500** (Paid); **100** deployments per Preview; oldest auto-deleted. No separate pricing
   documented (`workers/previews/`). Git-connected CI builds create one per branch — `workers/ci-cd/builds/build-branches/`.
+- **Profile a Preview** (CPU or Heap; 2026-11-23, `workers/previews/test-and-debug/#profile-a-preview`): same as production profiling — enable
+  source maps, send traffic to the Preview URL before/during capture (it doesn't invoke your code). Dashboard: Preview → **Observability** →
+  *Flamegraph* (1000–50000 ms, default 10000); CLI `cf previews deployments profile <id|latest> --worker --preview --duration-ms --profile-type cpu`
+  (+ `--namespace-id` `--actor-id` for a Durable Object); API `POST .../workers/$WORKER_ID/previews/$PREVIEW_ID/deployments/$DEPLOYMENT_ID/profile`
+  (`latest` allowed; body `duration_ms`, `profile_type`; token **Workers Scripts Read** or **Content Read-Only**). DO on a Preview: 64-char Instance ID.
 - `Workers Builds`: pin npm/Yarn/pnpm/Bun via the exact-version `packageManager` field in `package.json` (`engines.npm` is ignored; `build-image/`); builds + logs kept **90 days**; the GitHub repo picker lists only accounts/repos **you** can access on GitHub (2026-11-10; one-time app authorization per person, separate from installing the app) (`limits-and-pricing/`). Images reject the compromised eMudhra CAs (2026-10-23): `BUN_VERSION` must be ≥1.4.4; custom `SSL_CERT_FILE`/`PIP_CERT` must not trust them (build-image page, "Trusted certificates").
 
 ## Putting a Worker behind Access (sign-in) — 2026-08-14

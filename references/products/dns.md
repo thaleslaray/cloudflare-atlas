@@ -35,10 +35,10 @@
 - Also supports **secondary DNS** (Cloudflare as secondary via zone transfer) and **partial (CNAME) setup**.
 - Enterprise + Foundation DNS → advanced nameservers (hosted under `foundationdns.com`/`.net`/`.org`,
   three anycast network groups), account-unique DNSSEC keys, custom SOA/NS TTL.
-- **API type:** zone DNS settings (`/zones/{zone_id}/dns_settings`) represent Advanced Nameservers as
-  `nameservers.type: "cloudflare.advanced"` (rolling out from 2026-10-26, ~7 days; before it reaches an
-  account the API still returns `cloudflare.standard`). `foundation_dns` is a deprecated alias; a `PATCH`
-  with both values must match. Clients must not treat `type` as a closed enum.
+- **API type:** zone DNS settings (`/zones/{zone_id}/dns_settings`) and account defaults represent Advanced Nameservers as
+  `nameservers.type: "cloudflare.advanced"` (also `"cloudflare.standard"`; custom nameservers show `"custom"` on a zone; don't treat `type` as a closed enum). The deprecated
+  `foundation_dns` boolean is **removed** (changelog 2026-11-23, ~7-day rollout): no longer returned or accepted, and a `PATCH` that includes it is rejected —
+  use the type. Doesn't change the Foundation DNS subscription or enabled Advanced Nameservers, no zone migration.
 - **Nameserver sets** (beta, Enterprise): account-level group of 2–5 custom nameserver names (1–3 IPv4 and
   IPv6 each, `ip_count`) assigned to zones in the same account via `/accounts/$ACCOUNT_ID/dns_settings/nameserver_sets`;
   `advanced: true` (needs Foundation DNS; all names share one `ip_count`) makes an Advanced Custom set. Sets are

@@ -230,7 +230,7 @@ product file would be:
 | Access (apps, policies, service tokens, mTLS, SaaS SSO), Gateway, WARP/device posture, tunnels-as-ZT | the **`cloudflare-one`** skill |
 | Migrating onto Cloudflare One from another SASE/ZTNA vendor | the **`cloudflare-one-migrations`** skill |
 
-**Known gap in the sibling skill — Access passkeys (verified live 2026-11-17).** The `cloudflare-one`
+**Known gap in the sibling skill — Access passkeys (verified live 2026-11-27).** The `cloudflare-one`
 skill does not mention them yet, so the facts live here until it does:
 - Passkeys are an Access **login method** (WebAuthn; the authenticator must support discoverable
   credentials and user verification). Users sign in without a password, OTP or typing an email.

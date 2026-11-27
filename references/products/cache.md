@@ -110,6 +110,10 @@ works on custom domains / Pages Functions — no effect in the dashboard editor 
 - A `Bypass cache` Cache Rule may report `DYNAMIC` (not an explicit bypass status) in the header.
 - `s-maxage` disables `stale-while-revalidate` (RFC 9111 `proxy-revalidate` semantics).
 - Always Online makes CF ignore `stale-while-revalidate` / `stale-if-error`.
+- **Range requests + encoding** (2026-11-24; `cache/reference/range-requests/`): a `Range` on a cached **gzip/`br`** file gets `206` only if the client's
+  `Accept-Encoding` names `gzip`/`br` without `q=0` (absent, `*`, `x-gzip` don't qualify; `br` also needs HTTPS) — offsets count **encoded** bytes. Otherwise `Range` is ignored → full `200`
+  (always for cached `zstd`/`deflate`). Uncached `GET` over HTTPS forwards the client's own `Accept-Encoding` (not `gzip, br`) to the origin (Workers subrequests without `brotli_content_encoding` send `gzip`), which may return an encoded `206` that Cloudflare passes
+  through undecoded and uncompressed; an empty header means "no encoding" → answer unencoded, not `406`. Origin Range Requests send `Accept-Encoding: identity`, align to 1 MiB, and aren't supported with Cache Reserve.
 - Cache Reserve fetches **uncompressed** from origin (no `Accept-Encoding: gzip`) → higher origin
   egress than the normal CDN; and silently skips `Vary: Accept` images.
 
@@ -129,5 +133,5 @@ works on custom domains / Pages Functions — no effect in the dashboard editor 
 - **Cache Reserve** is covered by the official `cloudflare` skill (`references/cache-reserve/`) —
   use it for full enable/config, API, SDK/Terraform, cost-optimization patterns, and gotchas.
 - Cache Rules deep-dives: `pages/cache/how-to/cache-rules/` (settings, order, API, Terraform).
-- Cache-Control semantics: `pages/cache/concepts/cache-control/` + `cdn-cache-control/`.
+- Cache-Control semantics: `pages/cache/concepts/cache-control/` + `cdn-cache-control/`. Range/encoding rules: `cache/reference/range-requests/`.
 - Workers integration: `pages/workers/runtime-apis/cache/` + `reference/how-the-cache-works/`.

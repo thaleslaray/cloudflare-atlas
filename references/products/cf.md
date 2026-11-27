@@ -38,6 +38,12 @@
 - **Source maps:** `cf deploy` uploads every source map in the build output by default (since 2026-10-20). Vite plugin
   ≥1.64.0 generates Worker maps by default; opt out by setting `build.sourcemap` to `false` on the Worker's Vite environment
   (`ssr` by default). `cf migrate` does not carry `upload_source_maps` over.
+- **Activate subscriptions in place** (changelog, 2026-11-25): OAuth sessions of `cf` and the Cloudflare MCP servers can now create **Workers Paid**, **R2** and **Zero Trust** subscriptions
+  (CLI: `cf` `1.0.0-rc.5`+ and re-run `cf auth login` for the new OAuth scopes; account needs a verified email and a billing profile with a payment method). MCP clients with
+  the `2026-07-28` spec + elicitation show the plan price and ask permission first; others are sent to the dashboard. Billing side → `billing.md`.
+- **Send feedback** (`cf/agent-feedback/`, 2026-11-23): `cf feedback "<note>"`, repeatable `--field key=value`, or a JSON report via `--input-json <file>` (`=-` for stdin; flags win over
+  JSON). Needs `cf auth login` or `CLOUDFLARE_API_TOKEN`. Prints a JSON receipt with `submission_id`; an agent that sends feedback must tell the user at the next natural break, with the ID.
+  Reports always carry diagnostics (CLI version, OS, detected agent/model; whole report ≤16 KiB) regardless of telemetry settings.
 - **Docs search:** `cf docs search "<query>"` (live docs, needs Internet; `cf` ≥1.0.0-beta.16) complements `cf cli search`.
 - **Command discovery:** `cf cli search "<plain-language task>"` finds matching commands without
   memorizing subcommand trees.
@@ -71,6 +77,7 @@
 
 ## Going deeper
 - Official docs: https://developers.cloudflare.com/cf/
+- Agent feedback: https://developers.cloudflare.com/cf/agent-feedback/
 - Agent setup guide: https://developers.cloudflare.com/agent-setup/
 - Wrangler migration: https://developers.cloudflare.com/cf/wrangler/migrate/
 - Config explorer (typed fields): https://developers.cloudflare.com/cf/projects/config-explorer/

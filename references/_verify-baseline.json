@@ -11,7 +11,7 @@
   "RunEndTask",
   "delivered|duplicate|invalid|closed|not_found",
   "harnesses/container/",
-  "migrate-to-1.0",
+  "migrate-to-1.x",
   "no_output",
   "tts_error",
   "turnmetrics"
@@ -61,9 +61,14 @@
  ],
  "basin": [],
  "basin-catalog": [],
- "basin-pipelines": [],
+ "basin-pipelines": [
+  "PATCH /accounts/$ACCOUNT_ID/pipelines/v1/sinks/$SINK_ID",
+  "config.credentials"
+ ],
  "basin-sql": [],
- "billing": [],
+ "billing": [
+  "1.0.0-rc.5"
+ ],
  "bots": [],
  "browser-run": [
   "1200000 ms",
@@ -79,6 +84,7 @@
  ],
  "cf": [
   "1.0.0-rc.1",
+  "1.0.0-rc.5",
   "4.160",
   "bulk-edit",
   "cf accounts billing get-credits",
@@ -92,7 +98,9 @@
  "client-side-security": [],
  "cloudflare-challenges": [],
  "cloudflare-for-platforms": [
+  "; \u2264256 chars. Otherwise create fails with",
   "Customer adds CNAME",
+  "cloudflare_workers_for_platforms_dispatch_namespace",
   "customer.myplatform.com",
   "metadata.bindings"
  ],
@@ -160,12 +168,20 @@
   "wrangler cert upload certificate-authority|mtls-certificate"
  ],
  "images": [
+  "PATCH /accounts/$ACCOUNT_ID/images/v1/config",
+  "PATCH /zones/$ZONE_ID/settings/transformations_c2pa",
   "Paid only",
   "events.imagesHostedRequests",
   "events.imagesTransformations",
-  "high|medium-high|medium-low|low"
+  "high|medium-high|medium-low|low",
+  "preserve_content_credentials: true"
  ],
- "k2": [],
+ "k2": [
+  "k2ConsumeAdaptiveGroups",
+  "k2ProduceAdaptiveGroups",
+  "k2StorageAdaptiveGroups",
+  "k2SubscriptionLagAdaptiveGroups"
+ ],
  "key-transparency": [
   "HTTP 400 Namespace is disabled and read-only"
  ],
@@ -269,7 +285,9 @@
   "ip.geoip.country"
  ],
  "ruleset-engine": [],
- "sandbox": [],
+ "sandbox": [
+  "apt-get install git"
+ ],
  "secrets-store": [
   "secrets.quota",
   "secrets.usage"
@@ -378,7 +396,8 @@
   "eth_compile*"
  ],
  "workers": [
-  "4.160"
+  "4.160",
+  "50000 ms"
  ],
  "workers-ai": [
   "llama-3.2-1b/3b-instruct"

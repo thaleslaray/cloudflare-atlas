@@ -4,9 +4,9 @@
 > product-level "preview" banner.) Announced on the 2026-04-15 blog under an earlier, longer name (live docs now say just Think); docs still say pieces
 > "may evolve before Think graduates out of experimental" (Actions, Channels, `runTurn`).
 > Never present as GA. `Think` is a base class wiring the Agents SDK primitives (fibers, sub-agents,
-> Session, a Computer workspace) into a full chat lifecycle: agentic loop, persistence, streaming, tools,
+> `Sessions`, a Computer workspace) into a full chat lifecycle: agentic loop, persistence, streaming, tools,
 > recovery. **Three primitives work standalone on the `Agent` base class** — fibers
-> (`runFiber`/`startFiber`), sub-agents (`subAgent`), and Session (`agents/experimental/memory/session`,
+> (`runFiber`/`startFiber`), sub-agents (`subAgent`), and `Sessions` (`agents/sessions`,
 > itself experimental). Everything else below — Actions, Channels, Messengers, scheduled tasks,
 > `runTurn`, `ThinkWorkflow`, extensions — is Think-only. See `products/agents.md`
 > for the SDK itself.
@@ -23,13 +23,13 @@
 ## When to use (and when not)
 - **Use `Think`** when you want a chat agent shipped fast: a 3-line subclass (`getModel()` only) gives
   streaming, message persistence, abort/resume, workspace file tools, and the agentic loop.
-  Also for: LLM-writable memory (context blocks), long conversations (non-destructive compaction),
+  Also for: LLM-writable memory (context blocks via `configureContext()`), long conversations (non-destructive compaction),
   FTS5 conversation search, sub-agent systems (parent↔child RPC streaming), proactive agents
   (scheduled/webhook-triggered turns), durable async submission.
 - **Use `AIChatAgent`** (`products/agents.md`) when you need full control of the LLM call — RAG,
   multi-model, custom streaming — or want a `Response` return type for HTTP middleware/testing.
 - **Use the bare `Agent` base class + primitives** when you don't want an opinionated pipeline:
-  `runFiber()`, `subAgent()`, `Session`, `@cloudflare/codemode`, `@cloudflare/computer` and
+  `runFiber()`, `subAgent()`, `Sessions`, `@cloudflare/codemode`, `@cloudflare/computer` and
   `@cloudflare/worker-bundler` all work without Think — it's a convenience layer, not a prerequisite
   for any capability below. **Not** for stateless request/response (→ plain Workers) or
   cross-conversation managed memory (→ `products/agent-memory.md`).
@@ -37,7 +37,7 @@
 ## Binding & config (`wrangler.jsonc`)
 ```jsonc
 {
-  "compatibility_date": "2026-06-26",
+  "compatibility_date": "2026-11-27",     // set to today's date
   "compatibility_flags": ["nodejs_compat"],
   "ai": { "binding": "AI" },
   "durable_objects": { "bindings": [{ "name": "MyAgent", "class_name": "MyAgent" }] },
@@ -47,14 +47,15 @@
   "r2_buckets": [{ "binding": "R2", "bucket_name": "agent-files" }] // optional: workspace spillover
 }
 ```
-`npm i @cloudflare/think @cloudflare/computer @cloudflare/ai-chat agents ai zod @ai-sdk/provider`.
+`npm i @cloudflare/think @cloudflare/computer agents ai zod @ai-sdk/provider react @ai-sdk/react`.
 Model: `createAI({ binding: this.env.AI })("@cf/…")` from `agents/models/ai-sdk` — `workers-ai-provider` and
 `ai-gateway-provider` are deprecated (2026-10-21). Peers you provide: `agents`, `@cloudflare/computer`
-(workspace), `ai` (AI SDK **v6 *or* v7** since 2026-07-23: `ai@^6` with `@ai-sdk/react@^3`, or `ai@^7` with
+(workspace; **Think ≥0.24 needs Computer 0.10** — upgrade both), `ai` (AI SDK **v6 *or* v7** since 2026-07-23: `ai@^6` with `@ai-sdk/react@^3`, or `ai@^7` with
 `@ai-sdk/react@^4`; **match the majors**), `zod` (**v4**), `@chat-adapter/telegram` (optional);
 bundled: `@cloudflare/codemode` (only for the deprecated execute tool). Route with
-`routeAgentRequest()`; client = `useAgent` (`agents/react`) + `useAgentChat` (`@cloudflare/ai-chat/react`)
-— same `cf_agent_chat_*` protocol as `AIChatAgent`, so existing chat UI works unchanged.
+`routeAgentRequest()`; client = `useAgent` (`agents/react`) + `useAgentChat` from **`@cloudflare/think/react`**
+(`@cloudflare/ai-chat/react` is the `AIChatAgent` one) — same `cf_agent_chat_*` protocol. Think owns the transcript:
+`setMessages` only changes the client view (not saved); clear with `clearHistory()`.
 **Upgrading is not forced:** Think normalizes streaming, tool-completion events and telemetry across both
 AI SDK majors, so a v6 app can take the latest `@cloudflare/think` without migrating its AI SDK
 integration first — and can adopt v7 later without changing any Cloudflare Agents API it calls.
@@ -68,19 +69,29 @@ integration first — and can adopt v7 later without changing any Cloudflare Age
 - **Sub-agents via Facets** — `this.subAgent(ChildClass, "name")` creates a child DO colocated with the
   parent as a **facet**: own isolated SQLite, typed RPC stub, co-located on the same machine. Only the
   top-level parent needs a DO binding/migration; facet-only children do not.
-- **Session API** — tree-structured messages (`parent_id`) → forking, **non-destructive** compaction
-  (summaries as overlays, full history kept), FTS5 search per- and cross-session. In `configureSession`,
-  `.withContext("memory", {maxTokens})` gives memory the model reads *and writes*
-  (`set_context`/`load_context`/`search_context`); `.withCachedPrompt()` for prompt caching.
+- **Sessions** (`agents/sessions`; the transcript, UIMessage format) — messages form a tree (regenerate = branch),
+  **non-destructive** compaction (summary overlay; originals stay stored and searchable, storage does not shrink),
+  FTS5 search per- and cross-session. `configureSession(session)` →
+  `.onCompaction(createCompactFunction({ summarize, keepRecentTokens }))` + `.compactAfter(tokens)` (set it well above summary +
+  kept tail or it recompacts every message; compaction runs between turns). Startup loads a window capped by
+  `hydrationByteBudget` (32 MiB); `mediaEviction` (keeps 8 recent messages, rest → `/workspace/attachments/evicted/`);
+  read-time truncation moves every `truncationStep` (8) messages, `Infinity` = off.
+- **Context** (the system prompt; memory lives here, not in the session) — `configureContext()` returns labelled
+  blocks `{ label, description, maxTokens, provider, whenChanged }`: no provider = writable block in SQLite (model
+  gets `set_context`); `get`-only = read-only; with `search` = searchable (`search_context`, e.g. `AgentSearchProvider`
+  from `agents/context`). Code edits via `this.context.appendToBlock()`. Prompt is frozen after turn 1; a write is saved
+  but not re-rendered; `whenChanged: "remind"` blocks ride on the last user message; refresh after compaction and
+  clear (or `this.context.refreshSystemPrompt()`). Your `getSystemPrompt()` override renders above the blocks; its default text is used only when there are none.
 - **Workspace + `exec`** (2026-10-20) — `this.workspace` is a `Workspace` from `@cloudflare/computer` in
   the DO's SQLite; Think adds its tools every turn (below). No `exec` until you add a backend:
-  `WorkerJavaScriptBackend({ id: "js", loader: this.env.LOADER })` runs model-written modules in a Dynamic
-  Worker (`worker_loaders` binding); a `ws:tools` module lets that code call `getTools()`. **Breaking, no
+  `CodemodeBackend({ loader: this.env.LOADER, modules })` (`@cloudflare/computer/backends/codemode`; replaces
+  `WorkerJavaScriptBackend`) runs model-written modules in a Dynamic Worker (`worker_loaders` binding); a
+  `codemode:tools` module (`createToolBindings(forAISDKTools(() => this.getTools()))`, prefix was `ws:`) lets that code call `getTools()`. **Breaking, no
   automatic data migration** from `@cloudflare/shell` — copy files with the script in `github.com/cloudflare/agents`
   `docs/shell/migrating-to-computer.md`, else the agent starts with an empty workspace.
 - **Code Mode tool (deprecated)** — `createExecuteTool(this)` and `createExecuteRuntime` work until removed with
   `@cloudflare/codemode`: JS in a Dynamic Worker seeing `tools.*`, `cdp.*`, `codemode.*` on a durable runtime
-  (abort-and-replay, `runtime.executions()`). New code → `exec` + `ws:tools`.
+  (abort-and-replay, `runtime.executions()`). New code → `exec` + `codemode:tools`.
 - **Execution ladder** (blog framing; additive): workspace → isolate (`@cloudflare/codemode`) → npm
   (`@cloudflare/worker-bundler`) → Browser Run → Sandbox.
 - **Self-authored extensions** — sandboxed Workers the LLM writes and loads at runtime (`load_extension`/
@@ -98,13 +109,13 @@ integration first — and can adopt v7 later without changing any Cloudflare Age
 
 ## Key API surface
 - **Overrides:** `getModel()` (required) · `getSystemPrompt()` · `getTools()` · `getActions()` ·
-  `getScheduledTasks()` · `getMessengers()` · `configureSession()` · `configureChannels()` · `getSkills()`
-  (`Agent Skills`, experimental: `skills.workspace()`, `skills.r2()`) · `maxSteps` (**10**) ·
+  `getScheduledTasks()` · `getMessengers()` · `configureSession()` · `configureContext()` · `configureChannels()` · `getSkills()`
+  (`Agent Skills`, experimental: `skills.workspace()`, `skills.r2()`) · `fetchTools` (off; allowlisted read-only fetch) · `maxSteps` (**10**) ·
   `sendReasoning` (true) · `waitForMcpConnections`
   (false, 10 s) · `includeMcpTools` (true — set **false** to skip Think's automatic `getAITools()` MCP
   exposure when you surface MCP tools through Code Mode or another mechanism; registration, discovery,
   raw catalog, direct calls and Code Mode connectors still work — 2026-07-22) · `messageConcurrency`
-  ("queue") · `chatRecovery` (true) · `contextOverflow` (off).
+  ("queue") · `chatRecovery` (always on) · `contextOverflow` (off).
 - **Turns:** `runTurn(options)` is the unified entry point — `mode: "wait"` (≡ `saveMessages()`),
   `"submit"` (≡ `submitMessages()`, durable + idempotent), `"stream"` (≡ `chat()`, RPC callback). Plus
   `continueLastTurn()`, `addMessages()` (transcript only, no inference), `cancelChat(requestId)`,
@@ -114,9 +125,9 @@ integration first — and can adopt v7 later without changing any Cloudflare Age
   `beforeToolCall` → tool → `afterToolCall` → `onStepFinish`]* → `onChatResponse`; errors go through
   `classifyChatError` then `onChatError`. `beforeToolCall` can `allow` / `block` / `substitute`.
 - **Tool merge order** (later wins on name collision): workspace (`read ls find grep write edit
-  delete`, plus `exec` / `publish` when configured) → `getTools()` → extensions → session tools → skill tools → MCP → client tools.
-- **Exports:** `@cloudflare/think` (Think, Session, Workspace, `action`, skills) · `/messengers`
-  (+`/telegram`) · `/workflows` · `/tools/{execute,browser,extensions}` · `/extensions` (`createWorkspaceTools` and `/tools/workspace` are
+  delete`, plus `exec` / `publish` when configured) → `getTools()` → extensions → context tools (`set_context`, `search_context`) → skill tools → MCP → client tools.
+- **Exports:** `@cloudflare/think` (Think, Session type, `action`, skills) · `/react` (`useAgentChat`) · `/messengers`
+  (+`/telegram`) · `/workflows` · `/tools/{fetch,execute,browser,extensions}` (`execute`, `browser` deprecated) · `/extensions` (`createWorkspaceTools` and `/tools/workspace` are
   removed; a same-named tool from `getTools()` replaces a built-in).
   Runtime config: `configure<T>(obj)` / `getConfig<T>()` — typed, in SQLite, survives hibernation.
 
@@ -156,7 +167,7 @@ fiber checkpoints and the submission ledger all live there) · Workers requests/
 caps apply and exceeding one fails that operation. Verify on the live DO pricing page before advising.
 
 **Key limits:** `maxSteps` **10**/turn · action timeout **30 s** · recovery `maxAttempts` **10**,
-`stableTimeoutMs` **10,000**, `noProgressTimeoutMs` **300,000** (5 min), `maxRecoveryWork` **1,000**
+`stableTimeoutMs` **10,000**, `noProgressTimeoutMs` **300,000** (5 min), `maxRecoveryWork` **10,000**
 (raise or set Infinity for long agentic turns) · sandbox approval args **1 MB** (preview ~2 KB). The rest
 is inherited from Workers/DO (CPU 30 s per event, 1 GB state) — see `products/durable-objects.md` and
 `products/agents.md`.
@@ -164,7 +175,7 @@ is inherited from Workers/DO (CPU 30 s per event, 1 GB state) — see `products/
 ## Going deeper
 - Canonical: `developers.cloudflare.com/agents/harnesses/think/` (fetch as Markdown — subpages:
   getting-started, configuration, tools, actions, channels, lifecycle-hooks, client-tools, messengers,
-  scheduled-tasks, workflows, sub-agents, programmatic-submissions, recovery). **Not** in the official
+  scheduled-tasks, workflows, sub-agents, programmatic-submissions, recovery, context, sessions). **Not** in the official
   `cloudflare` skill's `references/agents-sdk/` — that ref covers the base SDK only. ⚠️ The separately
   installed `agents-sdk` skill *does* ship a `references/think.md`, but it is stale (points at the dead
   `agents/harnesses/think/` path, wrong model id) — prefer this file over it.

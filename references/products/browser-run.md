@@ -172,7 +172,9 @@ Workers, built for AI agents rather than for full web-app fidelity.
 - Concurrent browsers (Sessions only): **Free** 3 · **Paid** 10 included (monthly-averaged), then
   **$2.00/browser**.
 - Failed Quick Actions (e.g. `waitForTimeout`) are **not** billed. Each Quick Actions response
-  returns `X-Browser-Ms-Used` (time used, ms).
+  returns `X-Browser-Ms-Used` (time used, ms); `/script` responses return it too, **cumulative** since the session began. Kitesurf
+  runs (incl. `/script?browser=kitesurf`) follow Kitesurf pricing, not this table. `/script` and `/snapshot` have no limits row of their own
+  (checked 2026-11-27: `/script` shares `POST /devtools/browser` limits, `429` on rate/browser-time/concurrency).
 
 **Key limits (limits page, updated 2026-09-26):** new instances **Free** 1/20s · **Paid** 3/s
 (default, raisable). Concurrent browsers/account **Free** 3 · **Paid** default 200 (request more).
